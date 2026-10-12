@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>PokéMarché JP</title>
+<style>
+:root{--bg:#f3f5f9;--paper:#fff;--ink:#172033;--muted:#667085;--line:#e1e6ef;--blue:#315ee8;--gold:#946200;--green:#147a50;--red:#b54735}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.42 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#111827;color:#fff;padding:18px 16px 16px;position:sticky;top:0;z-index:4}header h1{font-size:22px;margin:0 0 3px}header p{margin:0;color:#c7d0df;font-size:12px}
+main{max-width:850px;margin:auto;padding:12px 12px 44px}.panel,.card{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:13px;margin-bottom:11px;box-shadow:0 2px 8px #10182808}
+.notice{background:#fff5d6;border:1px solid #f0df9c;border-radius:12px;padding:11px;font-size:12px;margin-bottom:11px}
+input,select{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;min-width:0;width:100%}
+.search{font-size:16px;padding:13px}.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+button,.btn{font:600 14px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border:0;border-radius:10px;padding:12px;background:var(--blue);color:#fff;cursor:pointer;text-align:center}
+button.secondary,.btn.secondary{background:#edf1ff;color:#2447b9}button.ghost{background:#f0f2f6;color:#303b50}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.actions>*{flex:1}
+.small{font-size:12px;color:var(--muted)}.stats{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin:10px 2px}
+.cardrow{display:grid;grid-template-columns:74px 1fr;gap:12px}.art{width:74px;aspect-ratio:2.5/3.5;object-fit:contain;background:#f5f6f8;border-radius:8px}.name{font-weight:760;font-size:16px}.meta{font-size:12px;color:var(--muted);margin-top:3px}.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.chip{font-size:11px;background:#eef2ff;color:#344db0;padding:3px 6px;border-radius:6px}.chip.gold{background:#fff1d6;color:#805200}
+.pricebox{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.pricebox label{font-size:11px;color:var(--muted);display:block;margin-bottom:3px}.pricebox input{padding:9px;font-size:14px}
+.comparison{font-size:12px;font-weight:700;margin-top:7px}.good{color:var(--green)}.bad{color:var(--red)}
+a{color:#2447b9;text-decoration:none;font-weight:650;font-size:13px}.links{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px}.empty{text-align:center;color:var(--muted);padding:24px 12px}.progress{height:7px;background:#e9edf5;border-radius:99px;overflow:hidden;margin-top:8px}.progress span{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
+.scanbox{display:none;position:relative;background:#0b1020;color:white;border-radius:14px;overflow:hidden;margin-top:10px}.scanbox.open{display:block}.scanvideo{display:block;width:100%;max-height:56vh;object-fit:cover;background:#05070c}.scanoverlay{position:absolute;inset:10% 12%;border:2px solid #70e1a1;border-radius:14px;box-shadow:0 0 0 999px #0003;pointer-events:none}.scanstatus{padding:10px 12px;font-size:12px;color:#d7e3f5}.scanresult{display:none;background:#effaf3;color:#14532d;padding:12px;border-radius:10px;margin-top:8px}.scanresult.show{display:block}.scanresult img{width:76px;float:left;margin-right:10px;border-radius:6px}.scanactions{display:flex;gap:8px;padding:0 10px 10px}.scanactions button{flex:1}
+summary{font-weight:700;cursor:pointer}footer{font-size:11px;color:var(--muted);padding:8px 2px}
+@media(min-width:600px){main{padding:20px}.filters{grid-template-columns:repeat(4,1fr)}.cardrow{grid-template-columns:90px 1fr}.art{width:90px}}
+</style>
+</head>
+<body>
+<header><h1>🃏 PokéMarché JP</h1><p>Catalogue japonais · Écarlate & Violet + Méga-Évolution</p></header>
+<main>
+<div class="notice"><b>Version gratuite :</b> le catalogue est récupéré depuis TCGdex quand tu appuies sur « Charger le catalogue ». Les prix Cardmarket ne sont pas fournis automatiquement : ouvre la recherche Cardmarket et saisis un prix de référence si tu le consultes. Les prix saisis et favoris restent enregistrés sur cet iPhone/navigateur.</div>
+<section class="panel">
+<input id="q" class="search" placeholder="Nom japonais, nom anglais, numéro…" autocomplete="off">
+<div class="filters">
+<select id="block"><option value="all">Tous les blocs</option><option value="sv">Écarlate & Violet</option><option value="me">Méga-Évolution</option></select>
+<select id="rarity"><option value="all">Toutes les raretés retenues</option><option value="RR">RR · ex</option><option value="RRR">RRR</option><option value="AR">AR</option><option value="SR">SR</option><option value="SAR">SAR</option><option value="UR">UR</option><option value="MA">MA</option><option value="MUR">MUR</option><option value="other">Autres raretés hautes</option></select>
+<select id="set"><option value="all">Toutes les extensions</option></select>
+<select id="sort"><option value="name">Nom A → Z</option><option value="priceAsc">Prix saisi croissant</option><option value="priceDesc">Prix saisi décroissant</option><option value="set">Extension</option></select>
+</div>
+<div class="actions"><button id="load">Charger / actualiser le catalogue</button><button class="secondary" id="favOnly">☆ Mes favoris</button></div>
+<div class="actions"><button id="openScan">📷 Scanner une carte automatiquement</button></div>
+<div id="scanbox" class="scanbox"><video id="scanvideo" class="scanvideo" autoplay muted playsinline></video><div class="scanoverlay"></div><div id="scanstatus" class="scanstatus">Initialisation du scan…</div><div class="scanactions"><button id="pauseScan" class="secondary">Mettre en pause</button><button id="closeScan" class="ghost">Fermer le scan</button></div></div><div id="scanresult" class="scanresult" aria-live="polite"></div>
+<div class="progress" id="progress" hidden><span id="bar"></span></div>
+<div class="small" id="status" style="margin-top:8px">Catalogue non chargé. Une connexion Internet est nécessaire au premier chargement.</div>
+</section>
+<div class="stats"><span id="count">0 carte</span><span id="saved">Favoris : 0</span></div>
+<div id="cards"></div>
+<details class="panel"><summary>Quelles raretés sont incluses ?</summary>
+<p class="small">Le filtre conserve les raretés japonaises ex et supérieures reconnues par les données : RR, RRR, AR, SR, SAR, UR, SSR, S, K, CHR, CSR, HR, ACE SPEC et raretés Méga telles que MA/MUR. Les communes, peu communes et rares classiques sont exclues. Les extensions promotionnelles et decks de démarrage sont écartés du catalogue principal quand leur code est identifiable.</p>
+<p class="small">La classification des blocs est fondée sur les codes d'extension japonais commençant par « sv » et « m ». Les cartes peuvent avoir des raretés ou des conventions de nommage différentes selon les extensions : vérifie la fiche de la carte si un résultat semble incomplet.</p>
+</details>
+<details class="panel"><summary>Comment lire le prix ?</summary>
+<p class="small">« Prix de référence » est une valeur que tu saisis après avoir consulté Cardmarket ; « prix boutique » est le prix demandé par le vendeur. L'écart est calculé automatiquement. La recherche Cardmarket s'ouvre dans un nouvel onglet. Le lien est une recherche, pas une garantie que la langue, l'état ou la version soient déjà parfaitement filtrés.</p>
+</details>
+<footer>PokéMarché JP · Outil de consultation personnel. Source catalogue : API publique TCGdex. Les prix saisis ne sont pas des cours automatiques ni une garantie de prix de vente.</footer>
+</main>
+<script>
+const API='https://api.tcgdex.net/v2/ja';
+// OCR runs in-browser; it reads visible Japanese card text and matches it to the loaded catalogue.
+const OCR_URL='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+const STORE='pokemarche_jp_v2';
+const HIGH=new Set(['RR','RRR','AR','SR','SAR','UR','SSR','S','K','CHR','CSR','HR','ACESPEC','MA','MUR','M','DOUBLERARE','TRIPLERARE','ILLUSTRATIONRARE','SPECIALILLUSTRATIONRARE','ULTRARARE','HYPERRARE','MEGAATTACKRARE','MEGAULTRARARE','MEGAHYPERRARE','CROWN','ダブルレア','トリプルレア','アートレア','スペシャルアートレア','ウルトラレア','ハイパーレア','メガアタックレア','メガウルトラレア','メガハイパーレア']);
+let allCards=[],favorites=new Set(),prices={},favOnly=false,sets=[];
+let scanStream=null,scanTimer=null,scanPaused=false,scanBusy=false,scanWorker=null,lastCandidate='',candidateHits=0,lastScanAt=0,sceneSignature='';
+const $=id=>document.getElementById(id);
+function norm(x){return String(x??'').trim()}
+function rarityCode(r){return norm(r).toUpperCase().replace(/[\s_-]+/g,'')}
+function allowed(c){
+ const r=rarityCode(c.rarity);
+ if(HIGH.has(r))return true;
+ // Japanese API labels may be localized; keep ex cards and recognized premium rarity names.
+ const name=norm(c.name);
+ if(/ex$/i.test(name) && /RR|RRR|DOUBLE|TRIPLE|ULTRA|SPECIAL|MEGA|SAR|SR/i.test(r))return true;
+ return false;
+}
+function getBlock(set){let id=norm(set.id);if(/^sv/i.test(id))return 'sv';if(/^m/i.test(id)&&!/^mp/i.test(id))return 'me';return ''}
+function isPromoOrDeck(set){let id=norm(set.id).toLowerCase(),name=norm(set.name).toLowerCase();return /^(svp|sv-p|mp|m-p|st\\d|s\\d)/i.test(id)||/promo|starter|start deck|premium trainer box|deck set/i.test(name)}
+function key(c){return [c.set?.id||c.setId||'',c.localId||c.id||'',c.name||''].join('|')}
+function save(){try{localStorage.setItem(STORE,JSON.stringify({favorites:[...favorites],prices}))}catch(e){}}
+function loadSaved(){try{let d=JSON.parse(localStorage.getItem(STORE)||'{}');favorites=new Set(d.favorites||[]);prices=d.prices||{}}catch(e){}}
+function setOptions(){let sel=$('set'),old=sel.value;sel.innerHTML='<option value="all">Toutes les extensions</option>'+sets.map(s=>`<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.id)})</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function loadCatalogue(){
+ $('load').disabled=true;$('progress').hidden=false;$('bar').style.width='2%';$('status').textContent='Récupération des extensions japonaises…';
+ try{
+  const response=await fetch(API+'/sets');
+  if(!response.ok)throw new Error('API indisponible ('+response.status+')');
+  const rawSets=await response.json();
+  sets=rawSets.filter(s=>getBlock(s)&&!isPromoOrDeck(s));
+  sets.sort((a,b)=>(a.releaseDate||'').localeCompare(b.releaseDate||''));
+  if(!sets.length)throw new Error('Aucune extension SV/Méga reconnue par les codes japonais de TCGdex.');
+  setOptions();allCards=[];let done=0,briefs=[];
+  for(const s of sets){
+   $('status').textContent=`Lecture des cartes de ${s.name||s.id} (${done+1}/${sets.length})…`;
+   try{
+    const r=await fetch(API+'/sets/'+encodeURIComponent(s.id));
+    if(!r.ok){done++;continue}
+    const detail=await r.json();
+    for(const c of (detail.cards||[])) briefs.push({brief:c,set:s,block:getBlock(s)});
+   }catch(e){}
+   done++;$('bar').style.width=Math.round(done/Math.max(sets.length,1)*20)+'%';
+  }
+  if(!briefs.length)throw new Error('Les extensions ont été trouvées, mais aucune liste de cartes n’a été renvoyée.');
+  let finished=0,eligible=[];
+  // The set endpoint returns brief cards without rarity. Fetch full card details in small parallel batches.
+  const batchSize=8;
+  for(let i=0;i<briefs.length;i+=batchSize){
+   const batch=briefs.slice(i,i+batchSize);
+   const results=await Promise.all(batch.map(async item=>{
+    const b=item.brief;
+    const cardId=b.id||(`${item.set.id}-${b.localId||''}`);
+    try{
+     const r=await fetch(API+'/cards/'+encodeURIComponent(cardId));
+     if(!r.ok)return null;
+     const c=await r.json();
+     const merged={...b,...c,set:{id:item.set.id,name:item.set.name,releaseDate:item.set.releaseDate},block:item.block};
+     return allowed(merged)?merged:null;
+    }catch(e){return null}
+   }));
+   eligible.push(...results.filter(Boolean));finished+=batch.length;
+   $('bar').style.width=(20+Math.round(finished/briefs.length*80))+'%';
+   $('status').textContent=`Analyse des raretés : ${Math.min(finished,briefs.length)}/${briefs.length} cartes examinées…`;
+  }
+  allCards=eligible;
+  $('status').textContent=`Catalogue chargé : ${allCards.length} cartes éligibles dans ${sets.length} extensions. Catalogue récupéré le ${new Date().toLocaleString('fr-FR')}.`;
+  render();
+ }catch(e){$('status').textContent='Impossible de charger le catalogue. '+e.message+' Vérifie la connexion puis réessaie.'}
+ finally{$('load').disabled=false;$('progress').hidden=true}
+}
+
+async function ensureOCR(){
+ if(scanWorker)return scanWorker;
+ $('scanstatus').textContent='Chargement du moteur de reconnaissance…';
+ if(!window.Tesseract){await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src=OCR_URL;sc.onload=resolve;sc.onerror=()=>reject(new Error('Le moteur OCR ne peut pas être téléchargé.'));document.head.appendChild(sc)})}
+ scanWorker=await Tesseract.createWorker('jpn+eng',1,{logger:m=>{if(m.status==='recognizing text')$('scanstatus').textContent='Lecture automatique… '+Math.round((m.progress||0)*100)+'%'}});
+ return scanWorker;
+}
+async function openScan(){
+ if(!allCards.length){$('scanstatus').textContent='Charge d’abord le catalogue pour pouvoir identifier les cartes.';$('scanbox').classList.add('open');return}
+ $('scanbox').classList.add('open');$('scanresult').classList.remove('show');$('openScan').disabled=true;
+ try{
+  scanStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+  $('scanvideo').srcObject=scanStream;await $('scanvideo').play();
+  await ensureOCR();scanPaused=false;$('pauseScan').textContent='Mettre en pause';$('scanstatus').textContent='Présente une carte entière dans le cadre. Détection automatique en cours…';
+  scanTimer=setInterval(scanFrame,1800);
+ }catch(e){$('scanstatus').textContent='Impossible de démarrer le scan : '+(e.message||e)+' Vérifie l’autorisation caméra et ouvre la page en HTTPS.';$('openScan').disabled=false}
+}
+function closeScan(){if(scanTimer)clearInterval(scanTimer);scanTimer=null;if(scanStream)scanStream.getTracks().forEach(t=>t.stop());scanStream=null;$('scanvideo').srcObject=null;$('scanbox').classList.remove('open');$('openScan').disabled=false;scanPaused=false;}
+function normalizeOCR(s){return String(s||'').toLowerCase().replace(/[\s\-‐‑‒–—_.,:：・/\\|]/g,'').replace(/[「」『』【】［］()（）]/g,'')}
+function matchOCR(text){
+ const t=normalizeOCR(text);if(t.length<3)return null;
+ let best=null,bestScore=0;
+ for(const c of allCards){
+  const name=normalizeOCR(c.name),num=normalizeOCR(c.localId),setid=normalizeOCR(c.set?.id);
+  let score=0;
+  if(name.length>=3&&t.includes(name))score=Math.max(score,0.98);
+  if(num.length>=2&&t.includes(num)&&(setid&&t.includes(setid)))score=Math.max(score,0.99);
+  else if(num.length>=3&&t.includes(num))score=Math.max(score,0.78);
+  // A card name alone is useful, but avoid claiming a match from a short/ambiguous OCR fragment.
+  if(name.length>=5&&t.includes(name))score=Math.max(score,0.92);
+  if(score>bestScore){best=c;bestScore=score}
+ }
+ return best?{card:best,score:bestScore}:null;
+}
+async function scanFrame(){
+ if(scanPaused||scanBusy||!scanWorker||!scanStream)return;
+ const video=$('scanvideo');if(video.readyState<2||!video.videoWidth)return;
+ const now=Date.now();if(now-lastScanAt<1400)return;lastScanAt=now;scanBusy=true;
+ try{
+  const canvas=document.createElement('canvas');canvas.width=Math.min(video.videoWidth,900);canvas.height=Math.round(canvas.width*video.videoHeight/video.videoWidth);
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  const result=await scanWorker.recognize(canvas);const text=result.data?.text||'';const found=matchOCR(text);
+  if(found&&found.score>=0.9){const id=key(found.card);if(id===lastCandidate)candidateHits++;else{lastCandidate=id;candidateHits=1}
+   if(candidateHits>=2){showScanResult(found.card,found.score);$('scanstatus').textContent='Carte reconnue automatiquement. Présente la suivante pour continuer.';candidateHits=0;lastCandidate='';}
+   else $('scanstatus').textContent='Carte repérée : vérification…';
+  }else{candidateHits=0;lastCandidate='';$('scanstatus').textContent='Recherche automatique… Garde la carte nette et bien éclairée.'}
+ }catch(e){$('scanstatus').textContent='Analyse en cours…'}finally{scanBusy=false}
+}
+function showScanResult(c,score){
+ const img=cardImage(c),id=key(c);$('scanresult').innerHTML=`${img?`<img src="${esc(img)}" alt="">`:''}<b>${esc(c.name||'Carte reconnue')}</b><br>${esc(c.set?.name||'')} · ${esc(c.localId||'')}<br><span class="small">Correspondance estimée : ${Math.round(score*100)}% · Vérifie visuellement le résultat.</span><div style="clear:both;padding-top:8px"><button class="secondary" id="showScannedCard">Afficher la fiche dans la liste</button></div>`;$('scanresult').classList.add('show');$('showScannedCard').onclick=()=>{closeScan();$('q').value=c.localId||c.name||'';render();document.getElementById('cards').scrollIntoView({behavior:'smooth',block:'start'})};
+}
+
+function cardImage(c){let img=c.image||'';if(!img)return '';return img.endsWith('.png')||img.endsWith('.webp')?img:img+'/low.webp'}
+function cardMarketSearch(c){let q=[c.name,c.set?.name,c.localId].filter(Boolean).join(' ');return 'https://www.cardmarket.com/en/Pokemon/Products/Search?searchString='+encodeURIComponent(q)}
+function render(){
+ const q=$('q').value.toLowerCase(),block=$('block').value,rarity=$('rarity').value,set=$('set').value,sort=$('sort').value;
+ let list=allCards.filter(c=>{
+  let id=key(c),r=rarityCode(c.rarity),search=[c.name,c.localId,c.set?.name,c.set?.id,c.rarity].join(' ').toLowerCase();
+  return (!q||search.includes(q))&&(block==='all'||c.block===block)&&(set==='all'||c.set?.id===set)&&
+  (rarity==='all'||(rarity==='other'&&!['RR','RRR','AR','SR','SAR','UR','MA','MUR'].includes(r))||r===rarity)&&(!favOnly||favorites.has(id));
+ });
+ list.sort((a,b)=>{if(sort==='priceAsc'||sort==='priceDesc'){let pa=Number(prices[key(a)]?.ref)||Infinity,pb=Number(prices[key(b)]?.ref)||Infinity;return sort==='priceAsc'?pa-pb:pb-pa}if(sort==='set')return (a.set?.name||'').localeCompare(b.set?.name||'');return (a.name||'').localeCompare(b.name||'')});
+ $('count').textContent=`${list.length} carte${list.length===1?'':'s'} affichée${list.length===1?'':'s'} / ${allCards.length}`;
+ $('saved').textContent='Favoris : '+favorites.size;
+ $('cards').innerHTML=list.length?list.map(c=>{
+  const id=key(c),p=prices[id]||{},fav=favorites.has(id),ref=p.ref??'',shop=p.shop??'',delta=ref!==''&&shop!==''?Number(shop)-Number(ref):null;
+  const img=cardImage(c);
+  return `<article class="card"><div class="cardrow">${img?`<img class="art" loading="lazy" src="${esc(img)}" alt="${esc(c.name)}">`:'<div class="art"></div>'}<div><div class="name">${esc(c.name||'Carte sans nom')}</div><div class="meta">${esc(c.set?.name||'Extension inconnue')} · ${esc(c.localId||'N° ?')}</div><div class="chips"><span class="chip">${esc(c.rarity||'Rareté inconnue')}</span><span class="chip gold">${c.block==='sv'?'Écarlate & Violet':'Méga-Évolution'}</span><span class="chip">🇯🇵 Japonais</span></div><div class="links"><a href="${esc(cardMarketSearch(c))}" target="_blank" rel="noopener">Chercher sur Cardmarket ↗</a>${img?`<a href="${esc(img.replace('/low.webp','/high.webp'))}" target="_blank" rel="noopener">Image HD ↗</a>`:''}</div></div></div>
+  <div class="pricebox"><div><label>Prix de référence (€)</label><input type="number" inputmode="decimal" min="0" step=".01" placeholder="ex. 12,50" data-ref="${esc(id)}" value="${esc(ref)}"></div><div><label>Prix boutique (€)</label><input type="number" inputmode="decimal" min="0" step=".01" placeholder="ex. 15,00" data-shop="${esc(id)}" value="${esc(shop)}"></div></div>
+  ${delta===null?'':`<div class="comparison ${delta<=0?'good':'bad'}">${delta<=0?'Boutique sous le prix de référence de ':'Boutique au-dessus du prix de référence de '}${Math.abs(delta).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</div>`}
+  <div class="actions"><button class="secondary" data-fav="${esc(id)}">${fav?'★ En favoris':'☆ Ajouter aux favoris'}</button><button class="ghost" data-clear="${esc(id)}">Effacer les prix</button></div>
+  </article>`;
+ }).join(''):'<div class="panel empty">'+(allCards.length?'Aucun résultat avec ces filtres.':'Charge le catalogue pour afficher les cartes.')+'</div>';
+ document.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>{let id=b.dataset.fav;favorites.has(id)?favorites.delete(id):favorites.add(id);save();render()});
+ document.querySelectorAll('[data-ref]').forEach(i=>i.onchange=()=>{let id=i.dataset.ref;prices[id]=prices[id]||{};if(i.value==='')delete prices[id].ref;else prices[id].ref=i.value;save();render()});
+ document.querySelectorAll('[data-shop]').forEach(i=>i.onchange=()=>{let id=i.dataset.shop;prices[id]=prices[id]||{};if(i.value==='')delete prices[id].shop;else prices[id].shop=i.value;save();render()});
+ document.querySelectorAll('[data-clear]').forEach(b=>b.onclick=()=>{delete prices[b.dataset.clear];save();render()});
+}
+$('load').onclick=loadCatalogue;
+$('openScan').onclick=openScan;$('closeScan').onclick=closeScan;$('pauseScan').onclick=()=>{scanPaused=!scanPaused;$('pauseScan').textContent=scanPaused?'Reprendre le scan':'Mettre en pause';$('scanstatus').textContent=scanPaused?'Scan en pause.':'Détection automatique en cours…'};
+window.addEventListener('pagehide',closeScan);
+$('favOnly').onclick=()=>{favOnly=!favOnly;$('favOnly').textContent=favOnly?'★ Afficher toutes':'☆ Mes favoris';render()};
+['q','block','rarity','set','sort'].forEach(id=>$(id).addEventListener(id==='q'?'input':'change',render));
+loadSaved();
+</script>
+</body></html>
