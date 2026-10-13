@@ -29,11 +29,17 @@ export async function officialRecentCards(pages = Number(process.env.OFFICIAL_JP
   return bySet;
 }
 
-/** Numéro imprimé d'une fiche officielle : « 039 / 103 » → { n: '039', total: 103 }. */
+/**
+ * Numéro imprimé et rareté d'une fiche officielle :
+ * « <img … alt="M6a" />&nbsp;039&nbsp;/&nbsp;103&nbsp;<img src="…/rarity/ic_rare_rr.gif"> » → { n: '039', total: 103, rarity: 'RR' }.
+ */
 export function parseOfficialNumber(html) {
-  const block = html.match(/class="subtext[^"]*"[^>]*>[\s\S]*?\/>([^<]*)<\/div>/)?.[1];
-  const m = block?.replace(/&nbsp;/g, ' ').match(/([A-Z]{0,3}\d{1,3})\s*\/\s*([A-Z]{0,3}\d{1,3})/);
-  return m ? { n: m[1], total: Number(m[2].replace(/\D/g, '')) || undefined } : null;
+  const block = html.match(/class="subtext[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? '';
+  const text = block.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ');
+  const m = text.match(/([A-Z]{0,3}\d{1,3})\s*\/\s*([A-Z]{0,3}\d{1,3})/);
+  if (!m) return null;
+  const rarity = block.match(/ic_rare_([a-z]+)\.gif/)?.[1]?.toUpperCase();
+  return { n: m[1], total: Number(m[2].replace(/\D/g, '')) || undefined, ...(rarity ? { rarity } : {}) };
 }
 
 export async function officialNumber(cardID) {

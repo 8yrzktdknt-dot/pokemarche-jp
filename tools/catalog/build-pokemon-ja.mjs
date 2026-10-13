@@ -130,6 +130,7 @@ async function completeFromOfficial(set, list, offCards, officialCount) {
       nameEn: t?.[0],
       nameFr: t?.[1],
       image: c.image,
+      rarity: num.rarity,
     });
     have.add(numberKey(num.n));
     added++;

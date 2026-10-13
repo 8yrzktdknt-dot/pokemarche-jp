@@ -13,7 +13,14 @@ const energy = `<div class="subtext Text-fjalla">
                     </div>
                     <span>&nbsp;</span>  <div class="author">1 / 2</div>`;
 
+const rare = `<div class="subtext Text-fjalla">
+                        <img src="/assets/images/card/regulation_logo_1/M6a.gif" class="img-regulation" alt="M6a" />
+&nbsp;088&nbsp;/&nbsp;103&nbsp;
+<img src="/assets/images/card/rarity/ic_rare_rr.gif" width="24" />
+                    </div>`;
+
 test('numéro officiel', () => {
+  assert.deepEqual(parseOfficialNumber(rare), { n: '088', total: 103, rarity: 'RR' });
   assert.deepEqual(parseOfficialNumber(card), { n: '039', total: 103 });
   assert.equal(parseOfficialNumber(energy), null);
 });
