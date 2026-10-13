@@ -71,6 +71,8 @@ export function logoCandidates(site, id) {
     `${site}/products/${k}/${x}/images/mv/logo.webp`,
     `${site}/products/${k}/${x}/images/logo.webp`,
     `${site}/products/${k}/${x}/images/mv/logo.png`,
+    // Pages plus anciennes : pas de logo séparé, la bannière de l'extension (avec son logo).
+    `${site}/images/products/${k}/${x}/mv_01.jpg`,
   ]);
 }
 
