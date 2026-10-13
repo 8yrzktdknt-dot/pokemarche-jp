@@ -115,6 +115,8 @@ async function completeFromOfficial(set, list, offCards, officialCount) {
   const have = new Set(list.map((c) => numberKey(c.localId)));
   if (numbered.length <= list.filter((c) => /^\d+$/.test(c.localId)).length) return 0;
   const numbers = await pool(numbered, 4, (c) => officialNumber(c.cardID).catch(() => null));
+  const unread = numbered.filter((_, i) => !numbers[i]).map((c) => c.cardID);
+  if (unread.length) console.warn(`${set.id} : numéro illisible pour les fiches ${unread.join(', ')}`);
   let added = 0;
   numbered.forEach((c, i) => {
     const num = numbers[i];
