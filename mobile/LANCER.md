@@ -1,7 +1,8 @@
 # Installer l'app sur son téléphone (sans être développeur)
 
 L'app est fabriquée **dans le cloud par Expo** (gratuit), puis installée sur le téléphone.
-Il faut un ordinateur (Windows ou Mac) uniquement pour lancer la fabrication. Comptez 30 minutes la première fois.
+Il faut un ordinateur (Windows ou Mac) uniquement pour lancer la fabrication.
+**iPhone + Mac : allez directement à la section « iPhone avec un Mac ».** Comptez 30 minutes la première fois.
 
 ## 1. Préparer l'ordinateur (une seule fois)
 
@@ -38,14 +39,42 @@ npx eas-cli build --profile preview --platform android
 3. Si Android bloque : autoriser l'installation « depuis cette source » (le téléphone propose le réglage).
 4. Ouvrir **TCG Scanner**, autoriser la caméra, et scanner une carte.
 
-## iPhone
+## iPhone avec un Mac (gratuit)
 
-Apple n'autorise pas l'installation libre d'apps. Deux possibilités :
+L'app est fabriquée directement sur le Mac puis installée sur l'iPhone branché en USB.
+Avec un identifiant Apple gratuit, l'app fonctionne **7 jours** ; il suffit ensuite de refaire l'étape 5.
 
-- **Compte Apple Developer** (99 $/an, https://developer.apple.com) : même procédure avec
-  `npx eas-cli build --profile preview --platform ios` ; Expo guide l'enregistrement de l'iPhone.
-  C'est aussi ce compte qui permettra de publier sur l'App Store.
-- **Un Mac avec Xcode** (gratuit) : l'app s'installe sur l'iPhone branché en USB, mais doit être réinstallée tous les 7 jours.
+1. **Xcode** : l'installer depuis l'App Store du Mac (gros téléchargement, prévoir 30 à 60 min).
+   L'ouvrir une fois, accepter la licence et laisser installer les composants iOS proposés.
+   Puis menu **Xcode → Réglages → Comptes → +** et ajouter votre identifiant Apple.
+2. **Node.js** : installer la version « LTS » depuis https://nodejs.org.
+3. **Le projet** : sur https://github.com/8yrzktdknt-dot/pokemarche-jp, bouton vert **Code → Download ZIP**,
+   puis double-cliquer sur le ZIP pour le décompresser.
+4. **L'iPhone** : le brancher au Mac en USB, le déverrouiller et toucher **Se fier à cet ordinateur**.
+5. **Fabriquer et installer** : ouvrir l'app **Terminal**, taper `cd ` (avec un espace), glisser le dossier `mobile`
+   dans la fenêtre, appuyer sur Entrée, puis taper ces commandes une par une :
+
+   ```
+   npm install
+   npx expo run:ios --device --configuration Release
+   ```
+
+   - Choisir votre iPhone dans la liste (flèches du clavier puis Entrée).
+   - Si on vous propose d'installer **CocoaPods**, répondre **Y** (oui). Le mot de passe demandé est celui du Mac.
+   - Si on vous demande une équipe de signature (*team*), choisir celle à votre nom (*Personal Team*).
+   - La première fabrication prend 10 à 20 minutes.
+6. **Première ouverture** : si l'iPhone affiche « Développeur non approuvé », aller dans
+   **Réglages → Général → VPN et gestion de l'appareil**, toucher votre identifiant Apple puis **Faire confiance**.
+   Si l'iPhone demande d'activer le **Mode développeur** : **Réglages → Confidentialité et sécurité → Mode développeur**,
+   l'activer et redémarrer.
+
+« Release » met tout le contenu dans l'app : elle fonctionne ensuite sans le Mac.
+
+## iPhone sans Mac
+
+Il faut un **compte Apple Developer** (99 $/an, https://developer.apple.com), qui permettra aussi de publier
+sur l'App Store : `npx eas-cli build --profile preview --platform ios` depuis n'importe quel ordinateur,
+Expo guide l'enregistrement de l'iPhone.
 
 ## En cas de problème
 
