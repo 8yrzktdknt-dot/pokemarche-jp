@@ -303,7 +303,7 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
 export const pokemon: GameProvider = {
   id: 'pokemon',
   label: 'Pokémon',
-  langs: ['fr', 'en', 'ja', 'de', 'es', 'it', 'pt', 'ko', 'zh-tw', 'zh-cn', 'id', 'th'],
+  langs: ['fr', 'en', 'ja', 'zh-tw', 'zh-cn', 'de', 'es', 'it', 'pt', 'ko', 'id', 'th'],
   search: searchAll,
   filterOptions: filterOptionsAll,
   blocs: blocsAll,

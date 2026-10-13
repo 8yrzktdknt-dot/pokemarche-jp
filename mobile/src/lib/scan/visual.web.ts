@@ -1,4 +1,4 @@
-import { DIM, MODEL, decodeIndex, mergeIndexes, normalizeVec, topMatches, type IndexFile, type Match, type VisualIndex } from './visualIndex';
+import { DIM, MODEL, decodeIndex, mergeIndexes, normalizeVec, topMatches, type IndexFile, type IndexItem, type Match, type VisualIndex } from './visualIndex';
 
 export const visualSupported = true;
 
@@ -76,11 +76,11 @@ export async function prepareVisual(onStatus?: (percent: number) => void): Promi
 }
 
 /** `cardImage` : image carrée 224×224 de la carte entière (voir ScanCamera.web). */
-export async function matchVisual(cardImage: string): Promise<Match[] | null> {
+export async function matchVisual(cardImage: string, accept?: (item: IndexItem) => boolean): Promise<Match[] | null> {
   const [ix, m] = await Promise.all([loadIndex(), loadModel()]);
   if (!ix) return null;
   const raw = await m.T.RawImage.fromURL(cardImage);
   const out = await m.net(await m.proc(raw));
   const v = normalizeVec(Float32Array.from(out.image_embeds.data as ArrayLike<number>).slice(0, DIM));
-  return topMatches(v, ix, 5);
+  return topMatches(v, ix, 5, accept);
 }

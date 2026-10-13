@@ -6,12 +6,12 @@ import { Dropdown } from '../../components/Dropdown';
 import { Panel } from '../../components/Stats';
 import { colors, fonts, s } from '../../components/ui';
 import { CURRENCIES, type Currency } from '../../lib/currency';
-import { GAME_LIST } from '../../lib/games';
+import { GAME_LIST, VISIBLE_LANGS } from '../../lib/games';
 import type { AppLang } from '../../lib/i18n';
 import { useStore } from '../../lib/store';
 import type { CardLang, GameId } from '../../lib/types';
 
-const CARD_LANGS: CardLang[] = ['fr', 'en', 'ja', 'de', 'es', 'it', 'pt', 'ko', 'zh-tw', 'zh-cn', 'id', 'th'];
+const CARD_LANGS: CardLang[] = VISIBLE_LANGS;
 const CURRENCY_LABEL: Record<Currency, string> = { EUR: 'Euro (€)', USD: 'US Dollar ($)', JPY: 'Yen (¥)' };
 
 function confirm(message: string, onYes: () => void) {

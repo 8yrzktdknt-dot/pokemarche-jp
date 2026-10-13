@@ -18,6 +18,10 @@ export interface Settings {
   /** Langue de l'interface et des noms de cartes traduits. */
   appLang: AppLang;
   currency: Currency;
+  /** Langue des cartes à scanner (« auto » = toutes). */
+  scanLang?: CardLang | 'auto';
+  /** Scanner en continu sans appuyer sur le déclencheur. */
+  scanAuto?: boolean;
 }
 
 interface Store {
