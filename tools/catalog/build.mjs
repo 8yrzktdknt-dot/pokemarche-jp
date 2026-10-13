@@ -55,12 +55,16 @@ async function squareImage(buf) {
   return new RawImage(new Uint8ClampedArray(data), info.width, info.height, 4);
 }
 
-// Index existant : on garde ses empreintes.
+// Index existants : on garde leurs empreintes. card-index.json (première version de l'app) contient des
+// extensions récentes dont TCGdex n'a pas encore les images : elles restent dans le catalogue.
 const previous = new Map();
-if (existsSync(out)) {
-  const ix = decodeIndex(JSON.parse(readFileSync(out, 'utf8')));
+const sources = [out];
+if (LANG === 'ja') sources.unshift(join(root, 'card-index.json'));
+for (const file of sources) {
+  if (!existsSync(file)) continue;
+  const ix = decodeIndex(JSON.parse(readFileSync(file, 'utf8')));
   ix?.items.forEach((it, i) => previous.set(it.id, { item: it, vec: ix.vecs.slice(i * DIM, (i + 1) * DIM) }));
-  console.log(`Index existant : ${previous.size} cartes`);
+  console.log(`${file} : ${ix?.items.length ?? 0} cartes`);
 }
 
 const sets = (await getJson(`${API}/${LANG}/sets`)) ?? [];
@@ -108,6 +112,14 @@ if (todo.length) {
   }
   console.log(`Terminé : ${todo.length - failed} ajoutées, ${failed} échecs`);
 }
+
+// Cartes connues sans image TCGdex : conservées telles quelles.
+const seen = new Set(items.map((it) => it.id));
+let kept = 0;
+for (const [id, p] of previous) {
+  if (!seen.has(id)) { items.push(p.item); vecs.push(p.vec); kept++; }
+}
+if (kept) console.log(`${kept} cartes conservées des index précédents`);
 
 const flat = new Float32Array(items.length * DIM);
 vecs.forEach((v, i) => flat.set(v, i * DIM));
