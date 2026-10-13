@@ -13,6 +13,11 @@ test('One Piece : corrige 0P lu à la place de OP', () => {
   assert.equal(parseScanText('0P01-O16')?.code, 'OP01-016');
 });
 
+test('One Piece : « O » parasite lu par Tesseract', () => {
+  assert.equal(parseScanText('Texte OPO05-119 SEC')?.code, 'OP05-119');
+  assert.equal(parseScanText('OP01-016')?.code, 'OP01-016');
+});
+
 test('One Piece : starter et promo', () => {
   assert.equal(parseScanText('ST10-001')?.code, 'ST10-001');
   assert.equal(parseScanText('P-042')?.code, 'P-042');
@@ -31,6 +36,13 @@ test('Pokémon : numéro et code d\'extension anglais', () => {
   assert.equal(h?.localId, '238');
   assert.equal(h?.setTotal, 191);
   assert.equal(h?.setCode, 'SSP');
+  assert.equal(h?.lang, 'en');
+});
+
+test('Pokémon : mots collés par l\'OCR', () => {
+  const h = parseScanText('SVIEN136/198');
+  assert.equal(h?.code, '136/198');
+  assert.equal(h?.setCode, 'SVI');
   assert.equal(h?.lang, 'en');
 });
 
