@@ -16,7 +16,9 @@ Stack : Expo (SDK 57) + React Native + TypeScript + Expo Router.
   - Riftbound : code `OGN-202/298`
   - Pokémon : numéro `136/189`, `TG05/TG30`… et code d'extension s'il est imprimé (`SV4a`, `SSP EN`)
   - Jeu « Auto » : le jeu est déduit du format du code. Langue détectée (japonais, coréen, EN/FR…).
-- **Recherche** par nom, par jeu et par langue.
+- **Recherche manuelle** : barre de recherche (nom ou numéro) et filtres par langue, extension, rareté,
+  type (Pokémon), couleur et catégorie (One Piece), domaine et type (Riftbound), avec tri par nom, numéro ou prix.
+  Pokémon est filtré par l'API TCGdex ; One Piece et Riftbound chargent leur catalogue (mis en cache 24 h) et filtrent sur l'appareil.
 - **Fiche carte** : image, prix automatiques (quand l'API en fournit) et boutons vers les 4 sites.
 - **Collection** locale (quantités, valeur estimée).
 

@@ -1,12 +1,15 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
-import type { Card, CardLang, GameProvider, ScanHint } from '../types.ts';
+import { applyFilters, distinct, sortCards } from '../search.ts';
+import type { Card, CardLang, FilterOptions, GameProvider, ScanHint, SearchFilters } from '../types.ts';
 
 /**
  * Riftbound (League of Legends TCG) via Riftcodex (https://riftcodex.com), sans clé.
  * Les prix viennent des liens Cardmarket / TCGplayer / CardTrader / eBay.
  */
 const API = 'https://api.riftcodex.com';
+const DAY = 24 * 3600 * 1000;
+const PAGE_SIZE = 100;
 
 interface RiftCard {
   id: string;
@@ -16,7 +19,7 @@ interface RiftCard {
   public_code?: string;
   set?: { set_id?: string; label?: string };
   media?: { image_url?: string };
-  classification?: { rarity?: string };
+  classification?: { rarity?: string; type?: string; domain?: string[] | string };
 }
 
 interface Page { items?: RiftCard[]; data?: RiftCard[] }
@@ -36,6 +39,10 @@ function toCard(c: RiftCard, lang: CardLang): Card {
     imageSmall: c.media?.image_url,
     imageLarge: c.media?.image_url,
     prices: [],
+    facets: {
+      domain: ([] as string[]).concat(c.classification?.domain ?? []),
+      type: c.classification?.type ? [c.classification.type] : [],
+    },
   };
 }
 
@@ -46,10 +53,34 @@ async function getCard(id: string, lang: CardLang): Promise<Card | null> {
   return c ? toCard(c, lang) : null;
 }
 
-async function search(query: string, lang: CardLang): Promise<Card[]> {
-  const page = await getJson<Page>(`${API}/cards/name?fuzzy=${encodeURIComponent(query)}&size=60`)
-    .catch(() => getJson<Page>(`${API}/cards?name=${encodeURIComponent(query)}&size=60`));
-  return items(page).map((c) => toCard(c, lang));
+/** Catalogue complet (quelques centaines de cartes), page par page, en cache une journée. */
+async function catalogue(lang: CardLang): Promise<Card[]> {
+  const all: RiftCard[] = [];
+  for (let page = 1; page <= 40; page++) {
+    const batch = items(await getJson<Page>(`${API}/cards?page=${page}&size=${PAGE_SIZE}`, DAY));
+    all.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return all.map((c) => toCard(c, lang));
+}
+
+async function filterOptions(lang: CardLang): Promise<FilterOptions> {
+  const cards = await catalogue(lang);
+  const setName = new Map<string, string>();
+  for (const c of cards) if (c.setId && !setName.has(c.setId)) setName.set(c.setId, c.setName ?? c.setId);
+  return {
+    sets: [...setName].map(([id, name]) => ({ id, name: `${id} · ${name}` })),
+    facets: [
+      { key: 'rarity', label: 'Rareté', values: distinct(cards.map((c) => c.rarity)) },
+      { key: 'domain', label: 'Domaine', values: distinct(cards.flatMap((c) => c.facets?.domain ?? [])) },
+      { key: 'type', label: 'Type', values: distinct(cards.flatMap((c) => c.facets?.type ?? [])) },
+    ],
+    sorts: ['relevance', 'name', 'number'],
+  };
+}
+
+async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
+  return sortCards(applyFilters(await catalogue(lang), f), f.sort, f.text);
 }
 
 async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
@@ -69,6 +100,7 @@ export const riftbound: GameProvider = {
   label: 'Riftbound',
   langs: ['en', 'fr', 'zh-cn'],
   search,
+  filterOptions,
   getCard,
   resolveScan,
 };

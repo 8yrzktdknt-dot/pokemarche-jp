@@ -1,6 +1,7 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
-import type { Card, CardLang, GameProvider, Price, ScanHint } from '../types.ts';
+import { applyFilters, sortCards } from '../search.ts';
+import type { Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters } from '../types.ts';
 
 /**
  * Pokémon via l'API publique TCGdex (https://tcgdex.dev), sans clé.
@@ -8,6 +9,8 @@ import type { Card, CardLang, GameProvider, Price, ScanHint } from '../types.ts'
  * avec des prix Cardmarket (EUR) et TCGplayer (USD) quand ils existent.
  */
 const API = 'https://api.tcgdex.net/v2';
+const DAY = 24 * 3600 * 1000;
+const enc = encodeURIComponent;
 
 const TCGDEX_LANG: Record<CardLang, string> = {
   en: 'en', fr: 'fr', de: 'de', es: 'es', it: 'it', pt: 'pt',
@@ -67,18 +70,59 @@ async function getCard(id: string, lang: CardLang): Promise<Card | null> {
   return c ? fromFull(c, lang) : null;
 }
 
-async function search(query: string, lang: CardLang): Promise<Card[]> {
+const setsOf = async (l: string) => (await getJson<TcgdexSetBrief[]>(`${API}/${l}/sets`, DAY)) ?? [];
+
+async function filterOptions(lang: CardLang): Promise<FilterOptions> {
   const l = TCGDEX_LANG[lang];
-  const list = await getJson<TcgdexBrief[]>(
-    `${API}/${l}/cards?name=${encodeURIComponent(query)}&pagination:itemsPerPage=60`,
-  );
-  return (list ?? []).map((b) => fromBrief(b, lang));
+  const [sets, rarities, types] = await Promise.all([
+    setsOf(l),
+    getJson<string[]>(`${API}/${l}/rarities`, DAY).catch(() => null),
+    getJson<string[]>(`${API}/${l}/types`, DAY).catch(() => null),
+  ]);
+  return {
+    // Extensions les plus récentes en premier.
+    sets: [...sets].reverse().map((x) => ({ id: x.id, name: x.name })),
+    facets: [
+      { key: 'rarity', label: 'Rareté', values: rarities ?? [] },
+      { key: 'type', label: 'Type', values: types ?? [] },
+    ],
+    sorts: ['relevance', 'name', 'number'],
+  };
+}
+
+/**
+ * Le nom, la rareté et le type sont filtrés par l'API TCGdex ; l'extension se déduit de l'id
+ * (« sv08-132 » → « sv08 »). Une extension seule liste toutes ses cartes.
+ */
+async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
+  const l = TCGDEX_LANG[lang];
+  const text = f.text.trim();
+  const { rarity, type } = f.facets;
+  const sets = await setsOf(l);
+  const setName = new Map(sets.map((x) => [x.id, x.name]));
+
+  let briefs: TcgdexBrief[];
+  if (!text && !rarity && !type && f.setId) {
+    briefs = (await getJson<{ cards: TcgdexBrief[] }>(`${API}/${l}/sets/${enc(f.setId)}`))?.cards ?? [];
+  } else {
+    const params = ['pagination:itemsPerPage=250'];
+    if (/^\d{1,3}(\/\d+)?$/.test(text)) params.push(`localId=eq:${enc(text.split('/')[0])}`);
+    else if (text) params.push(`name=${enc(text)}`);
+    if (rarity) params.push(`rarity=eq:${enc(rarity)}`);
+    if (type) params.push(`types=${enc(type)}`);
+    briefs = (await getJson<TcgdexBrief[]>(`${API}/${l}/cards?${params.join('&')}`)) ?? [];
+  }
+  const cards = briefs.map((b) => {
+    const setId = b.id.slice(0, b.id.lastIndexOf('-'));
+    return { ...fromBrief(b, lang), setId, setName: setName.get(setId) };
+  });
+  return sortCards(applyFilters(cards, { ...f, text: '' }), f.sort, text);
 }
 
 async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
   if (!hint.localId) return [];
   const l = TCGDEX_LANG[lang];
-  const sets = (await getJson<TcgdexSetBrief[]>(`${API}/${l}/sets`, 24 * 3600 * 1000)) ?? [];
+  const sets = await setsOf(l);
 
   // 1) Code d'extension imprimé (« SV4a » sur les cartes japonaises = id TCGdex).
   let candidates = hint.setCode
@@ -107,6 +151,7 @@ export const pokemon: GameProvider = {
   label: 'Pokémon',
   langs: ['fr', 'en', 'ja', 'de', 'es', 'it', 'pt', 'ko', 'zh-tw', 'zh-cn', 'id', 'th'],
   search,
+  filterOptions,
   getCard,
   resolveScan,
 };
