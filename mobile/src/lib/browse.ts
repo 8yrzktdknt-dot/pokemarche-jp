@@ -17,3 +17,8 @@ export function neighbors(card: { game: string; id: string; lang: string }): { p
   if (i < 0) return { index: -1, total: 0 };
   return { prev: current[i - 1], next: current[i + 1], index: i, total: current.length };
 }
+
+/** Carte telle qu'elle apparaît dans la liste (affichage immédiat en attendant la fiche complète). */
+export function browseCard(key: { game: string; id: string; lang: string }): Card | undefined {
+  return current.find((c) => same(c, key));
+}
