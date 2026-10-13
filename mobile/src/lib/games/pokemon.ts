@@ -355,6 +355,7 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
     ...live,
     nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName,
     imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
+    marketIds: { ...st.marketIds, ...live.marketIds },
   };
   return card ? withRelease(card, lang) : null;
 }

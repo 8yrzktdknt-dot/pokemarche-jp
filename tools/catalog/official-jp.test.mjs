@@ -52,6 +52,6 @@ test('symbole Méga dans le nom', () => {
 });
 
 test('liste PokemonWizard', () => {
-  const html = '<div class="x"><img alt="Mew ex" src="https://images.pokemonwizard.com/uploads/images/cards/24721/716932-mew-ex-135103-medium.jpg" class="absolute inset-0 w-full h-full object-contain p-1"/> <p class="text-xs">Mew ex - 135/103</p> <span># 135</span> <span>Futuristic Rare</span>  <p class="text-xs f">$1</p></div>';
-  assert.deepEqual(parseWizardSet(html), [{ n: '135', total: 103, nameEn: 'Mew ex', rarity: 'FUR', image: 'https://images.pokemonwizard.com/uploads/images/cards/24721/716932-mew-ex-135103-medium.jpg' }]);
+  const html = String.raw`self.__next_f.push([1,"[{\"card\":{\"id\":42944,\"tcgplayer_product_id\":716932,\"name\":\"Mew ex - 135/103\",\"slug\":\"mew-ex-135103\",\"card_number\":\"135\",\"rarity\":\"Futuristic Rare\",\"card_type\":null,\"hp\":\"160\",\"stage\":\"Basic\",\"is_presale\":false,\"image_url\":\"https://images.pokemonwizard.com/uploads/images/cards/24721/716932-mew-ex-135103-full.jpg\",\"thumbnail_url\":\"x\"}}]"])`;
+  assert.deepEqual(parseWizardSet(html), [{ n: '135', total: 103, nameEn: 'Mew ex', rarity: 'FUR', image: 'https://images.pokemonwizard.com/uploads/images/cards/24721/716932-mew-ex-135103-full.jpg', tcgplayer: 716932 }]);
 });

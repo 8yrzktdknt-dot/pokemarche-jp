@@ -171,6 +171,7 @@ async function completeFromWizard(set, list, officialCount) {
     const known = byNumber.get(numberKey(w.n));
     if (known) {
       if (!known.rarity && w.rarity) known.rarity = w.rarity;
+      if (w.tcgplayer) known.tcgplayer = w.tcgplayer;
       continue;
     }
     const twin = list.find((c) => c.nameEn && c.nameEn.toLowerCase() === w.nameEn.toLowerCase());
@@ -185,6 +186,7 @@ async function completeFromWizard(set, list, officialCount) {
       nameFr: twin?.nameFr,
       image: w.image,
       rarity: w.rarity,
+      tcgplayer: w.tcgplayer,
     };
     list.push(card);
     byNumber.set(numberKey(w.n), card);

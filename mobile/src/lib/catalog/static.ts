@@ -66,6 +66,7 @@ export interface StaticCard {
   price?: { value: number; currency: string; source: string };
   facets?: Record<string, string[]>;
   attrs?: Partial<Record<AttributeKey, string>>;
+  tcgplayer?: number;
 }
 
 export async function staticBlocs(game: GameId, lang: CardLang): Promise<StaticBloc[] | null> {
@@ -107,14 +108,16 @@ export interface StaticRow {
   priceUsd: number;
   facets?: Record<string, string[]>;
   attrs?: Partial<Record<AttributeKey, string>>;
+  tcgplayer?: number;
 }
 
 /** Toutes les cartes d'un jeu et d'une langue (fichier compact), pour chercher par nom traduit. */
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs]) => ({
-    id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets: facets || undefined, attrs: attrs || undefined,
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer]) => ({
+    id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd,
+    facets: facets || undefined, attrs: attrs || undefined, tcgplayer: tcgplayer || undefined,
   }) as StaticRow);
 }
 
@@ -166,6 +169,7 @@ export function staticToCard(
     prices: usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [],
     facets: (c as { facets?: Record<string, string[]> }).facets,
     attributes: staticAttributes(c, set?.releaseDate),
+    marketIds: c.tcgplayer ? { tcgplayer: c.tcgplayer } : undefined,
   };
 }
 

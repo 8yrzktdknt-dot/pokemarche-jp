@@ -117,27 +117,40 @@ const WIZARD_RARITY = {
   'character rare': 'CHR', 'character super rare': 'CSR', 'secret rare': 'UR', 'ace spec rare': 'ACE',
 };
 
-/** Cartes d'une page d'extension PokemonWizard : « <img src=…/716932-mew-ex-135103-medium.jpg …/> Mew ex - 135/103 # 135 Futuristic Rare ». */
+/**
+ * Cartes d'une page d'extension PokemonWizard. Les données sont dans le JSON embarqué par Next.js
+ * (guillemets échappés) : {"tcgplayer_product_id":716932,"name":"Mew ex - 135/103","card_number":"135","rarity":"Futuristic Rare",…,"image_url":"…-full.jpg"}.
+ */
 export function parseWizardSet(html) {
+  const text = html.replace(/\\"/g, '"');
   const out = new Map();
-  for (const m of html.matchAll(/src="(https:\/\/images\.pokemonwizard\.com\/uploads\/images\/cards\/[^"]+?-medium\.(?:jpg|png|webp))"[^>]*>([\s\S]{0,400})/g)) {
-    // Texte de la vignette, morceau par morceau : « Mew ex - 135/103 », « # 135 », « Futuristic Rare », prix…
-    const parts = m[2].split(/<[^>]*>/).map((x) => unescapeHtml(x).replace(/\s+/g, ' ').trim()).filter(Boolean)
-      .flatMap((x) => x.split(/\s*#\s*\d+\s*/)).map((x) => x.trim()).filter(Boolean);
-    const i = parts.findIndex((x) => /^.+? - [A-Z]{0,3}\d{1,3}\/\d{1,3}$/.test(x));
-    if (i < 0) continue;
-    const head = parts[i].match(/^(.+?) - ([A-Z]{0,3}\d{1,3})\/(\d{1,3})$/);
-    const c = [null, head[1], head[2], head[3], parts.slice(i + 1).find((x) => /^[A-Za-z][A-Za-z ]+$/.test(x)) ?? ''];
-    if (out.has(c[2])) continue;
-    const rarityName = c[4].replace(/\s+(Holo|Reverse.*|Foil.*)$/i, '').trim();
-    out.set(c[2], { n: c[2], total: Number(c[3]), nameEn: c[1].trim(), rarity: WIZARD_RARITY[rarityName.toLowerCase()] ?? rarityName, image: m[1] });
+  for (const m of text.matchAll(/"tcgplayer_product_id":(\d+),"name":"([^"]*)","slug":"[^"]*","card_number":"([^"]*)","rarity":"([^"]*)"[\s\S]{0,300}?"image_url":"([^"]+)"/g)) {
+    const [, tp, rawName, n, rarityName, image] = m;
+    const head = rawName.match(/^(.+?) - ([A-Z]{0,3}\d{1,3})\/(\d{1,3})$/);
+    if (!head || out.has(n)) continue;
+    out.set(n, {
+      n,
+      total: Number(head[3]),
+      nameEn: unescapeHtml(head[1]).trim(),
+      rarity: WIZARD_RARITY[rarityName.toLowerCase()] ?? (rarityName || undefined),
+      image,
+      tcgplayer: Number(tp),
+    });
   }
   return [...out.values()];
 }
 
+/** Toutes les pages (60 cartes par page) d'une extension PokemonWizard. */
 export async function wizardCards(setId) {
   const path = WIZARD_SETS[setId];
   if (!path) return [];
-  const html = await getText(`https://www.pokemonwizard.com/sets/${path}`);
-  return html ? parseWizardSet(html) : [];
+  const all = new Map();
+  for (let page = 1; page <= 10; page++) {
+    const html = await getText(`https://www.pokemonwizard.com/sets/${path}?page=${page}`);
+    const cards = html ? parseWizardSet(html) : [];
+    const before = all.size;
+    for (const c of cards) if (!all.has(c.n)) all.set(c.n, c);
+    if (all.size === before) break;
+  }
+  return [...all.values()];
 }
