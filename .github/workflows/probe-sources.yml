@@ -1,0 +1,23 @@
+# Outil de développement : explore des sources de données (statut, CORS, extrait de la réponse).
+name: Explorer les sources
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Adresses à tester, séparées par des espaces (vide = liste par défaut)"
+        default: ""
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: tools/probe/probe.sh
+        env:
+          EXTRA_URLS: ${{ github.event.inputs.urls }}
