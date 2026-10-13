@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
+import { neighbors } from '../../../lib/browse';
 import { rarityAbbr } from '../../../lib/catalog/pokemonNames';
 import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
@@ -91,9 +92,29 @@ export default function CardScreen() {
   const [card, setCard] = useState<Card | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const nav = neighbors({ game, id, lang });
+  const go = (c?: Card) => {
+    if (c) router.replace({ pathname: '/card/[game]/[id]', params: { game: c.game, id: c.id, lang: c.lang } });
+  };
+
   useEffect(() => {
-    GAMES[game].getCard(id, lang).then(setCard, (e) => setError(String(e)));
+    let alive = true;
+    setCard(null);
+    setError(null);
+    GAMES[game].getCard(id, lang).then((c) => alive && setCard(c), (e) => alive && setError(String(e)));
+    return () => { alive = false; };
   }, [game, id, lang]);
+
+  // Flèches du clavier (ordinateur) pour passer d'une carte à l'autre.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') go(nav.prev);
+      if (e.key === 'ArrowRight') go(nav.next);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!card) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
@@ -111,6 +132,17 @@ export default function CardScreen() {
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: displayName(card, settings.appLang) }} />
       <Image source={card.imageLarge ?? card.imageSmall} style={{ width: '100%', aspectRatio: 63 / 88, borderRadius: 12 }} contentFit="contain" />
+      {nav.total > 1 && (
+        <View style={st.nav}>
+          <Pressable style={[st.navBtn, !nav.prev && st.navOff]} disabled={!nav.prev} onPress={() => go(nav.prev)} accessibilityLabel={t('card.prev')}>
+            <Ionicons name="chevron-back" size={22} color={colors.text} />
+          </Pressable>
+          <Text style={st.navCount}>{nav.index + 1} / {nav.total}</Text>
+          <Pressable style={[st.navBtn, !nav.next && st.navOff]} disabled={!nav.next} onPress={() => go(nav.next)} accessibilityLabel={t('card.next')}>
+            <Ionicons name="chevron-forward" size={22} color={colors.text} />
+          </Pressable>
+        </View>
+      )}
       <Text style={s.h2}>{displayName(card, settings.appLang)}</Text>
       {displayName(card, settings.appLang) !== card.name && <Text style={s.muted}>{card.name}</Text>}
       <Text style={s.muted}>
@@ -184,4 +216,11 @@ const st = StyleSheet.create({
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
   },
   linkLogo: { width: 20, height: 20, borderRadius: 4 },
+  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  navBtn: {
+    width: 52, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
+  },
+  navOff: { opacity: 0.3 },
+  navCount: { color: colors.muted, fontFamily: fonts.bold },
 });

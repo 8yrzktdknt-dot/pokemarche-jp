@@ -118,6 +118,10 @@ export async function staticSearchRows(game: GameId, lang: CardLang): Promise<St
   }) as StaticRow);
 }
 
+/** Rareté affichée et filtrable pour les cartes dont la source n'en donne pas. */
+export const NO_RARITY = 'None';
+const rarityOf = (r?: string) => (r && r.trim() ? r : NO_RARITY);
+
 /** Facettes affichées comme attributs (couleur One Piece, domaine Riftbound…). */
 const FACET_ATTR: Record<string, AttributeKey> = { color: 'color', category: 'category', domain: 'domain', type: 'category' };
 
@@ -130,7 +134,7 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
   const attrs = c.attrs ?? {};
   add('illustrator', attrs.illustrator);
   add('release', releaseDate);
-  add('rarity', c.rarity);
+  add('rarity', rarityOf(c.rarity));
   for (const [k, v] of Object.entries(attrs)) if (k !== 'illustrator') add(k as AttributeKey, v);
   for (const [k, v] of Object.entries(c.facets ?? {})) if (FACET_ATTR[k] && v.length) add(FACET_ATTR[k], v.join(' / '));
   return out;
@@ -156,7 +160,7 @@ export function staticToCard(
     number: c.number,
     setId: set?.id ?? ('setId' in c ? c.setId : undefined),
     setName: set?.name,
-    rarity: c.rarity || undefined,
+    rarity: rarityOf(c.rarity),
     imageSmall: image,
     imageLarge: largeImage(image),
     prices: usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [],
@@ -202,7 +206,7 @@ export async function staticSearch(
   const hit = rows.filter((r) => {
     if (f.setId && r.setId !== f.setId) return false;
     if (blocSets && !blocSets.has(r.setId)) return false;
-    if (f.facets.rarity && rarityKey(r.rarity) !== f.facets.rarity) return false;
+    if (f.facets.rarity && rarityKey(rarityOf(r.rarity)) !== f.facets.rarity) return false;
     for (const [k, v] of Object.entries(f.facets)) {
       if (!v || k === 'rarity') continue;
       if (r.facets?.[k] && !r.facets[k].includes(v)) return false;
@@ -236,7 +240,7 @@ export async function staticFilterOptions(game: GameId, lang: CardLang, facetKey
     blocs: app,
     sets: app.flatMap((b) => b.sets.map((x) => ({ id: x.id, name: `${x.code} · ${x.name}` }))),
     facets: [
-      { key: 'rarity', label: 'rarity', values: distinct((rows ?? []).map((r) => r.rarity)) },
+      { key: 'rarity', label: 'rarity', values: distinct((rows ?? []).map((r) => rarityOf(r.rarity))) },
       ...facetKeys.map((k) => ({ key: k, label: k, values: values(k) })),
     ],
     sorts: game === 'pokemon' && lang !== 'ja' ? ['relevance', 'name', 'number'] : ['relevance', 'name', 'number', 'price-desc', 'price-asc'],

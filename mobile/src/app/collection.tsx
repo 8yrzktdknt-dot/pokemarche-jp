@@ -7,6 +7,7 @@ import { useStore } from '../lib/store';
 export default function Collection() {
   const { collection, settings, t, toCurrency } = useStore();
   const st = collectionStats(collection, toCurrency);
+  const cards = collection.map((e) => e.card);
   const total = formatMoney(st.value, settings.currency, settings.appLang === 'en' ? 'en-US' : 'fr-FR');
 
   return (
@@ -20,7 +21,7 @@ export default function Collection() {
         keyExtractor={(e) => `${e.card.game}:${e.card.lang}:${e.card.id}`}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 8 }}
         ListEmptyComponent={<Text style={[s.muted, { textAlign: 'center' }]}>{t('coll.empty')}</Text>}
-        renderItem={({ item }) => <CardRow card={item.card} right={item.quantity > 1 ? `×${item.quantity}` : undefined} />}
+        renderItem={({ item }) => <CardRow card={item.card} list={cards} right={item.quantity > 1 ? `×${item.quantity}` : undefined} />}
       />
     </View>
   );

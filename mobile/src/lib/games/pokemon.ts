@@ -2,7 +2,7 @@ import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
 import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityAbbr, rarityValuesFor } from '../catalog/pokemonNames.ts';
-import { assetUrl, staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
+import { NO_RARITY, assetUrl, staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
 import type { Bloc, Card, CardAttribute, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
@@ -81,7 +81,7 @@ function attributes(c: TcgdexCard): CardAttribute[] {
     if (v !== undefined && v !== null && v !== '') a.push({ key, value: String(v) });
   };
   add('illustrator', c.illustrator);
-  add('rarity', c.rarity);
+  add('rarity', c.rarity || NO_RARITY);
   add('dex', c.dexId?.join(', '));
   add('type', c.types?.join(' / ') ?? c.energyType);
   add('hp', c.hp);
@@ -107,7 +107,7 @@ function fromFull(c: TcgdexCard, lang: CardLang): Card {
     number: official ? `${c.localId}/${String(official).padStart(3, '0')}` : c.localId,
     setId: c.set.id,
     setName: c.set.name,
-    rarity: c.rarity,
+    rarity: c.rarity || NO_RARITY,
     prices: prices(c),
     attributes: attributes(c),
     marketIds: marketIds(c),

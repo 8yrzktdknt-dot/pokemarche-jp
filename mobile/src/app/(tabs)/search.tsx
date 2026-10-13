@@ -188,7 +188,7 @@ function GameSearch({ game, picker }: { game: GameId; picker: React.ReactNode })
       ListHeaderComponent={header}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ paddingBottom: 40 }}
-      renderItem={({ item }) => <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}><CardRow card={item} /></View>}
+      renderItem={({ item }) => <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}><CardRow card={item} list={results} /></View>}
       ListFooterComponent={
         active && shown < results.length ? (
           <Pressable style={[s.ghost, { marginHorizontal: 16 }]} onPress={() => setShown((n) => n + PAGE)}>

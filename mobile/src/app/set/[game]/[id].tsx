@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { setBrowseList } from '../../../lib/browse';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
@@ -52,7 +53,7 @@ export default function SetScreen() {
         }
         renderItem={({ item }) => (
           <Link href={{ pathname: '/card/[game]/[id]', params: { game: item.game, id: item.id, lang: item.lang } }} asChild>
-            <Pressable style={{ width: w }} accessibilityLabel={`${item.name} ${item.number}`}>
+            <Pressable style={{ width: w }} accessibilityLabel={`${item.name} ${item.number}`} onPressIn={() => setBrowseList(cards)}>
               <View>
                 <Image source={item.imageSmall} style={[st.img, { width: w, height: w * 88 / 63 }]} contentFit="cover" transition={150} />
                 {owned.has(item.id) && <View style={st.badge}><Text style={st.badgeText}>✓</Text></View>}

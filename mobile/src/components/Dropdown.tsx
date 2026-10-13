@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { normalize } from '../lib/search';
 import { useStore } from '../lib/store';
@@ -25,6 +25,7 @@ interface Props {
 /** Menu déroulant : un champ qui ouvre la liste des choix (avec recherche quand elle est longue). */
 export function Dropdown({ label, value, options, onChange, allLabel, disabled, style }: Props) {
   const { t } = useStore();
+  const { height } = useWindowDimensions();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const current = options.find((o) => o.value === value)?.label;
@@ -50,7 +51,8 @@ export function Dropdown({ label, value, options, onChange, allLabel, disabled, 
       </Pressable>
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)} presentationStyle="pageSheet">
-        <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
+        {/* Hauteur de l'écran imposée : sur Safari (iPhone), sans elle la liste dépasse de l'écran et ne défile pas. */}
+        <SafeAreaView style={[s.screen, { height, maxHeight: height, overflow: 'hidden' }]} edges={['top', 'bottom']}>
           <View style={st.header}>
             <Text style={s.h2}>{label}</Text>
             <Pressable onPress={() => setOpen(false)} style={st.close} accessibilityLabel={t('common.close')}>
@@ -71,8 +73,9 @@ export function Dropdown({ label, value, options, onChange, allLabel, disabled, 
             data={list}
             keyExtractor={(o) => o.value || '__all'}
             keyboardShouldPersistTaps="handled"
-            // Hauteur bornée par l'écran : sans flex: 1, une longue liste dépasse et ne défile pas.
-            style={{ flex: 1, paddingHorizontal: 16 }}
+            // Hauteur bornée par l'écran : sans flex: 1 et minHeight: 0, une longue liste dépasse et ne défile pas.
+            // Sur le web (Safari), le défilement doit être demandé explicitement.
+            style={[{ flex: 1, minHeight: 0, paddingHorizontal: 16 }, Platform.OS === 'web' && WEB_SCROLL]}
             contentContainerStyle={{ paddingBottom: 24, gap: 6 }}
             renderItem={({ item }) => {
               const on = (value ?? '') === item.value;
@@ -92,6 +95,8 @@ export function Dropdown({ label, value, options, onChange, allLabel, disabled, 
     </>
   );
 }
+
+const WEB_SCROLL = { overflowY: 'auto', WebkitOverflowScrolling: 'touch' } as unknown as ViewStyle;
 
 const st = StyleSheet.create({
   field: {
