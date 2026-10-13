@@ -5,15 +5,33 @@ import { GAME_LIST, LANG_LABEL } from '../lib/games';
 import { formatPrice } from '../lib/prices/marketplaces';
 import type { Card, CardLang, GameId } from '../lib/types';
 
+/** Palette « Rayquaza » (voir la direction artistique PokéMarket). */
 export const colors = {
-  bg: '#0f1420',
-  card: '#1a2233',
-  line: '#2a3550',
-  text: '#f2f4f8',
-  muted: '#93a0b8',
-  accent: '#ffcb05',
-  good: '#22c55e',
+  bg: '#0A1F17',
+  card: '#133325',
+  line: '#2E6B4D',
+  text: '#ECF5EF',
+  muted: '#8FB3A0',
+  primary: '#1A7D4C',
+  accent: '#F5C542',
+  good: '#3CCB7F',
+  danger: '#E5484D',
 };
+
+export const fonts = {
+  body: 'Manrope_400Regular',
+  bold: 'Manrope_700Bold',
+  heavy: 'Manrope_800ExtraBold',
+  display: 'Unbounded_800ExtraBold',
+};
+
+export function Wordmark({ size = 20 }: { size?: number }) {
+  return (
+    <Text style={{ fontFamily: fonts.display, fontSize: size, color: colors.text }}>
+      Poké<Text style={{ color: colors.accent }}>Market</Text>
+    </Text>
+  );
+}
 
 export function Chip({ label, active, onPress }: { label: string; active?: boolean; onPress(): void }) {
   return (
@@ -71,25 +89,25 @@ export const s = StyleSheet.create({
   pad: { padding: 16, gap: 12 },
   row: { gap: 8, paddingVertical: 2 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.line },
-  chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { color: colors.text, fontWeight: '600' },
-  chipTextOn: { color: '#111' },
+  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.text, fontFamily: fonts.bold },
+  chipTextOn: { color: '#fff', fontFamily: fonts.heavy },
   input: {
     backgroundColor: colors.card, color: colors.text, borderRadius: 12, paddingHorizontal: 14,
-    paddingVertical: 12, fontSize: 16, borderWidth: 1, borderColor: colors.line,
+    paddingVertical: 12, fontSize: 16, borderWidth: 1, borderColor: colors.line, fontFamily: fonts.body,
   },
-  button: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  buttonText: { color: '#111', fontWeight: '800', fontSize: 16 },
+  button: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', minHeight: 44 },
+  buttonText: { color: colors.bg, fontFamily: fonts.heavy, fontSize: 16 },
   ghost: { borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.line },
-  ghostText: { color: colors.text, fontWeight: '700' },
+  ghostText: { color: colors.text, fontFamily: fonts.bold },
   cardRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10,
     backgroundColor: colors.card, borderRadius: 12,
   },
-  thumb: { width: 52, height: 72, borderRadius: 4, backgroundColor: '#0b0f18' },
-  name: { color: colors.text, fontWeight: '700', fontSize: 15 },
-  meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  price: { color: colors.accent, fontWeight: '800' },
-  h2: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  muted: { color: colors.muted },
+  thumb: { width: 52, height: 72, borderRadius: 4, backgroundColor: colors.bg },
+  name: { color: colors.text, fontFamily: fonts.bold, fontSize: 15 },
+  meta: { color: colors.muted, fontFamily: fonts.body, fontSize: 12, marginTop: 2 },
+  price: { color: colors.accent, fontFamily: fonts.heavy },
+  h2: { color: colors.text, fontSize: 18, fontFamily: fonts.display },
+  muted: { color: colors.muted, fontFamily: fonts.body },
 });

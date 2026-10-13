@@ -21,7 +21,7 @@ export default function CardScreen() {
     GAMES[game].getCard(id, lang).then(setCard, (e) => setError(String(e)));
   }, [game, id, lang]);
 
-  if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: '#f87171' }}>{error}</Text></View>;
+  if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!card) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
 
   const owned = collection.find((e) => e.card.game === card.game && e.card.id === card.id && e.card.lang === card.lang)?.quantity ?? 0;

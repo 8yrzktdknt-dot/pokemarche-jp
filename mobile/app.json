@@ -1,44 +1,54 @@
 {
   "expo": {
-    "name": "TCG Scanner",
-    "slug": "tcg-scanner",
+    "name": "PokéMarket",
+    "slug": "pokemarket",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pokemarche.tcgscanner",
+      "bundleIdentifier": "com.pokemarket.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "La cam\u00e9ra sert \u00e0 scanner vos cartes pour les identifier."
+        "NSCameraUsageDescription": "La caméra sert à scanner vos cartes pour les identifier."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1A7D4C",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.pokemarche.tcgscanner",
+      "package": "com.pokemarket.app",
       "permissions": [
         "android.permission.CAMERA"
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "name": "PokéMarket",
+      "shortName": "PokéMarket",
+      "themeColor": "#0A1F17",
+      "backgroundColor": "#0A1F17",
+      "lang": "fr"
     },
     "plugins": [
       "expo-router",
       [
         "expo-camera",
         {
-          "cameraPermission": "La cam\u00e9ra sert \u00e0 scanner vos cartes pour les identifier.",
+          "cameraPermission": "La caméra sert à scanner vos cartes pour les identifier.",
           "recordAudioAndroid": false
         }
       ]
     ],
-    "scheme": "tcgscanner"
+    "scheme": "pokemarket",
+    "backgroundColor": "#0A1F17",
+    "experiments": {
+      "baseUrl": "/pokemarche-jp/app"
+    }
   }
 }

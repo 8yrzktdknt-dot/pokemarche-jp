@@ -4,6 +4,16 @@ L'app est fabriquée **dans le cloud par Expo** (gratuit), puis installée sur l
 Il faut un ordinateur (Windows ou Mac) uniquement pour lancer la fabrication.
 **iPhone + Mac : allez directement à la section « iPhone avec un Mac ».** Comptez 30 minutes la première fois.
 
+## Le plus simple : la version web (gratuit, tout téléphone)
+
+1. Sur l'iPhone, ouvrir **Safari** à l'adresse https://8yrzktdknt-dot.github.io/pokemarche-jp/app/
+2. Toucher le bouton **Partager** (carré avec une flèche), puis **Sur l'écran d'accueil**.
+3. Ouvrir **PokéMarket** depuis l'écran d'accueil et autoriser la caméra pour scanner.
+
+Sur Android : ouvrir l'adresse dans Chrome, menu ⋮ → **Ajouter à l'écran d'accueil**.
+
+Les sections suivantes servent à fabriquer la vraie app (App Store / Play Store).
+
 ## 1. Préparer l'ordinateur (une seule fois)
 
 1. Installer **Node.js** : sur https://nodejs.org, télécharger la version « LTS » et l'installer (Suivant, Suivant…).

@@ -1,4 +1,3 @@
-import TextRecognition, { TextRecognitionScript } from '@react-native-ml-kit/text-recognition';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -6,22 +5,16 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GamePicker, bestPrice, colors, s } from '../components/ui';
+import { GamePicker, bestPrice, colors, fonts, s } from '../components/ui';
 import { GAMES, langFor } from '../lib/games';
+import { recognizeText } from '../lib/scan/ocr';
 import { parseScanText } from '../lib/scan/parse';
 import { ScanStabilizer } from '../lib/scan/stabilizer';
 import { useStore } from '../lib/store';
-import type { Card, CardLang } from '../lib/types';
+import type { Card } from '../lib/types';
 
 /** Intervalle entre deux analyses d'image. */
 const SCAN_INTERVAL_MS = 700;
-
-function scriptFor(lang: CardLang): TextRecognitionScript {
-  if (lang === 'ja') return TextRecognitionScript.JAPANESE;
-  if (lang === 'ko') return TextRecognitionScript.KOREAN;
-  if (lang === 'zh-tw' || lang === 'zh-cn') return TextRecognitionScript.CHINESE;
-  return TextRecognitionScript.LATIN;
-}
 
 export default function Scan() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -46,10 +39,9 @@ export default function Scan() {
     if (!cam) return;
     const photo = await cam.takePictureAsync({ quality: 0.6, shutterSound: false });
     if (!photo?.uri) return;
-    // L'OCR japonais/coréen/chinois lit aussi l'alphabet latin des codes.
-    const ocr = await TextRecognition.recognize(photo.uri, scriptFor(settings.lang));
+    const text = await recognizeText(photo.uri, settings.lang);
     const game = settings.game === 'auto' ? undefined : settings.game;
-    const hint = parseScanText(ocr.text, game);
+    const hint = parseScanText(text, game);
     const confirmed = stabilizer.current.push(hint ? `${hint.game}:${hint.code}` : null);
     if (!hint) return setStatus('Recherche du numéro de carte…');
     if (!confirmed) return setStatus(`Lu : ${hint.code}…`);
@@ -72,7 +64,8 @@ export default function Scan() {
         try {
           await analyse();
         } catch (e) {
-          setStatus(`Erreur : ${String(e)}`);
+          console.warn(e);
+          setStatus('Analyse impossible pour le moment, nouvel essai…');
         }
         await new Promise((r) => setTimeout(r, Math.max(0, SCAN_INTERVAL_MS - (Date.now() - started))));
       }
@@ -153,11 +146,11 @@ const st = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'space-between', padding: 16 },
   frame: {
     position: 'absolute', alignSelf: 'center', top: '18%', width: '78%', aspectRatio: 63 / 88,
-    borderWidth: 3, borderColor: colors.accent, borderRadius: 16,
+    borderWidth: 3, borderColor: colors.good, borderRadius: 18,
   },
   pill: { backgroundColor: '#000a', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999 },
   status: {
-    color: colors.text, backgroundColor: '#000a', alignSelf: 'center', paddingHorizontal: 14,
-    paddingVertical: 8, borderRadius: 999, overflow: 'hidden', fontWeight: '700',
+    color: colors.text, backgroundColor: '#000a', alignSelf: 'center', paddingHorizontal: 14, maxWidth: '100%', textAlign: 'center',
+    paddingVertical: 8, borderRadius: 999, overflow: 'hidden', fontFamily: fonts.heavy,
   },
 });
