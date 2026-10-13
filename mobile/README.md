@@ -24,12 +24,24 @@ Navigation en bas de l'écran : **Extensions** · **Rechercher** · **Scanner** 
   - saisie manuelle du numéro en secours.
 - **Compte** : pseudo, jeu et langue par défaut, gestion de la collection (les vrais comptes viendront plus tard).
 
-## Catalogue visuel des cartes
+## Catalogue publié avec l'app (`catalog/`)
 
-`catalog/pokemon-ja.json` contient une empreinte visuelle par carte japonaise. Il est construit par GitHub Actions
-(`.github/workflows/build-catalog.yml`, script `tools/catalog/build.mjs`) : chaque semaine, ou à la main depuis
-l'onglet **Actions → Catalogue de cartes → Run workflow** (on peut y choisir une autre langue, ex. `en`).
-Tant que ce fichier n'existe pas, le scanner utilise `card-index.json` (≈ 1 700 cartes récentes, première version de l'app).
+Construit par le robot GitHub Actions « Catalogue de cartes » (`.github/workflows/build-catalog.yml`,
+scripts dans `tools/catalog/`) chaque semaine, ou à la main (onglet **Actions → Catalogue de cartes → Run workflow**,
+champ « steps » pour ne refaire qu'une partie).
+
+| Fichiers | Contenu | Source |
+| --- | --- | --- |
+| `sets/pokemon-ja.json`, `cards/pokemon-ja/*.json` | toutes les extensions japonaises (nom anglais, date, logo) et leurs cartes (image, rareté, nom anglais et français) | Limitless TCG, TCGdex, PokeAPI (noms) |
+| `sets/pokemon-<langue>.json` | extensions internationales triées par date, logos | TCGdex |
+| `sets/onepiece-{en,ja}.json`, `cards/onepiece-*/` | listes officielles + prix TCGplayer (anglais) | sites officiels, OPTCG API |
+| `sets/riftbound-{en,fr}.json`, `cards/riftbound-*/` | galerie officielle | Riot Games |
+| `search/<jeu>-<langue>.json` | toutes les cartes en un fichier compact pour la recherche | — |
+| `<jeu>-<langue>.json`, `index.json` | index visuels du scanner (empreintes CLIP) | — |
+
+L'app lit ce catalogue d'abord et se rabat sur les API en direct (TCGdex, OPTCG API) s'il manque quelque chose.
+Les noms japonais sont traduits automatiquement pour les Pokémon (noms officiels PokeAPI) ; les cartes Dresseur
+et Objet gardent leur nom japonais.
 
 ## Version web
 
