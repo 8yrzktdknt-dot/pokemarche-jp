@@ -39,6 +39,8 @@ const RARITY_ABBR: Record<string, string> = {
   'special illustration rare': 'SAR', 'ultra rare': 'SR', 'hyper rare': 'UR', 'secret rare': 'UR',
   'ace spec rare': 'ACE', 'shiny rare': 'S', 'chromatique rare': 'S', 'shiny ultra rare': 'SSR',
   'chromatique ultra rare': 'SSR', 'amazing rare': 'A', 'radiant rare': 'K', 'black white rare': 'BWR',
+  // Noms utilisés par Limitless pour les cartes japonaises
+  'art rare': 'AR', 'special art rare': 'SAR', 'character holo rare': 'CHR',
   'mega hyper rare': 'MUR', 'méga hyper rare': 'MUR', 'hyper rare méga': 'MUR',
   'rare illustration spéciale': 'SAR', 'rare illustration': 'AR',
   'double rare ': 'RR', 'rare double': 'RR', 'triple rare ': 'RRR', 'character rare': 'CHR', 'character super rare': 'CSR', promo: 'PR',

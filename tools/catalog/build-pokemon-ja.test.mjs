@@ -48,3 +48,15 @@ test('vue liste d\'une extension (extrait réel)', () => {
   assert.equal(setNameJa, 'ストームエメラルダ');
   assert.deepEqual(cards, [{ n: '1', name: 'ヘラクロス', rarity: 'Common', image: 'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpc/M6/M6_1_R_JP_SM.png' }]);
 });
+
+test('tri des blocs du plus récent au plus ancien, sur place', async () => {
+  const { sortByRelease } = await import('./lib.mjs');
+  const blocs = [
+    { id: 'base', sets: [{ releaseDate: '1999-01-09' }] },
+    { id: 'empty', sets: [] },
+    { id: 'sv', sets: [{ releaseDate: '2023-03-31' }, { releaseDate: '2024-11-08' }] },
+  ];
+  sortByRelease(blocs);
+  assert.deepEqual(blocs.map((b) => b.id), ['sv', 'base']);
+  assert.equal(blocs[0].sets[0].releaseDate, '2024-11-08');
+});

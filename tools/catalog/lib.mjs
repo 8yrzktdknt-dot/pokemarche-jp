@@ -75,5 +75,8 @@ export function parseShortDate(s) {
 export function sortByRelease(blocs) {
   const latest = (b) => b.sets.reduce((m, s) => (s.releaseDate && s.releaseDate > m ? s.releaseDate : m), '');
   for (const b of blocs) b.sets.sort((a, b2) => (b2.releaseDate ?? '').localeCompare(a.releaseDate ?? ''));
-  return blocs.filter((b) => b.sets.length).sort((a, b) => latest(b).localeCompare(latest(a)));
+  // Tri sur place (les appelants gardent leur tableau) ; les blocs vides sont retirés.
+  blocs.sort((a, b) => latest(b).localeCompare(latest(a)));
+  for (let i = blocs.length - 1; i >= 0; i--) if (!blocs[i].sets.length) blocs.splice(i, 1);
+  return blocs;
 }
