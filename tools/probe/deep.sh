@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 set -u
 UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-get() { curl -sS -L -m 40 -A "$UA" "$1"; }
-for u in "https://www.fujicardshop.com/card-lists/30th-celebration/" "https://www.pokemonwizard.com/sets/24721/30th-celebration-m6a" "https://samuraiswordtokyo.com/blogs/news/30th-celebration-ar-list-all-20-art-rares" "https://limitlesstcg.com/cards/jp/M6a?display=list"; do
-  echo; echo "=================== $u"
-  get "$u" > /tmp/p.html; wc -c /tmp/p.html
-  python3 - "$u" <<'PY'
-import re,sys
+U="https://www.pokemonwizard.com/sets/24721/30th-celebration-m6a"
+curl -sS -L -m 40 -A "$UA" "$U" > /tmp/p.html
+python3 - <<'PY'
+import re
 h=open('/tmp/p.html',encoding='utf-8',errors='ignore').read()
-t=re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>','',h)
-for m in list(re.finditer(r'1(0[4-9]|1\d|2\d|3[0-5])\s*/\s*103',t))[:6]:
-    s=m.start(); print('CTX', re.sub(r'\s+',' ',re.sub(r'<[^>]+>',' ',t[max(0,s-300):s+300]))[:400])
-imgs=re.findall(r'(?:src|data-src|href)="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"',h)
-print('images', len(imgs)); [print(' ',x) for x in imgs if re.search(r'10[4-9]|11\d|12\d|13[0-5]',x)][:15]
-print('sample', imgs[:8])
+i=h.find('716932-mew-ex-135103-medium'); print('RAW', h[i-600:i+900]); print()
+print('pages', sorted(set(re.findall(r'href="([^"]*(?:page=|/page/)[^"]*)"',h)))[:15])
+print('next_f', h.count('self.__next_f'), '__NEXT_DATA__' in h)
+nums=sorted(set(int(x) for x in re.findall(r'-(\d{1,3})103-medium',h))); print('numéros', len(nums), nums)
+for k in ['total','cards','perPage','per_page','pageSize','sort']:
+    print(k, [m.group(0)[:120] for m in re.finditer(k+r'[\\\\"]*:[^,]{0,60}',h)][:3])
 PY
-done
+for q in "?page=2" "?sort=number" "?page=1&per_page=250" ; do curl -sS -L -m 40 -A "$UA" "$U$q" | python3 -c "import re,sys;h=sys.stdin.read();n=sorted(set(int(x) for x in re.findall(r'-(\d{1,3})103-medium',h)));print('$q',len(n),n[:5],n[-5:])"; done
+curl -sS -L -m 40 -A "$UA" "https://www.pokemonwizard.com/api/sets/24721/cards" | head -c 400; echo
