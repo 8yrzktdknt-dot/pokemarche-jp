@@ -4,10 +4,13 @@ import { buildOnePiece } from './build-onepiece.mjs';
 import { buildPokemonIntl } from './build-pokemon-intl.mjs';
 import { buildPokemonJa } from './build-pokemon-ja.mjs';
 import { buildRiftbound } from './build-riftbound.mjs';
+import { buildSearch } from './build-search.mjs';
 import { buildVisual } from './build-visual.mjs';
 
-const STEPS = { 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual() };
+const STEPS = { 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual(), search: buildSearch };
 const wanted = (process.env.STEPS || Object.keys(STEPS).join(',')).split(',').map((s) => s.trim()).filter(Boolean);
+// Les fichiers de recherche suivent toujours les catalogues reconstruits.
+if (!wanted.includes('search')) wanted.push('search');
 
 let failed = 0;
 for (const name of wanted) {
