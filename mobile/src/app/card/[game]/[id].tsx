@@ -2,10 +2,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
-import { neighbors } from '../../../lib/browse';
+import { browseCard, neighbors } from '../../../lib/browse';
 import { rarityAbbr } from '../../../lib/catalog/pokemonNames';
 import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
@@ -97,9 +97,39 @@ export default function CardScreen() {
     if (c) router.replace({ pathname: '/card/[game]/[id]', params: { game: c.game, id: c.id, lang: c.lang } });
   };
 
+  // Glisser le doigt vers la gauche / la droite : carte suivante / précédente.
+  const { width } = useWindowDimensions();
+  const shift = useRef(new Animated.Value(0)).current;
+  const navRef = useRef(nav);
+  navRef.current = nav;
+  const swipe = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onPanResponderMove: (_, g) => {
+        const { prev, next } = navRef.current;
+        // Résistance quand il n'y a pas de carte de ce côté.
+        shift.setValue((g.dx > 0 && !prev) || (g.dx < 0 && !next) ? g.dx / 4 : g.dx);
+      },
+      onPanResponderRelease: (_, g) => {
+        const { prev, next } = navRef.current;
+        const target = g.dx < -70 || g.vx < -0.5 ? next : g.dx > 70 || g.vx > 0.5 ? prev : undefined;
+        if (!target) {
+          Animated.spring(shift, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+          return;
+        }
+        Animated.timing(shift, { toValue: target === next ? -width : width, duration: 160, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+          go(target);
+          shift.setValue(0);
+        });
+      },
+      onPanResponderTerminate: () => Animated.spring(shift, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start(),
+    }),
+  ).current;
+
   useEffect(() => {
     let alive = true;
-    setCard(null);
+    // Affichage immédiat avec les infos de la liste, puis la fiche complète (prix, attributs).
+    setCard(browseCard({ game, id, lang }) ?? null);
     setError(null);
     GAMES[game].getCard(id, lang).then((c) => alive && setCard(c), (e) => alive && setError(String(e)));
     return () => { alive = false; };
@@ -118,6 +148,11 @@ export default function CardScreen() {
 
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!card) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
+  // Images des cartes voisines préchargées : le passage d'une carte à l'autre est instantané.
+  for (const c of [nav.prev, nav.next]) {
+    const u = c?.imageLarge ?? c?.imageSmall;
+    if (u) Image.prefetch(u).catch(() => {});
+  }
 
   const owned = collection.find((e) => e.card.game === card.game && e.card.id === card.id && e.card.lang === card.lang)?.quantity ?? 0;
   const priceLabel = (p: Price) => {
@@ -129,6 +164,7 @@ export default function CardScreen() {
   const hasCmSales = card.prices.some((p) => p.label.startsWith('cm.avg'));
 
   return (
+    <Animated.View style={[s.screen, SWIPE_STYLE, { transform: [{ translateX: shift }] }]} {...swipe.panHandlers}>
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: displayName(card, settings.appLang) }} />
       <Image source={card.imageLarge ?? card.imageSmall} style={{ width: '100%', aspectRatio: 63 / 88, borderRadius: 12 }} contentFit="contain" />
@@ -194,8 +230,12 @@ export default function CardScreen() {
         </Pressable>
       ))}
     </ScrollView>
+    </Animated.View>
   );
 }
+
+/** Sur le web, le navigateur garde le défilement vertical et laisse les glissements horizontaux à l'app. */
+const SWIPE_STYLE = (Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) as ViewStyle;
 
 const st = StyleSheet.create({
   attr: {

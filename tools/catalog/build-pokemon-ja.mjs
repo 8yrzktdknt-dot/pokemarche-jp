@@ -1,7 +1,8 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
-import { WIZARD_SETS, officialCard, officialRecentCards, serebiiLogos, wizardCards } from './official-jp.mjs';
-import { getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
+import { failures, findLogos, pokellectorLogos, saveLogos, serebiiLogoMap } from './logos.mjs';
+import { WIZARD_SETS, official30thImages, officialCard, officialRecentCards, samuraiCards, wizardCards } from './official-jp.mjs';
+import { getBuffer, getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
 
 const SITE = 'https://limitlesstcg.com';
@@ -92,16 +93,26 @@ export async function buildPokemonJa() {
       });
       added += await completeFromOfficial(set, list, recent.get(set.id.toUpperCase()), off);
       if (WIZARD_SETS[set.id]) added += await completeFromWizard(set, list, off);
+      added += await completeFrom30th(set, list, off);
       set.count = list.length || set.count;
       total += list.length;
       writeJson(`cards/pokemon-ja/${set.id}.json`, list);
     });
   }
-  // Vrais logos (Serebii) ; le petit symbole Limitless reste en secours.
-  const logos = await serebiiLogos(blocs.flatMap((b) => b.sets)).catch((e) => { console.warn('Serebii :', e.message); return new Map(); });
-  for (const s of blocs.flatMap((b) => b.sets)) {
+  // Vrais logos (Serebii, puis Pokellector japonais) ; le petit symbole Limitless reste en secours.
+  const tables = await Promise.all([
+    serebiiLogoMap().catch(() => new Map()),
+    pokellectorLogos('https://jp.pokellector.com').catch(() => new Map()),
+  ]);
+  const allSets = blocs.flatMap((b) => b.sets);
+  const logos = await saveLogos(allSets, 'pokemon-ja', (s) => findLogos(s.name, tables));
+  for (const s of allSets) {
     if (logos.has(s.id)) { s.symbol = s.logo; s.logo = logos.get(s.id); }
   }
+  console.log(`Logos JP : Serebii ${tables[0].size}, Pokellector ${tables[1].size} ; ${logos.size}/${allSets.length} extensions avec un vrai logo`);
+  const left = allSets.filter((s) => !logos.has(s.id)).map((s) => `${s.id} (${s.name})`);
+  if (left.length) console.log(`Sans vrai logo : ${left.join(', ')}`);
+  if (failures.length) console.log(`Logos introuvables au téléchargement (${failures.length}) : ${failures.slice(0, 20).join(', ')}`);
   sortByRelease(blocs);
   writeJson('sets/pokemon-ja.json', { built: new Date().toISOString(), source: 'limitlesstcg.com', blocs });
   console.log(`Pokémon JP : ${total} cartes, ${translated} avec nom anglais, ${added} ajoutées depuis pokemon-card.com`);
@@ -194,6 +205,51 @@ async function completeFromWizard(set, list, officialCount) {
   }
   list.sort((a, b) => (Number(a.localId) || 1e4) - (Number(b.localId) || 1e4));
   console.log(`${set.id} : PokemonWizard ${cards.length} cartes lues, ${added} ajoutées`);
+  return added;
+}
+
+/** Rareté des cartes secrètes de M6a (bloc 104-135) : AR, SAR puis FUR. */
+const M6A_SECRET = (n) => (n >= 104 && n <= 123 ? 'AR' : n >= 124 && n <= 133 ? 'SAR' : n >= 134 && n <= 135 ? 'FUR' : undefined);
+
+/**
+ * M6a : images officielles du site des 30 ans (meilleure qualité) à la place de celles de PokemonWizard,
+ * puis les cartes encore absentes ajoutées depuis la liste illustrée de Samurai Sword Tokyo.
+ */
+async function completeFrom30th(set, list, officialCount) {
+  if (set.id !== 'M6a') return 0;
+  const [official, samurai] = await Promise.all([
+    official30thImages(set.id).catch(() => new Map()),
+    samuraiCards(set.id).catch(() => new Map()),
+  ]);
+  let improved = 0;
+  for (const c of list) {
+    const img = official.get(c.localId);
+    if (img && !/pokemon-card\.com\/assets\/images\/card_images/.test(c.image ?? '')) { c.image = img; improved++; }
+    if (!c.rarity && /^\d+$/.test(c.localId)) c.rarity = M6A_SECRET(Number(c.localId));
+  }
+  const have = new Set(list.map((c) => numberKey(c.localId)));
+  let added = 0;
+  for (const [n, w] of samurai) {
+    if (have.has(numberKey(n))) continue;
+    const twin = list.find((c) => c.nameEn && c.nameEn.toLowerCase() === w.nameEn.toLowerCase());
+    // Image en taille d'origine si elle existe, sinon la vignette de la liste.
+    const image = official.get(n) ?? ((await getBuffer(w.full).catch(() => null)) ? w.full : w.image);
+    const total = officialCount ?? 103;
+    list.push({
+      id: `${set.id}-${n}`,
+      localId: n,
+      number: `${n}/${String(total).padStart(3, '0')}`,
+      name: twin?.name ?? w.nameEn,
+      nameEn: w.nameEn,
+      nameFr: twin?.nameFr,
+      image,
+      rarity: M6A_SECRET(Number(n)),
+    });
+    have.add(numberKey(n));
+    added++;
+  }
+  list.sort((a, b) => (Number(a.localId) || 1e4) - (Number(b.localId) || 1e4));
+  console.log(`${set.id} : site des 30 ans ${official.size} images (${improved} remplacées), Samurai Sword ${samurai.size} cartes lues, ${added} ajoutées`);
   return added;
 }
 

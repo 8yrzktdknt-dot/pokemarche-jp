@@ -1,15 +1,12 @@
 // Sources japonaises complémentaires :
 //  - base officielle pokemon-card.com : cartes absentes de Limitless (ex. cartes rares de M6a), avec image officielle ;
-//  - Serebii : vrais logos des extensions japonaises (Limitless n'a que de petits symboles).
-import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { CATALOG, getBuffer, getJson, getText, pool, unescapeHtml } from './lib.mjs';
+//  - PokemonWizard : cartes secrètes pas encore dans la base officielle.
+import { getJson, getText, pool, unescapeHtml } from './lib.mjs';
 
 const PCC = 'https://www.pokemon-card.com';
 
 /** Nom affiché sur le site officiel : le symbole Méga (balise) devient « M », les autres balises sont retirées. */
 export const cleanName = (s) => unescapeHtml(s.replace(/<span class="pcg pcg-megamark"><\/span>/g, 'M').replace(/<[^>]*>/g, '')).trim();
-const SEREBII = 'https://www.serebii.net';
 
 /**
  * Cartes les plus récentes de la base officielle (40 par page, extensions récentes d'abord),
@@ -65,45 +62,6 @@ export async function officialCard(cardID) {
   return html ? parseOfficialCard(html) : null;
 }
 
-/** Nom d'extension comparable entre sources (« White Flare - Jp », « 30th Celebration Japan » → sans suffixe). */
-export const setKey = (name) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '').replace(/(jp|japan|japanese)$/, '');
-
-/** Logos Serebii de la page des extensions japonaises : nom anglais → URL. */
-export function parseSerebiiLogos(html) {
-  const out = new Map();
-  for (const m of html.matchAll(/<img src="(\/card\/logo\/[^"]+\.png)"[^>]*alt="([^"]+?) Set Icon"/g)) {
-    const k = setKey(unescapeHtml(m[2]));
-    if (k && !out.has(k)) out.set(k, `${SEREBII}${m[1]}`);
-  }
-  return out;
-}
-
-/**
- * Télécharge les logos Serebii des extensions trouvées et les publie avec le catalogue
- * (catalog/logos/pokemon-ja/<id>.png, chemin relatif au catalogue). Renvoie id → chemin.
- */
-export async function serebiiLogos(sets) {
-  const html = await getText(`${SEREBII}/card/japanese.shtml`);
-  if (!html) return new Map();
-  const logos = parseSerebiiLogos(html);
-  const dir = join(CATALOG, 'logos', 'pokemon-ja');
-  mkdirSync(dir, { recursive: true });
-  const found = new Map();
-  await pool(sets, 4, async (s) => {
-    const url = logos.get(setKey(s.name));
-    if (!url) return;
-    const file = join(dir, `${s.id}.png`);
-    if (!existsSync(file)) {
-      const buf = await getBuffer(url);
-      if (!buf || buf[0] !== 0x89) return;
-      writeFileSync(file, buf);
-    }
-    found.set(s.id, `logos/pokemon-ja/${s.id}.png`);
-  });
-  console.log(`Serebii : ${logos.size} logos, ${found.size} extensions associées`);
-  return found;
-}
-
 /**
  * PokemonWizard : listes complètes des extensions japonaises récentes (nom anglais, numéro, rareté, image),
  * y compris les cartes secrètes absentes de la base officielle (ex. M6a 104-135).
@@ -153,4 +111,44 @@ export async function wizardCards(setId) {
     if (all.size === before) break;
   }
   return [...all.values()];
+}
+
+/**
+ * Site officiel des 30 ans : images officielles (PNG) des cartes de M6a, y compris les cartes secrètes
+ * (…/images/m6a/cards/m6a_106_kizt5zx8.png). Numéro → URL.
+ */
+export function parse30thImages(html, set = 'm6a') {
+  const out = new Map();
+  const re = new RegExp(`(?:https://www\\.30th\\.pokemon-card\\.com)?/images/${set}/cards/${set}_(\\d{3})_[a-z0-9]+\\.(?:png|webp|jpg)`, 'g');
+  for (const m of html.matchAll(re)) {
+    const url = m[0].startsWith('http') ? m[0] : `https://www.30th.pokemon-card.com${m[0]}`;
+    if (!out.has(m[1])) out.set(m[1], url);
+  }
+  return out;
+}
+
+export async function official30thImages(setId) {
+  if (setId !== 'M6a') return new Map();
+  const html = await getText('https://www.30th.pokemon-card.com/product/m6a');
+  return html ? parse30thImages(html) : new Map();
+}
+
+/**
+ * Samurai Sword Tokyo : liste illustrée de M6a (« pokemon-30th-celebration-m6a-121-ditto-320x456.webp »),
+ * pour les cartes que les autres sources n'ont pas encore. Numéro → { nameEn, image }.
+ */
+export function parseSamuraiList(html) {
+  const out = new Map();
+  for (const m of html.matchAll(/https:\/\/samuraiswordtokyo\.com\/wp-content\/uploads\/\d{4}\/\d{2}\/pokemon-30th-celebration-m6a-(\d{3})-([a-z0-9-]+?)(-\d+x\d+)?\.(webp|png|jpg)/g)) {
+    if (out.has(m[1])) continue;
+    const nameEn = m[2].split('-').map((w) => (w === 'ex' ? 'ex' : w[0].toUpperCase() + w.slice(1))).join(' ');
+    out.set(m[1], { nameEn, image: m[0], full: m[0].replace(/-\d+x\d+(\.\w+)$/, '$1') });
+  }
+  return out;
+}
+
+export async function samuraiCards(setId) {
+  if (setId !== 'M6a') return new Map();
+  const html = await getText('https://samuraiswordtokyo.com/pages/m6a-card-list');
+  return html ? parseSamuraiList(html) : new Map();
 }
