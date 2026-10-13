@@ -2,14 +2,17 @@
 set -u
 UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 get() { curl -sS -L -m 40 -A "$UA" "$1"; }
-echo "== samurai m6a-card-list"
-get "https://samuraiswordtokyo.com/pages/m6a-card-list" > /tmp/p.html; wc -c < /tmp/p.html
-grep -oE 'https?://[a-z0-9.-]*pokemon[a-z0-9.-]*/[^"'"'"' <)]*' /tmp/p.html | sort -u | head -20
-grep -oE '(src|data-src)="[^"]*1(0[4-9]|1[0-9]|2[0-9]|3[0-5])[^"]*"' /tmp/p.html | head -40
-echo "== samurai fur article"
-get "https://samuraiswordtokyo.com/blogs/news/30th-celebration-card-list-fur-chase-cards" | grep -oE 'https?://[a-z0-9.-]*pokemon-card[a-z0-9.-]*/[^"'"'"' <)]*' | sort -u | head -20
-echo "== sites officiels possibles"
-for u in "https://www.pokemon-card.com/30th/" "https://www.pokemon-card.com/ex/30th/" "https://30th.pokemon-card.com/" "https://www.pokemon-card.com/ex/m6a/cardlist/" "https://www.pokemon.co.jp/ex/30th_celebration/" ; do curl -sS -o /tmp/o.html -L -m 30 -A "$UA" -w "%{http_code} %{size_download}o %{url_effective}\n" "$u"; grep -oE '(src|data-src)="[^"]*(m6a|card)[^"]*\.(png|jpg|webp)"' /tmp/o.html | head -8; done
-echo "== tcgsetlist / monzap"
-get "https://tcgsetlist.com/pokemon/30th-celebration/" | grep -oE '(src|data-src)="[^"]*\.(png|jpg|webp)[^"]*"' | grep -iE '1(0[4-9]|1[0-9]|2[0-9]|3[0-5])' | head -10
-get "https://www.monzaptcg.com/guides/30th-celebration-card-list/" | grep -oE '(src|data-src)="[^"]*\.(png|jpg|webp)[^"]*"' | head -10
+code() { curl -sS -o /tmp/o.html -L -m 30 -A "$UA" -w "%{http_code} %{size_download}o %{url_effective}\n" "$1"; }
+echo "== One Piece : liens produits"
+get "https://en.onepiece-cardgame.com/products/" | grep -oE 'href="[^"]*products/[^"]*"' | sort -u | head -15
+for u in "https://en.onepiece-cardgame.com/products/boosters/op01.php" "https://en.onepiece-cardgame.com/products/boosters/op13.php" "https://www.onepiece-cardgame.com/products/boosters/op01.php"; do code "$u"; grep -oE '(src|data-src)="[^"]*(logo|title|ttl|mv|main)[^"]*"' /tmp/o.html | head -6; done
+echo "== One Piece : TCGplayer / Limitless"
+code "https://onepiece.limitlesstcg.com/cards"; grep -oE '(src)="[^"]*"' /tmp/o.html | head -8
+code "https://www.optcgapi.com/api/allSets/"; head -c 400 /tmp/o.html; echo
+echo "== Riftbound"
+for u in "https://riftbound.leagueoflegends.com/en-us/" "https://riftbound.leagueoflegends.com/en-us/products/" "https://riftbound.leagueoflegends.com/en-us/news/"; do code "$u"; grep -oE '(src|srcset)="[^" ]*\.(png|webp|jpg|svg)[^" ]*' /tmp/o.html | grep -iE 'logo|set|origin|spirit|proving|unleash|vendetta|radiant' | head -8; done
+echo "== Pokellector chinois ?"
+for u in "https://www.pokellector.com/sets/chinese" "https://cn.pokellector.com/sets" "https://tw.pokellector.com/sets"; do code "$u"; grep -oE 'den-media.pokellector.com/logos/[^"]+\.logo\.[0-9]+\.png' /tmp/o.html | head -5; done
+echo "== asia.pokemon-card.com TW : liste des extensions (logos)"
+get "https://asia.pokemon-card.com/tw/card-search/list/" > /tmp/o.html; wc -c < /tmp/o.html; grep -oE '(src|data-src)="[^"]*\.(png|jpg|webp)"' /tmp/o.html | head -15
+get "https://asia.pokemon-card.com/tw/card-search/" | grep -oE 'expansionCodes[^"]{0,40}|name="[^"]*expansion[^"]*"|<option value="[^"]+">[^<]{2,40}' | head -20
