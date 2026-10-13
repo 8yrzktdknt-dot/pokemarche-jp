@@ -4,28 +4,30 @@ UA="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 
 get() { curl -sS -L -m 40 -A "$UA" "$1"; }
 head_() { curl -sS -o /dev/null -L -m 30 -A "$UA" -w "%{http_code} %{content_type} %{size_download}o  $1\n" "$1"; }
 section() { echo; echo "=================== $1"; }
-
-section "pokemon-card.com : liste des produits (pg)"
-get "https://www.pokemon-card.com/card-search/index.php" > /tmp/cs.html
-wc -c /tmp/cs.html
-grep -oE '<option[^>]*value="[0-9]+"[^>]*>[^<]{2,80}' /tmp/cs.html | head -40
-grep -oE '(pg|product)[A-Za-z_]*[=:][^&"]{0,40}' /tmp/cs.html | sort -u | head -20
-grep -oE 'src="[^"]*\.js[^"]*"' /tmp/cs.html | head
-for js in $(grep -oE 'src="(/card-search/[^"]*\.js[^"]*)"' /tmp/cs.html | sed 's/src="//;s/"$//' | head -4); do echo "--- $js"; get "https://www.pokemon-card.com$js" | grep -oE '.{0,60}(resultAPI|pg=|expansion)[^;]{0,100}' | head -8; done
-section "pokemon-card.com : recherche par mot-clé (Mew ex) pour trouver M6a"
-get "https://www.pokemon-card.com/card-search/resultAPI.php?keyword=%E3%83%9F%E3%83%A5%E3%82%A6ex&regulation_sidebar_form=all&page=1" | python3 -c "
-import json,sys;d=json.load(sys.stdin);print(d.get('hitCnt'),d.get('maxPage'));[print(c) for c in d.get('cardList',[])[:12]]"
-section "pokemon-card.com : fiche d'une carte récente"
-ID=$(get "https://www.pokemon-card.com/card-search/resultAPI.php?keyword=%E3%83%9F%E3%83%A5%E3%82%A6ex&regulation_sidebar_form=all&page=1" | python3 -c "import json,sys;l=json.load(sys.stdin).get('cardList',[]);print(max(l,key=lambda c:int(c['cardID']))['cardID'] if l else '')")
-echo "id=$ID"
-get "https://www.pokemon-card.com/card-search/details.php/card/$ID/regu/all" > /tmp/d.html
-grep -oE '(card_images[^"]+|<span class="subtext[^>]*>[^<]*|[0-9]{3}&nbsp;/&nbsp;[0-9]{3}[^<]{0,20}|img[^>]*(mark|regulation|expansion)[^>]*>|alt="[A-Za-z0-9]+")' /tmp/d.html | head -15
-sed -n '/subtext/,+3p' /tmp/d.html | head -12
-section "pokemon-card.com : og:image des pages produit"
-for p in sv8 m6 m6a m5 sv11b m1l sv9a; do echo "-- $p"; get "https://www.pokemon-card.com/ex/$p/" | grep -oE '<meta property="og:image" content="[^"]+"' | head -2; done
-section "Serebii : extensions japonaises"
-head_ "https://www.serebii.net/card/japanese.shtml"
-get "https://www.serebii.net/card/japanese.shtml" | grep -oE '(href|src)="[^"]*"' | grep -iE 'logo|\.png|card/' | head -40
-section "pokemontcg.io : sets (id) et une carte de galerie"
-get "https://api.pokemontcg.io/v2/sets?select=id,name,total,ptcgoCode&pageSize=250" | python3 -c "import json,sys;d=json.load(sys.stdin)['data'];print(len(d));print([x['id'] for x in d])"
-get "https://api.pokemontcg.io/v2/cards?q=set.id:swsh12tg&select=number,images&pageSize=3" | head -c 600; echo
+API="https://www.pokemon-card.com/card-search/resultAPI.php?keyword=&regulation_sidebar_form=all"
+section "pokemon-card.com : extensions par page (les plus récentes)"
+for p in 1 2 3 4 5 6 8 10 15 20; do
+  get "$API&page=$p" | python3 -c "
+import json,sys,collections;l=json.load(sys.stdin).get('cardList',[])
+c=collections.Counter(x['cardThumbFile'].split('/')[5] for x in l); print($p, dict(c), l[0]['cardID'] if l else '', l[-1]['cardID'] if l else '')"
+done
+section "pokemon-card.com : M6a, plus grands ID"
+for p in 2 3 4; do get "$API&page=$p" | python3 -c "
+import json,sys;l=json.load(sys.stdin).get('cardList',[]);[print(x['cardID'],x['cardThumbFile'],x['cardNameViewText']) for x in l if '/M6a/' in x['cardThumbFile']][-6:] if False else [print(x['cardID'],x['cardThumbFile'].split('/')[-1],x['cardNameViewText']) for x in [y for y in l if '/M6a/' in y['cardThumbFile']][-6:]]"; done
+section "pokemon-card.com : fiche (rareté) 50651 et une carte rare"
+get "https://www.pokemon-card.com/card-search/details.php/card/50651/regu/all" > /tmp/a.html
+grep -n -iE 'rare|rarity|ic_' /tmp/a.html | head -10
+sed -n '/subtext/,+6p' /tmp/a.html | head -10
+LAST=$(for p in 1 2 3 4 5; do get "$API&page=$p" | python3 -c "import json,sys;l=json.load(sys.stdin).get('cardList',[]);[print(x['cardID']) for x in l if '/M6a/' in x['cardThumbFile']]"; done | sort -n | tail -1)
+echo "last M6a id=$LAST"
+get "https://www.pokemon-card.com/card-search/details.php/card/$LAST/regu/all" > /tmp/b.html
+grep -n -iE 'rare|rarity|ic_' /tmp/b.html | head -10
+sed -n '/subtext/,+6p' /tmp/b.html | head -10
+grep -oE '<h1[^>]*>[^<]*' /tmp/b.html | head -2
+section "Serebii : images de la page japonaise"
+get "https://www.serebii.net/card/japanese.shtml" | grep -oE '<img[^>]*src="[^"]*"[^>]*>' | sed -n '1,400p' | grep -iE 'logo|card/' | head -30
+get "https://www.serebii.net/card/japanese.shtml" | grep -oE 'href="/card/[a-z0-9]+/"' | sort -u | wc -l
+get "https://www.serebii.net/card/japanese.shtml" | grep -oE '<a href="/card/[a-z0-9]+/"><img[^>]*>' | head -10
+get "https://www.serebii.net/card/japanese.shtml" | grep -oE '<tr>.{0,600}' | grep -i 'ninja\|abyss\|emerald' | head -3
+head_ "https://www.serebii.net/card/ninjaspinner/logo.png"
+head_ "https://www.serebii.net/card/30thcelebration/logo.png"
