@@ -6,7 +6,7 @@ Il faut un ordinateur (Windows ou Mac) uniquement pour lancer la fabrication.
 
 ## Le plus simple : la version web (gratuit, tout téléphone)
 
-1. Sur l'iPhone, ouvrir **Safari** à l'adresse https://8yrzktdknt-dot.github.io/pokemarche-jp/app/
+1. Sur l'iPhone, ouvrir **Safari** à l'adresse https://bananaintrouble.github.io/pokemarche-jp/app/
 2. Toucher le bouton **Partager** (carré avec une flèche), puis **Sur l'écran d'accueil**.
 3. Ouvrir **PokéMarket** depuis l'écran d'accueil et autoriser la caméra pour scanner.
 
@@ -18,7 +18,7 @@ Les sections suivantes servent à fabriquer la vraie app (App Store / Play Store
 
 1. Installer **Node.js** : sur https://nodejs.org, télécharger la version « LTS » et l'installer (Suivant, Suivant…).
 2. Créer un compte gratuit sur **https://expo.dev** (bouton *Sign up*). Notez l'e-mail et le mot de passe.
-3. Télécharger le projet : sur https://github.com/8yrzktdknt-dot/pokemarche-jp, bouton vert **Code** → **Download ZIP**,
+3. Télécharger le projet : sur https://github.com/BananaInTrouble/pokemarche-jp, bouton vert **Code** → **Download ZIP**,
    puis décompresser le fichier (clic droit → *Extraire tout* sur Windows, double-clic sur Mac).
 
 ## 2. Ouvrir un terminal dans le dossier `mobile`
@@ -58,7 +58,7 @@ Avec un identifiant Apple gratuit, l'app fonctionne **7 jours** ; il suffit ensu
    L'ouvrir une fois, accepter la licence et laisser installer les composants iOS proposés.
    Puis menu **Xcode → Réglages → Comptes → +** et ajouter votre identifiant Apple.
 2. **Node.js** : installer la version « LTS » depuis https://nodejs.org.
-3. **Le projet** : sur https://github.com/8yrzktdknt-dot/pokemarche-jp, bouton vert **Code → Download ZIP**,
+3. **Le projet** : sur https://github.com/BananaInTrouble/pokemarche-jp, bouton vert **Code → Download ZIP**,
    puis double-cliquer sur le ZIP pour le décompresser.
 4. **L'iPhone** : le brancher au Mac en USB, le déverrouiller et toucher **Se fier à cet ordinateur**.
 5. **Fabriquer et installer** : ouvrir l'app **Terminal**, taper `cd ` (avec un espace), glisser le dossier `mobile`

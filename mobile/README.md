@@ -23,7 +23,7 @@ Stack : Expo (SDK 57) + React Native + TypeScript + Expo Router.
 ## Version web
 
 Le même code produit un site installable sur l'écran d'accueil (PWA), publié par GitHub Pages :
-https://8yrzktdknt-dot.github.io/pokemarche-jp/app/
+https://bananaintrouble.github.io/pokemarche-jp/app/
 
 - Le scanner y lit le texte avec Tesseract.js (`src/lib/scan/ocr.web.ts`) au lieu de ML Kit (`ocr.ts`) : plus lent.
 - Mettre à jour le site : `npm run build:web`, puis commit des dossiers `../app` et `../404.html`.
