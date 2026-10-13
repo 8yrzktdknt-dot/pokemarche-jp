@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { cleanName, parseOfficialCard, parseOfficialNumber, parseSerebiiLogos, setKey } from './official-jp.mjs';
+import { cleanName, parseOfficialCard, parseWizardSet, parseOfficialNumber, parseSerebiiLogos, setKey } from './official-jp.mjs';
 
 const card = `<div class="subtext Text-fjalla">
                         <img src="/assets/images/card/regulation_logo_1/M6a.gif" class="img-regulation" alt="M6a" />
@@ -49,4 +49,9 @@ test('carte LEGEND : deux numéros, nom, image', () => {
 
 test('symbole Méga dans le nom', () => {
   assert.equal(cleanName('<span class="pcg pcg-megamark"></span>サーナイトEX'), 'MサーナイトEX');
+});
+
+test('liste PokemonWizard', () => {
+  const html = '<div class="x"><img alt="Mew ex" src="https://images.pokemonwizard.com/uploads/images/cards/24721/716932-mew-ex-135103-medium.jpg" class="absolute inset-0 w-full h-full object-contain p-1"/> <p class="text-xs">Mew ex - 135/103</p> <span># 135</span> <span>Futuristic Rare</span>  <p class="text-xs f">$1</p></div>';
+  assert.deepEqual(parseWizardSet(html), [{ n: '135', total: 103, nameEn: 'Mew ex', rarity: 'FUR', image: 'https://images.pokemonwizard.com/uploads/images/cards/24721/716932-mew-ex-135103-medium.jpg' }]);
 });

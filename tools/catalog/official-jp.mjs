@@ -103,3 +103,41 @@ export async function serebiiLogos(sets) {
   console.log(`Serebii : ${logos.size} logos, ${found.size} extensions associées`);
   return found;
 }
+
+/**
+ * PokemonWizard : listes complètes des extensions japonaises récentes (nom anglais, numéro, rareté, image),
+ * y compris les cartes secrètes absentes de la base officielle (ex. M6a 104-135).
+ * Identifiant de l'extension sur le site → code de l'extension.
+ */
+export const WIZARD_SETS = { M6a: '24721/30th-celebration-m6a' };
+
+const WIZARD_RARITY = {
+  'art rare': 'AR', 'special art rare': 'SAR', 'futuristic rare': 'FUR', 'ultra rare': 'SR', 'hyper rare': 'UR',
+  'mega hyper rare': 'MUR', 'double rare': 'RR', 'triple rare': 'RRR', 'rare': 'R', 'uncommon': 'U', 'common': 'C',
+  'character rare': 'CHR', 'character super rare': 'CSR', 'secret rare': 'UR', 'ace spec rare': 'ACE',
+};
+
+/** Cartes d'une page d'extension PokemonWizard : « <img src=…/716932-mew-ex-135103-medium.jpg …/> Mew ex - 135/103 # 135 Futuristic Rare ». */
+export function parseWizardSet(html) {
+  const out = new Map();
+  for (const m of html.matchAll(/src="(https:\/\/images\.pokemonwizard\.com\/uploads\/images\/cards\/[^"]+?-medium\.(?:jpg|png|webp))"[^>]*>([\s\S]{0,400})/g)) {
+    // Texte de la vignette, morceau par morceau : « Mew ex - 135/103 », « # 135 », « Futuristic Rare », prix…
+    const parts = m[2].split(/<[^>]*>/).map((x) => unescapeHtml(x).replace(/\s+/g, ' ').trim()).filter(Boolean)
+      .flatMap((x) => x.split(/\s*#\s*\d+\s*/)).map((x) => x.trim()).filter(Boolean);
+    const i = parts.findIndex((x) => /^.+? - [A-Z]{0,3}\d{1,3}\/\d{1,3}$/.test(x));
+    if (i < 0) continue;
+    const head = parts[i].match(/^(.+?) - ([A-Z]{0,3}\d{1,3})\/(\d{1,3})$/);
+    const c = [null, head[1], head[2], head[3], parts.slice(i + 1).find((x) => /^[A-Za-z][A-Za-z ]+$/.test(x)) ?? ''];
+    if (out.has(c[2])) continue;
+    const rarityName = c[4].replace(/\s+(Holo|Reverse.*|Foil.*)$/i, '').trim();
+    out.set(c[2], { n: c[2], total: Number(c[3]), nameEn: c[1].trim(), rarity: WIZARD_RARITY[rarityName.toLowerCase()] ?? rarityName, image: m[1] });
+  }
+  return [...out.values()];
+}
+
+export async function wizardCards(setId) {
+  const path = WIZARD_SETS[setId];
+  if (!path) return [];
+  const html = await getText(`https://www.pokemonwizard.com/sets/${path}`);
+  return html ? parseWizardSet(html) : [];
+}

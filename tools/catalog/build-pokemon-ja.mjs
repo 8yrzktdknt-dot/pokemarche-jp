@@ -1,6 +1,6 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
-import { officialCard, officialRecentCards, serebiiLogos } from './official-jp.mjs';
+import { WIZARD_SETS, officialCard, officialRecentCards, serebiiLogos, wizardCards } from './official-jp.mjs';
 import { getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
 
@@ -91,6 +91,7 @@ export async function buildPokemonJa() {
         };
       });
       added += await completeFromOfficial(set, list, recent.get(set.id.toUpperCase()), off);
+      if (WIZARD_SETS[set.id]) added += await completeFromWizard(set, list, off);
       set.count = list.length || set.count;
       total += list.length;
       writeJson(`cards/pokemon-ja/${set.id}.json`, list);
@@ -155,6 +156,42 @@ async function completeFromOfficial(set, list, offCards, officialCount) {
   });
   list.sort((a, b) => (Number(a.localId) || 1e4) - (Number(b.localId) || 1e4));
   if (added) console.log(`${set.id} : ${added} cartes ajoutées depuis pokemon-card.com`);
+  return added;
+}
+
+/**
+ * Complète avec PokemonWizard (cartes secrètes pas encore dans la base officielle) et ajoute les raretés manquantes.
+ * Le nom japonais est repris d'une carte de l'extension portant le même nom anglais (ex. l'AR 104 = la carte 002).
+ */
+async function completeFromWizard(set, list, officialCount) {
+  const cards = await wizardCards(set.id).catch((e) => { console.warn(`PokemonWizard ${set.id} :`, e.message); return []; });
+  const byNumber = new Map(list.map((c) => [numberKey(c.localId), c]));
+  let added = 0;
+  for (const w of cards) {
+    const known = byNumber.get(numberKey(w.n));
+    if (known) {
+      if (!known.rarity && w.rarity) known.rarity = w.rarity;
+      continue;
+    }
+    const twin = list.find((c) => c.nameEn && c.nameEn.toLowerCase() === w.nameEn.toLowerCase());
+    const localId = /^\d+$/.test(w.n) ? pad3(w.n) : w.n;
+    const total = officialCount ?? w.total;
+    const card = {
+      id: `${set.id}-${localId}`,
+      localId,
+      number: total ? `${localId}/${pad3(total)}` : localId,
+      name: twin?.name ?? w.nameEn,
+      nameEn: w.nameEn,
+      nameFr: twin?.nameFr,
+      image: w.image,
+      rarity: w.rarity,
+    };
+    list.push(card);
+    byNumber.set(numberKey(w.n), card);
+    added++;
+  }
+  list.sort((a, b) => (Number(a.localId) || 1e4) - (Number(b.localId) || 1e4));
+  console.log(`${set.id} : PokemonWizard ${cards.length} cartes lues, ${added} ajoutées`);
   return added;
 }
 
