@@ -41,10 +41,10 @@ const RARITY_ABBR: Record<string, string> = {
   'chromatique ultra rare': 'SSR', 'amazing rare': 'A', 'radiant rare': 'K', 'black white rare': 'BWR',
   // Noms utilisés par Limitless pour les cartes japonaises
   'art rare': 'AR', 'special art rare': 'SAR', 'character holo rare': 'CHR',
-  'mega hyper rare': 'MUR', 'méga hyper rare': 'MUR', 'hyper rare méga': 'MUR',
+  'futuristic rare': 'FUR', 'mega hyper rare': 'MUR', 'méga hyper rare': 'MUR', 'hyper rare méga': 'MUR',
   'rare illustration spéciale': 'SAR', 'rare illustration': 'AR',
   'double rare ': 'RR', 'rare double': 'RR', 'triple rare ': 'RRR', 'character rare': 'CHR', 'character super rare': 'CSR', promo: 'PR',
-  'full art trainer': 'SR', 'classic collection': 'CC', 'crown': 'UR', 'one diamond': '◇', none: '—',
+  'full art trainer': 'SR', 'classic collection': 'CC', 'crown': 'UR', 'one diamond': '◇', none: 'None', '': 'None', 'sans rareté': 'None', 'no rarity': 'None', 'keine seltenheit': 'None',
 };
 
 export function rarityAbbr(name: string): string {
@@ -70,7 +70,11 @@ export const RARITY_ORDER: { abbr: string; fr: string; en: string }[] = [
   { abbr: 'SR', fr: 'Ultra Rare', en: 'Ultra Rare' },
   { abbr: 'SAR', fr: 'Illustration Spéciale Rare', en: 'Special Illustration Rare' },
   { abbr: 'MUR', fr: 'Méga Hyper Rare', en: 'Mega Hyper Rare' },
+  { abbr: 'FUR', fr: 'Futuristic Rare', en: 'Futuristic Rare' },
 ];
+
+/** Cartes sans rareté connue : toujours en fin de liste. */
+const NONE_OPTION = { abbr: 'None', fr: 'Sans rareté', en: 'No rarity' };
 
 /**
  * Options du filtre de rareté : les abréviations connues dans l'ordre ci-dessus, puis les autres valeurs.
@@ -84,7 +88,12 @@ export function rarityOptions(values: string[], appLang: 'fr' | 'en'): { value: 
     const a = rarityAbbr(v);
     if (!knownAbbr.has(a) && !others.has(a)) others.set(a, a === v ? v : `${a} - ${v}`);
   }
-  return [...known, ...[...others].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label))];
+  const hasNone = others.delete(NONE_OPTION.abbr) || values.some((v) => !v);
+  return [
+    ...known,
+    ...[...others].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label)),
+    ...(hasNone ? [{ value: NONE_OPTION.abbr, label: `${NONE_OPTION.abbr} - ${NONE_OPTION[appLang]}` }] : []),
+  ];
 }
 
 /** Valeurs de la source correspondant à une abréviation (ex. « SAR » → « Special illustration rare »). */

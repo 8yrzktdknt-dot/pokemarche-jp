@@ -40,3 +40,9 @@ test('noms des extensions', () => {
   assert.equal(setName('ブースターパック 新時代の主役【OP-05】'), '新時代の主役');
   assert.equal(setName('STARTER DECK EX -Luffy & Ace- [ST-30]'), 'Luffy & Ace');
 });
+
+test('attributs du dos de la fiche', () => {
+  const html = '<dl class="modalCol" id="OP01-001"><dt><div class="infoCol"><span>OP01-001</span> | <span>L</span> | <span>LEADER</span></div><div class="cardName">Roronoa Zoro</div></dt><dd><div class="backCol"><div class="col2"><div class="cost"><h3>Life</h3>5</div><div class="attribute"><h3>Attribute</h3><img src="x" alt="Slash"><i>Slash</i></div></div><div class="col2"><div class="power"><h3>Power</h3>5000</div><div class="counter"><h3>Counter</h3>-</div></div><div class="block"><h3>Block<br class="spInline"> icon</h3>1</div><div class="feature"><h3>Type</h3>Supernovas/Straw Hat Crew</div></div></dd></dl>';
+  const [c] = parseCards(html, 'https://en.onepiece-cardgame.com');
+  assert.deepEqual(c.attrs, { life: '5', power: '5000', attribute: 'Slash', feature: 'Supernovas/Straw Hat Crew', block: '1' });
+});

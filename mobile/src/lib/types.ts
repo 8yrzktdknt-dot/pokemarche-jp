@@ -33,6 +33,20 @@ export interface Card {
   prices: Price[];
   /** Valeurs filtrables propres au jeu (type, couleur, domaine…), par clé de facette. */
   facets?: Record<string, string[]>;
+  /** Attributs affichés sur la fiche (illustrateur, PV, coût…), dans l'ordre d'affichage. */
+  attributes?: CardAttribute[];
+  /** Identifiants des fiches produit sur les places de marché (liens directs). */
+  marketIds?: { cardmarket?: number; tcgplayer?: number };
+}
+
+export type AttributeKey =
+  | 'illustrator' | 'release' | 'rarity' | 'dex' | 'type' | 'hp' | 'stage' | 'category' | 'regulation'
+  | 'cost' | 'life' | 'power' | 'counter' | 'attribute' | 'feature' | 'block' | 'color'
+  | 'domain' | 'energy' | 'might';
+
+export interface CardAttribute {
+  key: AttributeKey;
+  value: string;
 }
 
 export type SortKey = 'relevance' | 'name' | 'number' | 'price-desc' | 'price-asc';

@@ -52,9 +52,9 @@ test('pertinence : noms commençant par le texte en premier', () => {
 test('raretés Pokémon : ordre imposé puis le reste', async () => {
   const { rarityOptions, rarityValuesFor } = await import('./catalog/pokemonNames.ts');
   const opts = rarityOptions(['Common', 'Special illustration rare', 'ACE SPEC Rare', 'Hyper rare'], 'fr');
-  assert.deepEqual(opts.slice(0, 10).map((o) => o.value), ['C', 'U', 'R', 'RR', 'RRR', 'AR', 'UR', 'SR', 'SAR', 'MUR']);
+  assert.deepEqual(opts.slice(0, 11).map((o) => o.value), ['C', 'U', 'R', 'RR', 'RRR', 'AR', 'UR', 'SR', 'SAR', 'MUR', 'FUR']);
   assert.equal(opts[0].label, 'C - Commune');
-  assert.equal(opts[10].value, 'ACE');
+  assert.equal(opts[11].value, 'ACE');
   assert.equal(rarityOptions([], 'en')[8].label, 'SAR - Special Illustration Rare');
   assert.deepEqual(rarityValuesFor('SAR', ['Common', 'Special illustration rare']), ['Special illustration rare']);
 });

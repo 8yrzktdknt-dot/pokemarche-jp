@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { setBrowseList } from '../lib/browse';
 import { GAME_LIST } from '../lib/games';
 import { useStore } from '../lib/store';
 import type { Card, GameId } from '../lib/types';
@@ -68,13 +69,14 @@ export function useBestPrice(): (card: Card) => string | null {
   };
 }
 
-export function CardRow({ card, right }: { card: Card; right?: string }) {
+/** `list` : cartes affichées autour (extension, collection, recherche) pour passer de l'une à l'autre sur la fiche. */
+export function CardRow({ card, right, list }: { card: Card; right?: string; list?: Card[] }) {
   const { settings } = useStore();
   const price = useBestPrice()(card);
   const name = displayName(card, settings.appLang);
   return (
     <Link href={{ pathname: '/card/[game]/[id]', params: { game: card.game, id: card.id, lang: card.lang } }} asChild>
-      <Pressable style={s.cardRow}>
+      <Pressable style={s.cardRow} onPressIn={() => setBrowseList(list ?? [card])}>
         <Image source={card.imageSmall} style={s.thumb} contentFit="contain" />
         <View style={{ flex: 1 }}>
           <Text style={s.name} numberOfLines={2}>{name}</Text>

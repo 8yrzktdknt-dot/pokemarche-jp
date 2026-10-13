@@ -10,6 +10,8 @@ import { CATALOG, ROOT, getBuffer, pool, writeJson } from './lib.mjs';
 /** Catalogues indexés. `since` : extensions sorties depuis cette date seulement (taille du fichier à télécharger). */
 export const TARGETS = [
   { game: 'pokemon', lang: 'ja', since: process.env.VISUAL_SINCE_POKEMON_JA || '2019-01-01', seed: 'card-index.json' },
+  { game: 'pokemon', lang: 'fr', since: process.env.VISUAL_SINCE_POKEMON_INTL || '2019-01-01' },
+  { game: 'pokemon', lang: 'en', since: process.env.VISUAL_SINCE_POKEMON_INTL || '2019-01-01' },
   { game: 'onepiece', lang: 'en' },
   { game: 'riftbound', lang: 'en' },
 ];
@@ -93,7 +95,9 @@ async function buildTarget({ game, lang, since, seed }) {
   return { game, lang, file, count: items.length };
 }
 
-export async function buildVisual(targets = TARGETS) {
+const only = (process.env.VISUAL_TARGETS || '').split(',').map((x) => x.trim()).filter(Boolean);
+
+export async function buildVisual(targets = only.length ? TARGETS.filter((t) => only.includes(`${t.game}-${t.lang}`)) : TARGETS) {
   const done = [];
   for (const t of targets) {
     const r = await buildTarget(t);

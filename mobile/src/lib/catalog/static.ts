@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { getJson } from '../http';
 import { distinct, normalize, sortCards } from '../search';
-import type { Bloc, Card, CardLang, FilterOptions, GameId, SearchFilters, SetInfo } from '../types';
+import type { AttributeKey, Bloc, Card, CardAttribute, CardLang, FilterOptions, GameId, SearchFilters, SetInfo } from '../types';
 
 /**
  * Catalogue publié avec le site (construit chaque semaine par GitHub Actions, dossier catalog/ du dépôt) :
@@ -19,6 +19,21 @@ export function catalogBase(): string {
 }
 
 const DAY = 24 * 3600 * 1000;
+
+/** Logos publiés avec le catalogue (« logos/pokemon-ja/M6.png ») : chemin relatif au catalogue. */
+export const assetUrl = (u?: string) => (u && !/^https?:/.test(u) ? `${catalogBase()}/${u}` : u);
+
+/**
+ * Grande image d'une carte selon sa source : Limitless (_SM → _LG), TCGdex (low → high),
+ * pokemontcg.io (.png → _hires.png) ; les images officielles japonaises n'ont qu'une taille.
+ */
+export function largeImage(u?: string): string | undefined {
+  if (!u) return u;
+  if (/_SM\.(png|jpg|webp)$/.test(u)) return u.replace(/_SM\.(png|jpg|webp)$/, '_LG.$1');
+  if (u.endsWith('/low.webp')) return u.replace(/\/low\.webp$/, '/high.webp');
+  if (/images\.pokemontcg\.io\/.+\/[^/_]+\.png$/.test(u)) return u.replace(/\.png$/, '_hires.png');
+  return u;
+}
 
 export interface StaticSet {
   id: string;
@@ -50,6 +65,8 @@ export interface StaticCard {
   rarity?: string;
   price?: { value: number; currency: string; source: string };
   facets?: Record<string, string[]>;
+  attrs?: Partial<Record<AttributeKey, string>>;
+  tcgplayer?: number;
 }
 
 export async function staticBlocs(game: GameId, lang: CardLang): Promise<StaticBloc[] | null> {
@@ -71,7 +88,7 @@ export function toBlocs(blocs: StaticBloc[], appLang: 'fr' | 'en' = 'fr'): Bloc[
       id: x.id,
       code: x.code,
       name: (appLang === 'fr' && x.nameFr) || x.name,
-      logo: x.logo,
+      logo: assetUrl(x.logo),
       count: x.count,
       blocId: b.id,
     })),
@@ -90,15 +107,40 @@ export interface StaticRow {
   image: string;
   priceUsd: number;
   facets?: Record<string, string[]>;
+  attrs?: Partial<Record<AttributeKey, string>>;
+  tcgplayer?: number;
 }
 
 /** Toutes les cartes d'un jeu et d'une langue (fichier compact), pour chercher par nom traduit. */
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets]) => ({
-    id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets: facets || undefined,
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer]) => ({
+    id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd,
+    facets: facets || undefined, attrs: attrs || undefined, tcgplayer: tcgplayer || undefined,
   }) as StaticRow);
+}
+
+/** Rareté affichée et filtrable pour les cartes dont la source n'en donne pas. */
+export const NO_RARITY = 'None';
+const rarityOf = (r?: string) => (r && r.trim() ? r : NO_RARITY);
+
+/** Facettes affichées comme attributs (couleur One Piece, domaine Riftbound…). */
+const FACET_ATTR: Record<string, AttributeKey> = { color: 'color', category: 'category', domain: 'domain', type: 'category' };
+
+/** Attributs d'une carte du catalogue : illustrateur, date de sortie, rareté, puis ceux propres au jeu. */
+export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string): CardAttribute[] {
+  const out: CardAttribute[] = [];
+  const add = (key: AttributeKey, value?: string) => {
+    if (value && !out.some((a) => a.key === key)) out.push({ key, value });
+  };
+  const attrs = c.attrs ?? {};
+  add('illustrator', attrs.illustrator);
+  add('release', releaseDate);
+  add('rarity', rarityOf(c.rarity));
+  for (const [k, v] of Object.entries(attrs)) if (k !== 'illustrator') add(k as AttributeKey, v);
+  for (const [k, v] of Object.entries(c.facets ?? {})) if (FACET_ATTR[k] && v.length) add(FACET_ATTR[k], v.join(' / '));
+  return out;
 }
 
 /** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */
@@ -106,7 +148,7 @@ export function staticToCard(
   game: GameId,
   lang: CardLang,
   c: StaticCard | StaticRow,
-  set?: { id: string; name?: string },
+  set?: { id: string; name?: string; releaseDate?: string },
 ): Card {
   const image = c.image || undefined;
   const price = 'price' in c ? (c as { price?: { value: number; currency: string; source: string } }).price : undefined;
@@ -121,11 +163,13 @@ export function staticToCard(
     number: c.number,
     setId: set?.id ?? ('setId' in c ? c.setId : undefined),
     setName: set?.name,
-    rarity: c.rarity || undefined,
+    rarity: rarityOf(c.rarity),
     imageSmall: image,
-    imageLarge: image?.replace(/_SM\.(png|jpg|webp)$/, '_LG.$1'),
+    imageLarge: largeImage(image),
     prices: usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [],
     facets: (c as { facets?: Record<string, string[]> }).facets,
+    attributes: staticAttributes(c, set?.releaseDate),
+    marketIds: c.tcgplayer ? { tcgplayer: c.tcgplayer } : undefined,
   };
 }
 
@@ -136,7 +180,7 @@ export async function staticSetCardsAsApp(game: GameId, lang: CardLang, setId: s
   const [blocs, cards] = await Promise.all([staticBlocs(game, lang), staticSetCards(game, lang, setId)]);
   if (!cards) return null;
   const st = blocs?.flatMap((b) => b.sets.map((x) => ({ ...x, blocId: b.id }))).find((x) => x.id === setId);
-  const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, logo: st.logo, count: st.count, blocId: st.blocId } : null;
+  const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, logo: assetUrl(st.logo), count: st.count, blocId: st.blocId } : null;
   return { set, cards: cards.map((c) => staticToCard(game, lang, c, { id: setId, name: st?.name })) };
 }
 
@@ -166,7 +210,7 @@ export async function staticSearch(
   const hit = rows.filter((r) => {
     if (f.setId && r.setId !== f.setId) return false;
     if (blocSets && !blocSets.has(r.setId)) return false;
-    if (f.facets.rarity && rarityKey(r.rarity) !== f.facets.rarity) return false;
+    if (f.facets.rarity && rarityKey(rarityOf(r.rarity)) !== f.facets.rarity) return false;
     for (const [k, v] of Object.entries(f.facets)) {
       if (!v || k === 'rarity') continue;
       if (r.facets?.[k] && !r.facets[k].includes(v)) return false;
@@ -186,7 +230,8 @@ export async function staticGetCard(game: GameId, lang: CardLang, id: string): P
   const [rows, blocs] = await Promise.all([staticSearchRows(game, lang), staticBlocs(game, lang)]);
   const r = rows?.find((x) => x.id === id);
   if (!r) return null;
-  return staticToCard(game, lang, r, { id: r.setId, name: blocs ? setNames(blocs).get(r.setId) : undefined });
+  const set = blocs?.flatMap((b) => b.sets).find((x) => x.id === r.setId);
+  return staticToCard(game, lang, r, { id: r.setId, name: set?.name, releaseDate: set?.releaseDate });
 }
 
 /** Options de filtre depuis le catalogue (raretés et facettes présentes). */
@@ -199,7 +244,7 @@ export async function staticFilterOptions(game: GameId, lang: CardLang, facetKey
     blocs: app,
     sets: app.flatMap((b) => b.sets.map((x) => ({ id: x.id, name: `${x.code} · ${x.name}` }))),
     facets: [
-      { key: 'rarity', label: 'rarity', values: distinct((rows ?? []).map((r) => r.rarity)) },
+      { key: 'rarity', label: 'rarity', values: distinct((rows ?? []).map((r) => rarityOf(r.rarity))) },
       ...facetKeys.map((k) => ({ key: k, label: k, values: values(k) })),
     ],
     sorts: game === 'pokemon' && lang !== 'ja' ? ['relevance', 'name', 'number'] : ['relevance', 'name', 'number', 'price-desc', 'price-asc'],
