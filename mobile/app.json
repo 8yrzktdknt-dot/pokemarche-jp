@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "TCG Scanner",
+    "slug": "tcg-scanner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pokemarche.tcgscanner",
+      "infoPlist": {
+        "NSCameraUsageDescription": "La cam\u00e9ra sert \u00e0 scanner vos cartes pour les identifier."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.pokemarche.tcgscanner",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La cam\u00e9ra sert \u00e0 scanner vos cartes pour les identifier.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "scheme": "tcgscanner"
+  }
+}
