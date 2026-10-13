@@ -59,20 +59,28 @@ export async function translateRemaining() {
   const todo = new Map();
   for (const { f, cards } of decks) {
     for (const c of cards) {
-      if (c.nameEn || known[c.name] || todo.has(c.name)) continue;
+      if (c.nameEn || known[c.name]) continue;
       const energy = basicEnergy(c.name);
       if (energy) { known[c.name] = energy; continue; }
-      if (/^\d+$/.test(c.localId)) todo.set(c.name, { set: f.replace(/\.json$/, ''), n: String(Number(c.localId)) });
+      if (!/^\d+$/.test(c.localId)) continue;
+      // Plusieurs exemplaires par nom : une impression exclusive au Japon n'a pas de version internationale.
+      const list = todo.get(c.name) ?? [];
+      list.push({ set: f.replace(/\.json$/, ''), n: String(Number(c.localId)) });
+      todo.set(c.name, list);
     }
   }
   const english = loadEnglishNames();
   let found = 0;
-  await pool([...todo], 4, async ([name, { set, n }]) => {
-    await sleep(100);
-    const html = await getText(`https://limitlesstcg.com/cards/jp/${set}/${n}`);
-    const p = html && parseIntPrint(html);
-    const t = p && english(p.code, p.n);
-    if (t) { known[name] = t; found++; }
+  await pool([...todo], 4, async ([name, samples]) => {
+    // Jusqu'à 6 impressions réparties dans toutes les extensions où la carte apparaît.
+    const step = Math.max(1, Math.floor(samples.length / 6));
+    for (const { set, n } of samples.filter((_, i) => i % step === 0).slice(0, 6)) {
+      await sleep(100);
+      const html = await getText(`https://limitlesstcg.com/cards/jp/${set}/${n}`);
+      const p = html && parseIntPrint(html);
+      const t = p && english(p.code, p.n);
+      if (t) { known[name] = t; found++; return; }
+    }
   });
   writeJson('names/ja.json', known);
 
