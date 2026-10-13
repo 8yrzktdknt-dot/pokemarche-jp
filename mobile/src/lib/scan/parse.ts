@@ -23,7 +23,8 @@ export function detectLang(text: string): CardLang | undefined {
 
 function parseOnePiece(text: string): ScanHint | null {
   // OP05-119, ST01-012, EB01-001, PRB01-001, P-001 (l'OCR lit souvent « 0P05 »).
-  const m = text.match(/\b([O0]P|ST|EB|PRB)\s?([0-9OoIl]{2})\s?[-‐–]\s?([0-9OoIlSB]{3})\b/) ??
+  // L'OCR ajoute parfois un « O » parasite (« OPO05-119 ») : on le tolère avant les deux chiffres.
+  const m = text.match(/\b([O0]P|ST|EB|PRB)\s?[Oo]?([0-9OoIl]{2})\s?[-‐–]\s?([0-9OoIlSB]{3})\b/) ??
     text.match(/\b(P)()\s?[-‐–]\s?([0-9OoIlSB]{3})\b/);
   if (!m) return null;
   const prefix = m[1].replace('0P', 'OP');
@@ -67,7 +68,10 @@ function parsePokemon(text: string): ScanHint | null {
  * `game` restreint la recherche à un jeu ; sinon le jeu est déduit du format du code.
  */
 export function parseScanText(rawText: string, game?: GameId): ScanHint | null {
-  const text = rawText.replace(/\r/g, '');
+  const text = rawText
+    .replace(/\r/g, '')
+    // L'OCR colle parfois extension, langue et numéro : « SVIEN136/198 » → « SVI EN 136/198 ».
+    .replace(/\b([A-Za-z]{2,4}\d{0,2}[a-z]?)(EN|FR|DE|ES|IT|PT)(?=\d{1,3}\s*\/)/g, '$1 $2 ');
   const parsers: Record<GameId, (t: string) => ScanHint | null> = {
     onepiece: parseOnePiece,
     riftbound: parseRiftbound,
