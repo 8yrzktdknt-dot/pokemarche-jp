@@ -1,6 +1,7 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
-import type { Card, CardLang, GameProvider, Price, ScanHint } from '../types.ts';
+import { applyFilters, distinct, sortCards } from '../search.ts';
+import type { Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters } from '../types.ts';
 
 /**
  * One Piece Card Game via OPTCG API (https://optcgapi.com), sans clé, données anglaises
@@ -8,6 +9,7 @@ import type { Card, CardLang, GameProvider, Price, ScanHint } from '../types.ts'
  * seules les images officielles changent selon la langue.
  */
 const API = 'https://optcgapi.com/api';
+const DAY = 24 * 3600 * 1000;
 
 interface OptcgCard {
   card_name: string;
@@ -17,6 +19,8 @@ interface OptcgCard {
   set_name?: string;
   set_id?: string;
   rarity?: string;
+  card_color?: string;
+  card_type?: string;
   market_price?: number | string | null;
   inventory_price?: number | string | null;
 }
@@ -45,12 +49,16 @@ function toCard(c: OptcgCard, lang: CardLang): Card {
     lang,
     name: c.card_name,
     number: c.card_set_id,
-    setId: c.set_id,
+    setId: c.card_set_id.split('-')[0],
     setName: c.set_name,
     rarity: c.rarity,
     imageSmall: image,
     imageLarge: image,
     prices,
+    facets: {
+      color: (c.card_color ?? '').split(/[\s/]+/).filter(Boolean),
+      category: c.card_type ? [c.card_type] : [],
+    },
   };
 }
 
@@ -66,13 +74,33 @@ async function getCard(id: string, lang: CardLang): Promise<Card | null> {
   return cards.find((c) => c.id === id) ?? cards[0] ?? null;
 }
 
-async function search(query: string, lang: CardLang): Promise<Card[]> {
-  const code = query.trim().toUpperCase();
+/** Catalogue complet (boosters + decks de démarrage), gardé en cache une journée : filtres et tris se font localement. */
+async function catalogue(lang: CardLang): Promise<Card[]> {
+  const lists = await Promise.all(
+    [`${API}/allSetCards/`, `${API}/allSTCards/`].map((u) => getJson<OptcgCard[]>(u, DAY).catch(() => null)),
+  );
+  return lists.flatMap((l) => l ?? []).map((c) => toCard(c, lang));
+}
+
+async function filterOptions(lang: CardLang): Promise<FilterOptions> {
+  const cards = await catalogue(lang);
+  const setName = new Map<string, string>();
+  for (const c of cards) if (c.setId && !setName.has(c.setId)) setName.set(c.setId, c.setName ?? c.setId);
+  return {
+    sets: [...setName].map(([id, name]) => ({ id, name: `${id} · ${name}` })).sort((a, b) => b.id.localeCompare(a.id)),
+    facets: [
+      { key: 'rarity', label: 'Rareté', values: distinct(cards.map((c) => c.rarity)) },
+      { key: 'color', label: 'Couleur', values: distinct(cards.flatMap((c) => c.facets?.color ?? [])) },
+      { key: 'category', label: 'Catégorie', values: distinct(cards.flatMap((c) => c.facets?.category ?? [])) },
+    ],
+    sorts: ['relevance', 'name', 'number', 'price-desc', 'price-asc'],
+  };
+}
+
+async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
+  const code = f.text.trim().toUpperCase();
   if (/^((OP|ST|EB|PRB)\d{2}|P)-\d{3}$/.test(code)) return byCode(code, lang);
-  const list = await getJson<OptcgCard[]>(
-    `${API}/sets/filtered/?card_name=${encodeURIComponent(query)}`,
-  ).catch(() => null);
-  return (list ?? []).slice(0, 60).map((c) => toCard(c, lang));
+  return sortCards(applyFilters(await catalogue(lang), f), f.sort, f.text);
 }
 
 async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
@@ -85,6 +113,7 @@ export const onepiece: GameProvider = {
   label: 'One Piece',
   langs: ['en', 'ja', 'fr', 'zh-cn', 'ko'],
   search,
+  filterOptions,
   getCard,
   resolveScan,
 };
