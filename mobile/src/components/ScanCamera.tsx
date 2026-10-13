@@ -1,4 +1,4 @@
-import { CameraView } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 
@@ -7,6 +7,20 @@ export interface Capture {
   ocr: string;
   /** Carte entière en carré 224×224, pour la reconnaissance visuelle (web uniquement pour l'instant). */
   card?: string;
+}
+
+export interface CameraAccess {
+  state: 'unknown' | 'granted' | 'denied';
+  request(): void;
+}
+
+/** iOS / Android : permission système, mémorisée par le téléphone après la première réponse. */
+export function useCameraAccess(): CameraAccess {
+  const [permission, requestPermission] = useCameraPermissions();
+  return {
+    state: !permission ? 'unknown' : permission.granted ? 'granted' : permission.canAskAgain ? 'unknown' : 'denied',
+    request: () => { requestPermission(); },
+  };
 }
 
 export interface ScanCameraHandle {

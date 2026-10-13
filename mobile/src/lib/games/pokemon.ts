@@ -1,7 +1,7 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
-import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN } from '../catalog/pokemonNames.ts';
+import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityValuesFor } from '../catalog/pokemonNames.ts';
 import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
@@ -193,9 +193,21 @@ async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
     const params = ['pagination:itemsPerPage=500'];
     if (/^\d{1,3}(\/\d+)?$/.test(text)) params.push(`localId=eq:${enc(text.split('/')[0])}`);
     else if (text) params.push(`name=${enc(text)}`);
-    if (rarity) params.push(`rarity=eq:${enc(rarity)}`);
     if (type) params.push(`types=${enc(type)}`);
-    briefs = (await getJson<TcgdexBrief[]>(`${API}/${l}/cards?${params.join('&')}`)) ?? [];
+    // Le filtre de rareté porte sur une abréviation (« SAR ») : une requête par libellé TCGdex correspondant.
+    let rarities: (string | null)[] = [null];
+    if (rarity) {
+      const all = (await getJson<string[]>(`${API}/${l}/rarities`, DAY).catch(() => null)) ?? [];
+      const vals = rarityValuesFor(rarity, all);
+      rarities = vals.length ? vals : [rarity];
+    }
+    const lists = await Promise.all(
+      rarities.map((r) =>
+        getJson<TcgdexBrief[]>(`${API}/${l}/cards?${[...params, ...(r ? [`rarity=eq:${enc(r)}`] : [])].join('&')}`),
+      ),
+    );
+    const seen = new Set<string>();
+    briefs = lists.flatMap((x) => x ?? []).filter((b) => !seen.has(b.id) && !!seen.add(b.id));
   }
   const blocSets = f.blocId ? new Set(bl.find((b) => b.id === f.blocId)?.sets.map((x) => x.id)) : null;
   const cards = briefs
@@ -204,7 +216,7 @@ async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
       return { ...fromBrief(b, lang), setId, setName: setInfo.get(setId)?.name };
     })
     .filter((c) => !blocSets || blocSets.has(c.setId));
-  return sortCards(applyFilters(cards, { ...f, text: '' }), f.sort, text);
+  return sortCards(applyFilters(cards, { ...f, text: '', facets: {} }), f.sort, text);
 }
 
 async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {

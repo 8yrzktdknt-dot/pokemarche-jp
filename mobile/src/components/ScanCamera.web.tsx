@@ -1,42 +1,73 @@
-import { createElement, forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { createElement, forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { GUIDE } from '../lib/scan/guide';
-import type { Capture, ScanCameraHandle } from './ScanCamera';
+import type { Capture, CameraAccess, ScanCameraHandle } from './ScanCamera';
 
-export type { Capture, ScanCameraHandle } from './ScanCamera';
-
-/** Largeur de l'image envoyée à l'OCR : les numéros de carte font quelques pixels sans agrandissement. */
-const OCR_WIDTH = 1400;
+export type { Capture, CameraAccess, ScanCameraHandle } from './ScanCamera';
 
 /**
- * Caméra du navigateur. On ouvre le flux nous-mêmes pour demander une haute résolution
- * (sinon Safari donne souvent du 640×480, illisible pour un numéro de carte), puis on
- * ne garde que le bas de la carte, agrandi et en niveaux de gris.
+ * Flux caméra unique pour toute la session : rouvrir le scanner réutilise le même flux,
+ * donc le navigateur ne redemande pas l'autorisation. Il est coupé après 3 minutes sans scan.
  */
+let stream: MediaStream | null = null;
+let pending: Promise<MediaStream> | null = null;
+let stopTimer: ReturnType<typeof setTimeout> | null = null;
+const IDLE_STOP_MS = 3 * 60 * 1000;
+
+const alive = (s: MediaStream | null) => !!s && s.getVideoTracks().some((t) => t.readyState === 'live');
+
+function getStream(): Promise<MediaStream> {
+  if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; }
+  if (alive(stream)) {
+    stream!.getVideoTracks().forEach((t) => { t.enabled = true; });
+    return Promise.resolve(stream!);
+  }
+  pending ??= navigator.mediaDevices
+    .getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } })
+    .then((s) => { stream = s; return s; })
+    .finally(() => { pending = null; });
+  return pending;
+}
+
+function releaseLater() {
+  if (stopTimer) clearTimeout(stopTimer);
+  stream?.getVideoTracks().forEach((t) => { t.enabled = false; });
+  stopTimer = setTimeout(() => {
+    stream?.getTracks().forEach((t) => t.stop());
+    stream = null;
+  }, IDLE_STOP_MS);
+}
+
+/** État d'accès à la caméra, sans seconde demande d'autorisation (contrairement au hook d'expo-camera sur le web). */
+export function useCameraAccess(): CameraAccess {
+  const [state, setState] = useState<CameraAccess['state']>(alive(stream) ? 'granted' : 'unknown');
+  const request = () => {
+    getStream().then(() => setState('granted'), () => setState('denied'));
+  };
+  useEffect(() => {
+    if (state === 'unknown') request();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return { state, request };
+}
+
+/** Carte entière dans un carré 224×224 sur fond gris, exactement comme les images de l'index visuel. */
+const S = 224;
+
 export const ScanCamera = forwardRef<ScanCameraHandle, { active: boolean }>(function ScanCamera({ active }, ref) {
   const video = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!active) return;
-    let stream: MediaStream | null = null;
     let cancelled = false;
-    navigator.mediaDevices
-      .getUserMedia({
-        audio: false,
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      })
-      .then((s) => {
-        if (cancelled) return s.getTracks().forEach((t) => t.stop());
-        stream = s;
-        const v = video.current;
-        if (v) {
-          v.srcObject = s;
-          v.play().catch(() => {});
-        }
-      })
-      .catch((e) => console.warn('Caméra indisponible', e));
+    getStream().then((s) => {
+      const v = video.current;
+      if (cancelled || !v) return;
+      v.srcObject = s;
+      v.play().catch(() => {});
+    }, () => {});
     return () => {
       cancelled = true;
-      stream?.getTracks().forEach((t) => t.stop());
+      releaseLater();
     };
   }, [active]);
 
@@ -44,7 +75,7 @@ export const ScanCamera = forwardRef<ScanCameraHandle, { active: boolean }>(func
     async capture(): Promise<Capture | null> {
       const v = video.current;
       if (!v || !v.videoWidth) return null;
-      // Le flux est affiché en « cover » : on convertit le cadre de visée (en px écran) en px vidéo.
+      // Le flux est affiché en « cover » : on convertit le cadre de visée (px écran) en px vidéo.
       const W = v.clientWidth;
       const H = v.clientHeight;
       const scale = Math.max(W / v.videoWidth, H / v.videoHeight);
@@ -52,56 +83,21 @@ export const ScanCamera = forwardRef<ScanCameraHandle, { active: boolean }>(func
       const offY = (v.videoHeight * scale - H) / 2;
       const cardW = W * GUIDE.width;
       const cardH = cardW / GUIDE.aspect;
-      const cardX = (W - cardW) / 2;
-      const cardY = H * GUIDE.top;
-      // Bande du bas, avec une marge pour une carte un peu décalée.
-      const margin = cardW * 0.06;
-      const sx = (cardX - margin + offX) / scale;
-      const sy = (cardY + cardH * GUIDE.codeBandFrom + offY) / scale;
-      const sw = (cardW + 2 * margin) / scale;
-      const sh = (cardH * (1.04 - GUIDE.codeBandFrom)) / scale;
+      const cx = ((W - cardW) / 2 + offX) / scale;
+      const cy = (H * GUIDE.top + offY) / scale;
+      const cw = cardW / scale;
+      const ch = cardH / scale;
 
-      // Carte entière dans un carré 224×224 sur fond gris, exactement comme les images de l'index visuel.
-      const S = 224;
       const sq = document.createElement('canvas');
       sq.width = sq.height = S;
       const g = sq.getContext('2d');
-      if (g) {
-        const cx = (cardX + offX) / scale;
-        const cy = (cardY + offY) / scale;
-        const cw = cardW / scale;
-        const ch = cardH / scale;
-        g.fillStyle = '#808080';
-        g.fillRect(0, 0, S, S);
-        const k = Math.min(S / cw, S / ch);
-        g.drawImage(v, cx, cy, cw, ch, (S - cw * k) / 2, (S - ch * k) / 2, cw * k, ch * k);
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = OCR_WIDTH;
-      canvas.height = Math.round((OCR_WIDTH * sh) / sw);
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return null;
-      ctx.drawImage(v, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-      // Niveaux de gris + étirement du contraste : nettement plus lisible pour Tesseract.
-      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const d = img.data;
-      let min = 255;
-      let max = 0;
-      for (let i = 0; i < d.length; i += 4) {
-        const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        d[i] = g;
-        if (g < min) min = g;
-        if (g > max) max = g;
-      }
-      const k = 255 / Math.max(1, max - min);
-      for (let i = 0; i < d.length; i += 4) {
-        const g = (d[i] - min) * k;
-        d[i] = d[i + 1] = d[i + 2] = g;
-      }
-      ctx.putImageData(img, 0, 0);
-      return { ocr: canvas.toDataURL('image/png'), card: g ? sq.toDataURL('image/jpeg', 0.92) : undefined };
+      if (!g) return null;
+      g.fillStyle = '#808080';
+      g.fillRect(0, 0, S, S);
+      const k = Math.min(S / cw, S / ch);
+      g.drawImage(v, cx, cy, cw, ch, (S - cw * k) / 2, (S - ch * k) / 2, cw * k, ch * k);
+      const card = sq.toDataURL('image/jpeg', 0.92);
+      return { ocr: card, card };
     },
   }));
 

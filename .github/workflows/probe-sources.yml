@@ -8,6 +8,10 @@ on:
         description: "Adresses à tester, séparées par des espaces (vide = liste par défaut)"
         default: ""
         required: false
+      deep:
+        description: "Exploration détaillée (1) ou rapide (0)"
+        default: "0"
+        required: false
 
 permissions:
   contents: read
@@ -18,6 +22,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: tools/probe/probe.sh
+      - run: if [ "${{ github.event.inputs.deep }}" = "1" ]; then tools/probe/deep.sh; else tools/probe/probe.sh; fi
         env:
           EXTRA_URLS: ${{ github.event.inputs.urls }}

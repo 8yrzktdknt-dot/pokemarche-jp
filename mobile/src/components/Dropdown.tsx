@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { normalize } from '../lib/search';
+import { useStore } from '../lib/store';
 import { colors, fonts, s } from './ui';
 
 export interface Option {
@@ -23,6 +24,7 @@ interface Props {
 
 /** Menu déroulant : un champ qui ouvre la liste des choix (avec recherche quand elle est longue). */
 export function Dropdown({ label, value, options, onChange, allLabel, disabled, style }: Props) {
+  const { t } = useStore();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const current = options.find((o) => o.value === value)?.label;
@@ -51,14 +53,14 @@ export function Dropdown({ label, value, options, onChange, allLabel, disabled, 
         <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
           <View style={st.header}>
             <Text style={s.h2}>{label}</Text>
-            <Pressable onPress={() => setOpen(false)} style={st.close} accessibilityLabel="Fermer">
+            <Pressable onPress={() => setOpen(false)} style={st.close} accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={24} color={colors.text} />
             </Pressable>
           </View>
           {options.length > 12 && (
             <TextInput
               style={[s.input, { marginHorizontal: 16, marginBottom: 8 }]}
-              placeholder="Filtrer la liste"
+              placeholder={t('common.filterList')}
               placeholderTextColor={colors.muted}
               value={q}
               onChangeText={setQ}
@@ -69,7 +71,8 @@ export function Dropdown({ label, value, options, onChange, allLabel, disabled, 
             data={list}
             keyExtractor={(o) => o.value || '__all'}
             keyboardShouldPersistTaps="handled"
-            style={{ paddingHorizontal: 16 }}
+            // Hauteur bornée par l'écran : sans flex: 1, une longue liste dépasse et ne défile pas.
+            style={{ flex: 1, paddingHorizontal: 16 }}
             contentContainerStyle={{ paddingBottom: 24, gap: 6 }}
             renderItem={({ item }) => {
               const on = (value ?? '') === item.value;

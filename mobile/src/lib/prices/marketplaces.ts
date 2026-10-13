@@ -42,10 +42,15 @@ const LANG_WORD: Partial<Record<CardLang, string>> = {
 
 const q = encodeURIComponent;
 
-/** Requête de recherche : nom + numéro, sans le total (« 136/189 » → « 136 »). */
-function searchTerms(card: Card): string {
-  const num = card.game === 'pokemon' ? card.number.split('/')[0] : card.number;
-  return `${card.name} ${num}`.trim();
+/**
+ * Requête de recherche : « nom (CODE numéro) », ex. « Mega Rayquaza (M6 110/076) », « Monkey.D.Luffy (OP05-119) ».
+ * Le nom anglais est préféré quand il est connu (c'est celui des fiches Cardmarket / TCGplayer).
+ */
+export function searchTerms(card: Card): string {
+  const name = card.nameEn ?? card.name;
+  // One Piece et Riftbound : le numéro contient déjà le code d'extension.
+  if (card.game !== 'pokemon' || !card.setId) return `${name} (${card.number})`;
+  return `${name} (${card.setId.toUpperCase()} ${card.number})`;
 }
 
 /**
@@ -58,7 +63,7 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
   // TCGplayer sépare les cartes Pokémon japonaises dans une catégorie dédiée.
   const tcgGame = card.game === 'pokemon' && card.lang === 'ja' ? 'pokemon-japan' : TCGPLAYER_GAME[card.game];
   const langWord = card.lang !== 'en' ? LANG_WORD[card.lang] : undefined;
-  const ebayQuery = [EBAY_GAME[card.game], card.name, card.number, langWord].filter(Boolean).join(' ');
+  const ebayQuery = [EBAY_GAME[card.game], terms, langWord].filter(Boolean).join(' ');
 
   return [
     {

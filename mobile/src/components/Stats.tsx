@@ -1,12 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { formatPrice } from '../lib/prices/marketplaces';
-import type { Money } from '../lib/stats';
 import { colors, fonts } from './ui';
-
-export function moneyText(m: Money): string {
-  const parts = (['EUR', 'USD', 'JPY'] as const).filter((c) => m[c]).map((c) => formatPrice(m[c]!, c));
-  return parts.length ? parts.join(' + ') : '—';
-}
 
 /** Chiffre clé : grand nombre, libellé dessous. */
 export function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {

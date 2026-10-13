@@ -19,6 +19,10 @@ export interface Card {
   id: string;
   lang: CardLang;
   name: string;
+  /** Nom anglais (ou traduit) quand la carte est dans une autre langue. */
+  nameEn?: string;
+  /** Nom français quand il est connu. */
+  nameFr?: string;
   /** Numéro imprimé : "136/189", "OP05-119", "OGN-042/298". */
   number: string;
   setId?: string;

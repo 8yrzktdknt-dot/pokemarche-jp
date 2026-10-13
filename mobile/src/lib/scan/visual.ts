@@ -6,7 +6,7 @@ import type { Match } from './visualIndex';
  */
 export const visualSupported = false;
 
-export async function prepareVisual(_onStatus?: (msg: string) => void): Promise<number> {
+export async function prepareVisual(_onStatus?: (percent: number) => void): Promise<number> {
   return 0;
 }
 

@@ -2,14 +2,14 @@ import { Image } from 'expo-image';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { colors, fonts, s } from '../../../components/ui';
+import { colors, displayName, fonts, s } from '../../../components/ui';
 import { GAMES } from '../../../lib/games';
 import { useStore } from '../../../lib/store';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
 
 export default function SetScreen() {
   const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
-  const { collection } = useStore();
+  const { collection, t, settings } = useStore();
   const [set, setSet] = useState<SetInfo | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export default function SetScreen() {
           <View style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {set?.logo && <Image source={set.logo} style={{ width: '70%', height: 90 }} contentFit="contain" />}
             <Text style={[s.h2, { textAlign: 'center' }]}>{set?.name ?? id}</Text>
-            <Text style={s.muted}>{set?.code} · {cards.length} cartes · {ownedCount} possédée{ownedCount > 1 ? 's' : ''}</Text>
+            <Text style={s.muted}>{t('set.summary', { code: set?.code ?? id, n: cards.length, owned: ownedCount })}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -58,7 +58,7 @@ export default function SetScreen() {
                 {owned.has(item.id) && <View style={st.badge}><Text style={st.badgeText}>✓</Text></View>}
               </View>
               <Text style={st.num} numberOfLines={1}>{item.number}</Text>
-              <Text style={st.name} numberOfLines={1}>{item.name}</Text>
+              <Text style={st.name} numberOfLines={1}>{displayName(item, settings.appLang)}</Text>
             </Pressable>
           </Link>
         )}
