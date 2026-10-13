@@ -1,5 +1,6 @@
 // One Piece Card Game : listes officielles (anglais et japonais) + prix TCGplayer d'OPTCG API pour l'anglais.
 import { getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
+import { saveLogos } from './logos.mjs';
 
 const SITES = { en: 'https://en.onepiece-cardgame.com', ja: 'https://www.onepiece-cardgame.com' };
 const BLOCS = [
@@ -62,6 +63,17 @@ export function parseCards(html, site) {
 
 const setId = (code) => code.replace('-', '');
 
+/** Emplacements possibles du logo d'une extension sur le site officiel. */
+export function logoCandidates(site, id) {
+  const x = id.toLowerCase();
+  const kinds = /^st/.test(x) ? ['decks'] : ['boosters'];
+  return kinds.flatMap((k) => [
+    `${site}/products/${k}/${x}/images/mv/logo.webp`,
+    `${site}/products/${k}/${x}/images/logo.webp`,
+    `${site}/products/${k}/${x}/images/mv/logo.png`,
+  ]);
+}
+
 const TYPES = /^(BOOSTER PACK|EXTRA BOOSTER|PREMIUM BOOSTER|STARTER DECK EX|STARTER DECK|ULTRA DECK|ブースターパック|エクストラブースター|プレミアムブースター|スタートデッキEX|スタートデッキ|アルティメットデッキ)\s*/i;
 const titleCase = (s) => (s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()) : s);
 
@@ -111,6 +123,17 @@ export async function buildOnePiece() {
       bloc.sets.push({ id, code: s.code, name: name || s.label, count: cards.length, order: Number(s.value) });
     });
     for (const b of [...blocs, other]) b.sets.sort((a, b2) => b2.order - a.order);
+    // Logos des pages produits officielles (extensions récentes : …/products/boosters/op13/images/mv/logo.webp).
+    const all = [...blocs, other].flatMap((b) => b.sets);
+    const logos = await saveLogos(all, `onepiece-${lang}`, async (x) => {
+      for (const url of logoCandidates(SITES[lang], x.id)) {
+        const r = await fetch(url, { method: 'HEAD' }).catch(() => null);
+        if (r?.ok) return url;
+      }
+      return undefined;
+    });
+    for (const x of all) if (logos.has(x.id)) x.logo = logos.get(x.id);
+    console.log(`One Piece ${lang} : logos ${logos.size}/${all.length}`);
     writeJson(`sets/onepiece-${lang}.json`, { built: new Date().toISOString(), blocs: [...blocs, other].filter((b) => b.sets.length) });
     console.log(`One Piece ${lang} : ${series.length} extensions, ${total} cartes`);
   }

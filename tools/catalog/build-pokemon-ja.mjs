@@ -1,6 +1,6 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
-import { findLogo, pokellectorLogos, saveLogos, serebiiLogoMap } from './logos.mjs';
+import { failures, findLogo, pokellectorLogos, saveLogos, serebiiLogoMap } from './logos.mjs';
 import { WIZARD_SETS, official30thImages, officialCard, officialRecentCards, samuraiCards, wizardCards } from './official-jp.mjs';
 import { getBuffer, getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
@@ -112,6 +112,7 @@ export async function buildPokemonJa() {
   console.log(`Logos JP : Serebii ${tables[0].size}, Pokellector ${tables[1].size} ; ${logos.size}/${allSets.length} extensions avec un vrai logo`);
   const left = allSets.filter((s) => !logos.has(s.id)).map((s) => `${s.id} (${s.name})`);
   if (left.length) console.log(`Sans vrai logo : ${left.join(', ')}`);
+  if (failures.length) console.log(`Logos introuvables au téléchargement (${failures.length}) : ${failures.slice(0, 20).join(', ')}`);
   sortByRelease(blocs);
   writeJson('sets/pokemon-ja.json', { built: new Date().toISOString(), source: 'limitlesstcg.com', blocs });
   console.log(`Pokémon JP : ${total} cartes, ${translated} avec nom anglais, ${added} ajoutées depuis pokemon-card.com`);

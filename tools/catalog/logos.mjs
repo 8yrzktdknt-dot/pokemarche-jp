@@ -3,14 +3,53 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
-import { CATALOG, getBuffer, getText, pool, unescapeHtml } from './lib.mjs';
+import { CATALOG, getText, pool, unescapeHtml } from './lib.mjs';
 
 /** Nom d'extension comparable entre sources : minuscules, sans ponctuation ni suffixe de langue. */
 export const setKey = (name) =>
   name.toLowerCase().normalize('NFKD').replace(/&/g, 'and').replace(/[^a-z0-9]/g, '').replace(/(jp|japan|japanese)$/, '');
 
-/** Noms qui diffèrent d'une source à l'autre (clé normalisée → autres clés possibles). */
+/**
+ * Noms qui diffèrent d'une source à l'autre (clé normalisée → autres clés possibles).
+ * Limitless donne les noms anglais officiels ; Serebii et Pokellector, des traductions de fans.
+ */
 const ALIASES = {
+  amazingvolttackle: ['astonishingvolttackle'],
+  legendaryheartbeat: ['legendarybeat'],
+  rebelclash: ['rebelliousclash'],
+  jetblackspirit: ['jetblackpoltergeist'],
+  skyscrapingperfection: ['skyscrapingperfect'],
+  matchlessfighters: ['matchlessfighter'],
+  terastalfestex: ['terastalfestivalex'],
+  fullmetalforce: ['fullmetalwall'],
+  superburstimpact: ['explosiveimpact'],
+  charismaoftherippedsky: ['charismaofthewreckedsky'],
+  championsroad: ['championroad'],
+  beastsfromtheultradimension: ['ultradimensionalbeast', 'ultradimensionalbeasts'],
+  awakenedheroes: ['awakeninghero'],
+  shininglegends: ['shininglegend'],
+  letsfacenewtrials: ['beyondanewchallenge'],
+  sunandmoonplus: ['sunmoonstrengtheningpack'],
+  pikachuandnewfriends: ['pikachunewfriends'],
+  bestofxy: ['thebestofxy'],
+  '20thanniversarypack': ['20thanniversary'],
+  illusionlegenddreamholocollection: ['mythicallegendarydreamholocollection'],
+  heatburstfighter: ['feverburstfighter'],
+  exxmegaxbreakchampionpack: ['premiumchampionpackexmbreak'],
+  awakenedpsychicking: ['awakeningpsychicchampion', 'awakeningofpsychickings'],
+  rageofthebrokenheaven: ['rageofthetornheavens'],
+  bluecounterattack: ['blueshock'],
+  redlightflash: ['redflash'],
+  perfectbattledeckzygardeex: ['perfectbattledeck60zygardeex'],
+  megarayquazaexdeck: ['megabattledeckmrayquazaex', 'megarayquazaexbattledeck'],
+  megacharizarddeck: ['megabattledeckmcharizardex'],
+  genesecthalfdeck: ['mewtwovsgenesectgenesect'],
+  mewtwohalfdeck: ['mewtwovsgenesectmewtwo'],
+  raidenknuckle: ['thunderknuckle'],
+  teamplasmapowereddeck: ['teamplasmapowerdeck'],
+  blastoiseandkyuremexdeck: ['blastoisekyuremcombodeck'],
+  ashvsteamrockethalfdecks: ['ashvsteamrocketbattleset'],
+  rockrufffullstrengthdeck: ['rockrufffullpowerdeck'],
   heatwavearena: ['hotairarena'],
   nihilzero: ['munikiszero'],
   megadream: ['megadreamex'],
@@ -28,6 +67,23 @@ export const keysFor = (name) => {
   return [k, ...(ALIASES[k] ?? []), k.replace(/ex$/, ''), `${k}ex`];
 };
 
+// Les sites de logos refusent souvent les robots : on se présente comme un navigateur.
+const BROWSER = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
+async function download(url) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': BROWSER, Accept: 'image/*,*/*;q=0.8', Referer: new URL(url).origin + '/' } });
+      if (r.status === 404) return null;
+      if (r.ok) return Buffer.from(await r.arrayBuffer());
+    } catch {
+      // nouvel essai
+    }
+    await new Promise((res) => setTimeout(res, 800 * (i + 1)));
+  }
+  return null;
+}
+export const failures = [];
+
 /** Logos Pokellector (anglais ou japonais) : « …/logos/Storm-Emeralda.logo.437.png » → clé du nom → URL. */
 export function parsePokellectorLogos(html) {
   const out = new Map();
@@ -39,7 +95,8 @@ export function parsePokellectorLogos(html) {
 }
 
 export async function pokellectorLogos(site) {
-  const html = await getText(`${site}/sets`);
+  const r = await fetch(`${site}/sets`, { headers: { 'User-Agent': BROWSER } }).catch(() => null);
+  const html = r?.ok ? await r.text() : null;
   return html ? parsePokellectorLogos(html) : new Map();
 }
 
@@ -54,7 +111,8 @@ export function parseSerebiiLogos(html) {
 }
 
 export async function serebiiLogoMap() {
-  const html = await getText('https://www.serebii.net/card/japanese.shtml');
+  const r = await fetch('https://www.serebii.net/card/japanese.shtml', { headers: { 'User-Agent': BROWSER } }).catch(() => null);
+  const html = r?.ok ? await r.text() : null;
   return html ? parseSerebiiLogos(html) : new Map();
 }
 
@@ -72,14 +130,15 @@ export async function saveLogo(url, folder, id) {
   const rel = `logos/${folder}/${id.replace(/[^A-Za-z0-9._-]/g, '_')}.png`;
   const file = join(CATALOG, rel);
   if (existsSync(file)) return rel;
-  const buf = await getBuffer(url);
-  if (!buf || buf.length < 200) return undefined;
+  const buf = await download(url);
+  if (!buf || buf.length < 200) { failures.push(url); return undefined; }
   try {
     const png = await sharp(buf).resize({ width: 400, withoutEnlargement: true }).png({ compressionLevel: 9, palette: true }).toBuffer();
     mkdirSync(join(CATALOG, 'logos', folder), { recursive: true });
     writeFileSync(file, png);
     return rel;
   } catch {
+    failures.push(url);
     return undefined;
   }
 }
