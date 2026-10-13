@@ -1,6 +1,6 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
-import { officialNumber, officialRecentCards, serebiiLogos } from './official-jp.mjs';
+import { officialCard, officialRecentCards, serebiiLogos } from './official-jp.mjs';
 import { getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
 
@@ -111,31 +111,47 @@ export async function buildPokemonJa() {
  * Seules les extensions où l'officiel a plus de cartes sont examinées (une fiche à lire par carte).
  */
 async function completeFromOfficial(set, list, offCards, officialCount) {
-  const numbered = offCards?.filter((c) => !c.energy) ?? [];
+  if (!offCards?.length) return 0;
   const have = new Set(list.map((c) => numberKey(c.localId)));
-  if (numbered.length <= list.filter((c) => /^\d+$/.test(c.localId)).length) return 0;
-  const numbers = await pool(numbered, 4, (c) => officialNumber(c.cardID).catch(() => null));
-  const unread = numbered.filter((_, i) => !numbers[i]).map((c) => c.cardID);
+  const listed = offCards.filter((c) => !c.energy);
+  // La liste de recherche officielle oublie parfois des fiches (cartes LEGEND, BREAK…) : on lit aussi
+  // les identifiants manquants entre le premier et le dernier de l'extension.
+  const ids = offCards.map((c) => Number(c.cardID));
+  const known = new Set(ids);
+  const gaps = [];
+  for (let id = Math.min(...ids); id <= Math.max(...ids); id++) if (!known.has(id)) gaps.push({ cardID: String(id) });
+  if (listed.length + gaps.length <= list.filter((c) => /^\d+$/.test(c.localId)).length) return 0;
+
+  const todo = [...listed, ...gaps];
+  const details = await pool(todo, 4, (c) => officialCard(c.cardID).catch(() => null));
+  const unread = todo.filter((_, i) => !details[i]?.n).map((c) => c.cardID);
   if (unread.length) console.warn(`${set.id} : numéro illisible pour les fiches ${unread.join(', ')}`);
   let added = 0;
-  numbered.forEach((c, i) => {
-    const num = numbers[i];
-    if (!num || have.has(numberKey(num.n))) return;
-    const t = translateJa(c.name);
-    const localId = /^\d+$/.test(num.n) ? pad3(num.n) : num.n;
-    const total = officialCount ?? num.total;
-    list.push({
-      id: `${set.id}-${localId}`,
-      localId,
-      number: total ? `${localId}/${pad3(total)}` : localId,
-      name: c.name,
-      nameEn: t?.[0],
-      nameFr: t?.[1],
-      image: c.image,
-      rarity: num.rarity,
+  todo.forEach((c, i) => {
+    const d = details[i];
+    if (!d?.n || (d.set && d.set.toUpperCase() !== set.id.toUpperCase())) return;
+    const name = d.name ?? c.name;
+    const image = c.image ?? d.image;
+    const halves = d.numbers ?? [d.n];
+    halves.forEach((n, k) => {
+      if (have.has(numberKey(n))) return;
+      const t = translateJa(name);
+      const localId = /^\d+$/.test(n) ? pad3(n) : n;
+      const total = officialCount ?? d.total;
+      const half = halves.length > 1 ? (k === 0 ? ' (上)' : ' (下)') : '';
+      list.push({
+        id: `${set.id}-${localId}`,
+        localId,
+        number: total ? `${localId}/${pad3(total)}` : localId,
+        name: `${name}${half}`,
+        nameEn: t?.[0] && `${t[0]}${half ? (k === 0 ? ' (Top)' : ' (Bottom)') : ''}`,
+        nameFr: t?.[1] && `${t[1]}${half ? (k === 0 ? ' (Haut)' : ' (Bas)') : ''}`,
+        image,
+        rarity: d.rarity,
+      });
+      have.add(numberKey(n));
+      added++;
     });
-    have.add(numberKey(num.n));
-    added++;
   });
   list.sort((a, b) => (Number(a.localId) || 1e4) - (Number(b.localId) || 1e4));
   if (added) console.log(`${set.id} : ${added} cartes ajoutées depuis pokemon-card.com`);

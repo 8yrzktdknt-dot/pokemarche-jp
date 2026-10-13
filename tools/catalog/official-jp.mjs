@@ -6,6 +6,9 @@ import { join } from 'node:path';
 import { CATALOG, getBuffer, getJson, getText, pool, unescapeHtml } from './lib.mjs';
 
 const PCC = 'https://www.pokemon-card.com';
+
+/** Nom affiché sur le site officiel : le symbole Méga (balise) devient « M », les autres balises sont retirées. */
+export const cleanName = (s) => unescapeHtml(s.replace(/<span class="pcg pcg-megamark"><\/span>/g, 'M').replace(/<[^>]*>/g, '')).trim();
 const SEREBII = 'https://www.serebii.net';
 
 /**
@@ -23,28 +26,43 @@ export async function officialRecentCards(pages = Number(process.env.OFFICIAL_JP
       if (!m) continue;
       const key = m[1].toUpperCase();
       if (!bySet.has(key)) bySet.set(key, []);
-      bySet.get(key).push({ cardID: c.cardID, image: `${PCC}${c.cardThumbFile}`, name: unescapeHtml(c.cardNameViewText ?? c.cardNameAltText ?? ''), energy: m[2] === 'E' });
+      bySet.get(key).push({ cardID: c.cardID, image: `${PCC}${c.cardThumbFile}`, name: cleanName(c.cardNameViewText ?? c.cardNameAltText ?? ''), energy: m[2] === 'E' });
     }
   }
   return bySet;
 }
 
 /**
- * Numéro imprimé et rareté d'une fiche officielle :
+ * Numéros imprimés et rareté d'une fiche officielle :
  * « <img … alt="M6a" />&nbsp;039&nbsp;/&nbsp;103&nbsp;<img src="…/rarity/ic_rare_rr.gif"> » → { n: '039', total: 103, rarity: 'RR' }.
+ * Les cartes LEGEND (deux moitiés) portent deux numéros : `numbers` les contient tous.
  */
 export function parseOfficialNumber(html) {
   const block = html.match(/class="subtext[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? '';
   const text = block.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ');
-  const m = text.match(/([A-Z]{0,3}\d{1,3})\s*\/\s*([A-Z]{0,3}\d{1,3})/);
-  if (!m) return null;
+  const all = [...text.matchAll(/([A-Z]{0,3}\d{1,3})\s*\/\s*([A-Z]{0,3}\d{1,3})/g)];
+  if (!all.length) return null;
   const rarity = block.match(/ic_rare_([a-z]+)\.gif/)?.[1]?.toUpperCase();
-  return { n: m[1], total: Number(m[2].replace(/\D/g, '')) || undefined, ...(rarity ? { rarity } : {}) };
+  return {
+    n: all[0][1],
+    total: Number(all[0][2].replace(/\D/g, '')) || undefined,
+    ...(all.length > 1 ? { numbers: all.map((m) => m[1]) } : {}),
+    ...(rarity ? { rarity } : {}),
+  };
 }
 
-export async function officialNumber(cardID) {
+/** Fiche officielle complète : numéro(s), rareté, nom, image et code d'extension. */
+export function parseOfficialCard(html) {
+  const num = parseOfficialNumber(html);
+  const image = html.match(/<img class="fit" src="([^"]+)"/)?.[1];
+  const name = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1];
+  const set = html.match(/class="img-regulation" alt="([^"]+)"/)?.[1];
+  return { ...(num ?? {}), name: name ? cleanName(name) || undefined : undefined, image: image ? `${PCC}${image}` : undefined, set };
+}
+
+export async function officialCard(cardID) {
   const html = await getText(`${PCC}/card-search/details.php/card/${cardID}/regu/all`);
-  return html ? parseOfficialNumber(html) : null;
+  return html ? parseOfficialCard(html) : null;
 }
 
 /** Nom d'extension comparable entre sources (« White Flare - Jp », « 30th Celebration Japan » → sans suffixe). */
