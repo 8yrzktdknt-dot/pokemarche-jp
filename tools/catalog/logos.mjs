@@ -118,8 +118,14 @@ export async function serebiiLogoMap() {
 
 /** Premier logo trouvé pour ce nom dans les tables (dans l'ordre de préférence). */
 export function findLogo(name, tables) {
-  for (const t of tables) for (const k of keysFor(name)) if (t.has(k)) return t.get(k);
-  return undefined;
+  return findLogos(name, tables)[0];
+}
+
+/** Tous les logos trouvés pour ce nom, dans l'ordre de préférence (si un lien est mort, on essaie le suivant). */
+export function findLogos(name, tables) {
+  const out = [];
+  for (const t of tables) for (const k of keysFor(name)) if (t.has(k) && !out.includes(t.get(k))) out.push(t.get(k));
+  return out;
 }
 
 /**
@@ -143,14 +149,18 @@ export async function saveLogo(url, folder, id) {
   }
 }
 
-/** Enregistre les logos trouvés pour une liste d'extensions ; `pick(set)` donne l'URL d'origine. Renvoie id → chemin. */
+/**
+ * Enregistre les logos trouvés pour une liste d'extensions ; `pick(set)` donne l'URL d'origine,
+ * ou une liste d'URL à essayer dans l'ordre. Renvoie id → chemin.
+ */
 export async function saveLogos(sets, folder, pick) {
   const found = new Map();
   await pool(sets, 6, async (s) => {
-    const url = await pick(s);
-    if (!url) return;
-    const rel = await saveLogo(url, folder, s.id);
-    if (rel) found.set(s.id, rel);
+    const urls = [await pick(s)].flat().filter(Boolean);
+    for (const url of urls) {
+      const rel = await saveLogo(url, folder, s.id);
+      if (rel) { found.set(s.id, rel); break; }
+    }
   });
   return found;
 }

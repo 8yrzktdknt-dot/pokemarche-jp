@@ -1,6 +1,6 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
-import { failures, findLogo, pokellectorLogos, saveLogos, serebiiLogoMap } from './logos.mjs';
+import { failures, findLogos, pokellectorLogos, saveLogos, serebiiLogoMap } from './logos.mjs';
 import { WIZARD_SETS, official30thImages, officialCard, officialRecentCards, samuraiCards, wizardCards } from './official-jp.mjs';
 import { getBuffer, getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
@@ -105,7 +105,7 @@ export async function buildPokemonJa() {
     pokellectorLogos('https://jp.pokellector.com').catch(() => new Map()),
   ]);
   const allSets = blocs.flatMap((b) => b.sets);
-  const logos = await saveLogos(allSets, 'pokemon-ja', (s) => findLogo(s.name, tables));
+  const logos = await saveLogos(allSets, 'pokemon-ja', (s) => findLogos(s.name, tables));
   for (const s of allSets) {
     if (logos.has(s.id)) { s.symbol = s.logo; s.logo = logos.get(s.id); }
   }
