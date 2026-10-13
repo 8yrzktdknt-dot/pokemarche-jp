@@ -10,6 +10,9 @@ export interface IndexItem {
   name: string;
   localId: string;
   image: string;
+  /** Jeu et langue de l'index d'origine (renseignés au chargement). */
+  game?: string;
+  lang?: string;
 }
 
 export interface VisualIndex {
@@ -105,3 +108,22 @@ export function topMatches(q: Float32Array, ix: VisualIndex, k = 5): Match[] {
 /** Seuils de la première version : très proche, et nettement devant la deuxième carte. */
 export const isConfident = (top: Match[]) =>
   top.length > 0 && top[0].score >= 0.92 && top[0].score - (top[1]?.score ?? 0) >= 0.04;
+
+/** Assemble plusieurs index (un par jeu et langue) en un seul pour la recherche. */
+export function mergeIndexes(parts: { index: VisualIndex; game: string; lang: string }[]): VisualIndex {
+  const n = parts.reduce((k, p) => k + p.index.items.length, 0);
+  const vecs = new Float32Array(n * DIM);
+  const items: IndexItem[] = [];
+  let o = 0;
+  for (const p of parts) {
+    vecs.set(p.index.vecs, o * DIM);
+    for (const it of p.index.items) items.push({ ...it, game: p.game, lang: p.lang });
+    o += p.index.items.length;
+  }
+  return { items, vecs };
+}
+
+/** Même carte en tête plusieurs fois de suite, même sans certitude absolue : on la propose. */
+export const isLikely = (history: Match[][]) =>
+  history.length >= 3 &&
+  history.slice(-3).every((m) => m[0] && m[0].item.id === history[history.length - 1][0]?.item.id && m[0].score >= 0.85);

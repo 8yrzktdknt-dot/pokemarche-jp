@@ -21,10 +21,12 @@ test('totaux, exemplaires et cartes uniques', () => {
   assert.equal(s.unpriced, 4);
 });
 
-test('valeur par devise, jamais additionnée entre devises', () => {
-  const s = collectionStats(entries);
-  assert.deepEqual(s.value, { EUR: 200, USD: 250 });
-  assert.deepEqual(s.games.find((g) => g.game === 'pokemon')?.value, { EUR: 200 });
+test('valeurs converties dans une seule devise puis additionnées', () => {
+  // 1 € = 1,25 $
+  const s = collectionStats(entries, (v, from) => (from === 'USD' ? v / 1.25 : v));
+  assert.equal(s.value, 400);
+  assert.equal(s.games.find((g) => g.game === 'pokemon')?.value, 200);
+  assert.equal(s.games.find((g) => g.game === 'onepiece')?.value, 200);
   assert.equal(s.games.find((g) => g.game === 'riftbound')?.count, 0);
 });
 
@@ -32,6 +34,6 @@ test('raretés abrégées, langues, top et récents', () => {
   const s = collectionStats(entries);
   assert.deepEqual(s.rarities.map((r) => r.rarity), ['C', 'SAR', 'SEC']);
   assert.deepEqual(s.langs, [{ lang: 'ja', count: 6 }, { lang: 'en', count: 1 }]);
-  assert.equal(s.top[0].card.name, 'Pikachu ex');
+  assert.equal(s.top[0].card.name, 'Luffy');
   assert.deepEqual(s.recent.map((e) => e.card.name), ['Pikachu ex', 'Luffy', 'Rondoudou']);
 });

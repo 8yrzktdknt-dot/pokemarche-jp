@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Dropdown } from '../../components/Dropdown';
 import { GamePicker, colors, fonts, s } from '../../components/ui';
-import { GAMES, LANG_LABEL, langFor } from '../../lib/games';
+import { GAMES, langFor } from '../../lib/games';
 import { useStore } from '../../lib/store';
 import type { Bloc, GameId } from '../../lib/types';
 
 export default function Extensions() {
-  const { settings, setSettings } = useStore();
+  const { settings, setSettings, t, langLabel } = useStore();
   const game: GameId = settings.game === 'auto' ? 'pokemon' : settings.game;
   const lang = langFor(game, settings.lang);
   const [blocs, setBlocs] = useState<Bloc[] | null>(null);
@@ -31,14 +31,14 @@ export default function Extensions() {
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { maxWidth: 900, width: '100%', alignSelf: 'center' }]}>
       <GamePicker value={game} onChange={(g) => setSettings({ game: g })} />
       <Dropdown
-        label="Langue des extensions"
+        label={t('lang.sets')}
         value={lang}
-        options={GAMES[game].langs.map((l) => ({ value: l, label: LANG_LABEL[l] }))}
+        options={GAMES[game].langs.map((l) => ({ value: l, label: langLabel(l) }))}
         onChange={(l) => l && setSettings({ lang: l as typeof lang })}
       />
       {!blocs && !error && <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />}
-      {error && <Text style={{ color: colors.danger, fontFamily: fonts.body }}>Extensions indisponibles : {error}</Text>}
-      {blocs?.length === 0 && <Text style={s.muted}>Aucune extension dans cette langue pour le moment.</Text>}
+      {error && <Text style={{ color: colors.danger, fontFamily: fonts.body }}>{t('common.unavailable', { e: error })}</Text>}
+      {blocs?.length === 0 && <Text style={s.muted}>{t('ext.none')}</Text>}
 
       {blocs?.map((b) => (
         <View key={b.id} style={{ gap: 10, marginTop: 8 }}>

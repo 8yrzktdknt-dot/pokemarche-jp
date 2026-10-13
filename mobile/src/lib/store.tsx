@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
+import { LANG_LABELS, translate, type AppLang, type T } from './i18n';
 import type { Card, CardLang, GameId } from './types';
 
 export interface CollectionEntry {
@@ -13,6 +15,9 @@ export interface Settings {
   lang: CardLang;
   /** Pseudo affiché sur la page Compte (en attendant les vrais comptes). */
   profileName?: string;
+  /** Langue de l'interface et des noms de cartes traduits. */
+  appLang: AppLang;
+  currency: Currency;
 }
 
 interface Store {
@@ -23,6 +28,13 @@ interface Store {
   add(card: Card): void;
   remove(card: Card): void;
   clear(): void;
+  t: T;
+  /** Libellé d'une langue de cartes dans la langue de l'app. */
+  langLabel(l: CardLang): string;
+  /** Prix converti dans la devise choisie, formaté. */
+  money(value: number, from: string): string;
+  /** Prix converti dans la devise choisie (nombre). */
+  toCurrency(value: number, from: string): number;
 }
 
 const KEY_COLLECTION = 'collection.v1';
@@ -34,7 +46,12 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [collection, setCollection] = useState<CollectionEntry[]>([]);
-  const [settings, setSettingsState] = useState<Settings>({ game: 'auto', lang: 'fr' });
+  const [settings, setSettingsState] = useState<Settings>({ game: 'auto', lang: 'fr', appLang: 'fr', currency: 'EUR' });
+  const [rates, setRates] = useState<Rates>(FALLBACK_RATES);
+
+  useEffect(() => {
+    fetchRates().then(setRates, () => {});
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -78,9 +95,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setSettings = useCallback((s: Partial<Settings>) => setSettingsState((prev) => ({ ...prev, ...s })), []);
 
+  // Fonctions stables tant que la langue / la devise ne changent pas (évite de relancer les effets des écrans).
+  const helpers = useMemo(() => {
+    const locale = settings.appLang === 'en' ? 'en-US' : 'fr-FR';
+    const toCurrency = (v: number, from: string) => convert(v, from, settings.currency, rates);
+    return {
+      t: ((key, vars) => translate(settings.appLang, key, vars)) as T,
+      langLabel: (l: CardLang) => LANG_LABELS[settings.appLang][l],
+      toCurrency,
+      money: (v: number, from: string) => formatMoney(toCurrency(v, from), settings.currency, locale),
+    };
+  }, [settings.appLang, settings.currency, rates]);
+
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, clear }),
-    [ready, settings, setSettings, collection, add, remove, clear],
+    () => ({ ready, settings, setSettings, collection, add, remove, clear, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, clear, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

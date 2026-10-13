@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { colors, fonts } from '../components/ui';
-import { StoreProvider } from '../lib/store';
+import { StoreProvider, useStore } from '../lib/store';
 
 export default function Layout() {
   const [loaded, error] = useFonts({ Manrope_400Regular, Manrope_700Bold, Manrope_800ExtraBold, Unbounded_800ExtraBold });
@@ -13,7 +13,15 @@ export default function Layout() {
   return (
     <StoreProvider>
       <StatusBar style="light" />
-      <Stack
+      <AppStack />
+    </StoreProvider>
+  );
+}
+
+function AppStack() {
+  const { t } = useStore();
+  return (
+    <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
           headerTintColor: colors.text,
@@ -23,11 +31,10 @@ export default function Layout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'PokéMarket' }} />
-        <Stack.Screen name="scan" options={{ title: 'Scanner', headerShown: false, presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="set/[game]/[id]" options={{ title: 'Extension' }} />
-        <Stack.Screen name="collection" options={{ title: 'Ma collection' }} />
-        <Stack.Screen name="card/[game]/[id]" options={{ title: 'Carte' }} />
+        <Stack.Screen name="scan" options={{ title: t('tab.scan'), headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="set/[game]/[id]" options={{ title: t('title.set') }} />
+        <Stack.Screen name="collection" options={{ title: t('title.collection') }} />
+        <Stack.Screen name="card/[game]/[id]" options={{ title: t('title.card') }} />
       </Stack>
-    </StoreProvider>
   );
 }

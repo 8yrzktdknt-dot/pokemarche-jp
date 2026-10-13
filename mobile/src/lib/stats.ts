@@ -7,34 +7,40 @@ export interface Entry {
   addedAt: number;
 }
 
-export type Money = Partial<Record<'EUR' | 'USD' | 'JPY', number>>;
-
 export interface GameStats {
   game: GameId;
   count: number;
   unique: number;
-  value: Money;
+  /** Valeur dans la devise choisie. */
+  value: number;
 }
 
 export interface CollectionStats {
   count: number;
   unique: number;
-  value: Money;
+  /** Valeur totale dans la devise choisie. */
+  value: number;
   /** Exemplaires sans prix connu (ajoutés depuis une liste, ou carte sans cote). */
   unpriced: number;
   games: GameStats[];
   langs: { lang: CardLang; count: number }[];
   rarities: { rarity: string; count: number }[];
-  top: { card: Card; unit: number; currency: string; quantity: number }[];
+  /** `unit` : prix unitaire dans la devise choisie. */
+  top: { card: Card; unit: number; quantity: number }[];
   recent: Entry[];
 }
 
-const add = (m: Money, cur: keyof Money, v: number) => { m[cur] = (m[cur] ?? 0) + v; };
-
-/** Statistiques de la collection. Les prix de devises différentes ne sont jamais additionnés entre eux. */
-export function collectionStats(entries: Entry[], games: GameId[] = ['pokemon', 'onepiece', 'riftbound']): CollectionStats {
-  const value: Money = {};
-  const perGame = new Map<GameId, GameStats>(games.map((g) => [g, { game: g, count: 0, unique: 0, value: {} }]));
+/**
+ * Statistiques de la collection. `toCurrency(valeur, devise)` convertit chaque prix dans la devise choisie,
+ * ce qui permet d'additionner des cotes en euros et en dollars.
+ */
+export function collectionStats(
+  entries: Entry[],
+  toCurrency: (v: number, from: string) => number = (v) => v,
+  games: GameId[] = ['pokemon', 'onepiece', 'riftbound'],
+): CollectionStats {
+  let value = 0;
+  const perGame = new Map<GameId, GameStats>(games.map((g) => [g, { game: g, count: 0, unique: 0, value: 0 }]));
   const langs = new Map<CardLang, number>();
   const rarities = new Map<string, number>();
   const top: CollectionStats['top'] = [];
@@ -43,7 +49,7 @@ export function collectionStats(entries: Entry[], games: GameId[] = ['pokemon', 
 
   for (const e of entries) {
     count += e.quantity;
-    const g = perGame.get(e.card.game) ?? { game: e.card.game, count: 0, unique: 0, value: {} };
+    const g = perGame.get(e.card.game) ?? { game: e.card.game, count: 0, unique: 0, value: 0 };
     perGame.set(e.card.game, g);
     g.count += e.quantity;
     g.unique += 1;
@@ -54,9 +60,10 @@ export function collectionStats(entries: Entry[], games: GameId[] = ['pokemon', 
     }
     const p = e.card.prices[0];
     if (p) {
-      add(value, p.currency, p.value * e.quantity);
-      add(g.value, p.currency, p.value * e.quantity);
-      top.push({ card: e.card, unit: p.value, currency: p.currency, quantity: e.quantity });
+      const unit = toCurrency(p.value, p.currency);
+      value += unit * e.quantity;
+      g.value += unit * e.quantity;
+      top.push({ card: e.card, unit, quantity: e.quantity });
     } else {
       unpriced += e.quantity;
     }
@@ -71,8 +78,7 @@ export function collectionStats(entries: Entry[], games: GameId[] = ['pokemon', 
     games: [...perGame.values()],
     langs: [...langs].map(([lang, n]) => ({ lang, count: n })).sort(byCount),
     rarities: [...rarities].map(([rarity, n]) => ({ rarity, count: n })).sort(byCount).slice(0, 8),
-    // Classement par prix unitaire, en euros d'abord (devise principale de l'app).
-    top: top.sort((a, b) => (a.currency === b.currency ? b.unit - a.unit : a.currency === 'EUR' ? -1 : 1)).slice(0, 5),
+    top: top.sort((a, b) => b.unit - a.unit).slice(0, 5),
     recent: [...entries].sort((a, b) => b.addedAt - a.addedAt).slice(0, 5),
   };
 }

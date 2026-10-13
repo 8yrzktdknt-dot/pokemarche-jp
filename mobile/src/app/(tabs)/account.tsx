@@ -5,24 +5,28 @@ import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'r
 import { Dropdown } from '../../components/Dropdown';
 import { Panel } from '../../components/Stats';
 import { colors, fonts, s } from '../../components/ui';
-import { GAME_LIST, LANG_LABEL } from '../../lib/games';
+import { CURRENCIES, type Currency } from '../../lib/currency';
+import { GAME_LIST } from '../../lib/games';
+import type { AppLang } from '../../lib/i18n';
 import { useStore } from '../../lib/store';
 import type { CardLang, GameId } from '../../lib/types';
 
-const ALL_LANGS = Object.keys(LANG_LABEL) as CardLang[];
+const CARD_LANGS: CardLang[] = ['fr', 'en', 'ja', 'de', 'es', 'it', 'pt', 'ko', 'zh-tw', 'zh-cn', 'id', 'th'];
+const CURRENCY_LABEL: Record<Currency, string> = { EUR: 'Euro (€)', USD: 'US Dollar ($)', JPY: 'Yen (¥)' };
 
 function confirm(message: string, onYes: () => void) {
   if (Platform.OS === 'web') {
     if (window.confirm(message)) onYes();
     return;
   }
-  Alert.alert('Confirmer', message, [{ text: 'Annuler', style: 'cancel' }, { text: 'Oui', style: 'destructive', onPress: onYes }]);
+  Alert.alert('', message, [{ text: 'Annuler / Cancel', style: 'cancel' }, { text: 'OK', style: 'destructive', onPress: onYes }]);
 }
 
 export default function Account() {
-  const { settings, setSettings, collection, clear } = useStore();
+  const { settings, setSettings, collection, clear, t, langLabel } = useStore();
   const [name, setName] = useState(settings.profileName ?? '');
   const count = collection.reduce((n, e) => n + e.quantity, 0);
+  const saveName = () => setSettings({ profileName: name.trim() || undefined });
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 14, maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
@@ -30,58 +34,65 @@ export default function Account() {
         <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="person" size={44} color="#fff" />
         </View>
-        <Text style={s.h2}>{settings.profileName || 'Dresseur'}</Text>
-        <Text style={s.muted}>{count} carte{count > 1 ? 's' : ''} dans la collection</Text>
+        <Text style={s.h2}>{settings.profileName || t('acc.trainer')}</Text>
+        <Text style={s.muted}>{t('acc.inCollection', { n: count })}</Text>
       </View>
 
-      <Panel title="Profil">
+      <Panel title={t('acc.profile')}>
         <TextInput
           style={s.input}
-          placeholder="Ton pseudo"
+          placeholder={t('acc.nickname')}
           placeholderTextColor={colors.muted}
           value={name}
           onChangeText={setName}
-          onBlur={() => setSettings({ profileName: name.trim() || undefined })}
-          onSubmitEditing={() => setSettings({ profileName: name.trim() || undefined })}
+          onBlur={saveName}
+          onSubmitEditing={saveName}
           returnKeyType="done"
         />
-        <Text style={[s.muted, { fontSize: 12 }]}>
-          Bientôt : connexion (Apple, Google, e-mail) pour sauvegarder la collection et la retrouver sur tous tes appareils.
-          Pour l'instant, elle est enregistrée sur cet appareil uniquement.
-        </Text>
+        <Text style={[s.muted, { fontSize: 12 }]}>{t('acc.soon')}</Text>
       </Panel>
 
-      <Panel title="Préférences">
+      <Panel title={t('acc.prefs')}>
         <Dropdown
-          label="Jeu par défaut"
-          value={settings.game}
-          options={[{ value: 'auto', label: 'Automatique (scanner)' }, ...GAME_LIST.map((g) => ({ value: g.id, label: g.label }))]}
-          onChange={(g) => g && setSettings({ game: g as GameId | 'auto' })}
+          label={t('lang.app')}
+          value={settings.appLang}
+          options={[{ value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }]}
+          onChange={(l) => l && setSettings({ appLang: l as AppLang })}
         />
         <Dropdown
-          label="Langue des cartes"
+          label={t('acc.currency')}
+          value={settings.currency}
+          options={CURRENCIES.map((c) => ({ value: c, label: CURRENCY_LABEL[c] }))}
+          onChange={(c) => c && setSettings({ currency: c as Currency })}
+        />
+        <Dropdown
+          label={t('acc.defaultGame')}
+          value={settings.game === 'auto' ? 'pokemon' : settings.game}
+          options={GAME_LIST.map((g) => ({ value: g.id, label: g.label }))}
+          onChange={(g) => g && setSettings({ game: g as GameId })}
+        />
+        <Dropdown
+          label={t('lang.cards')}
           value={settings.lang}
-          options={ALL_LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] }))}
+          options={CARD_LANGS.map((l) => ({ value: l, label: langLabel(l) }))}
           onChange={(l) => l && setSettings({ lang: l as CardLang })}
         />
       </Panel>
 
-      <Panel title="Collection">
+      <Panel title={t('acc.collection')}>
         <Pressable style={s.ghost} onPress={() => router.push('/collection')}>
-          <Text style={s.ghostText}>Voir ma collection</Text>
+          <Text style={s.ghostText}>{t('acc.see')}</Text>
         </Pressable>
         <Pressable
           style={[s.ghost, { borderColor: colors.danger }]}
-          onPress={() => confirm('Supprimer toutes les cartes de la collection ?', clear)}
+          onPress={() => confirm(t('acc.clearConfirm'), clear)}
           disabled={!collection.length}
         >
-          <Text style={[s.ghostText, { color: colors.danger, fontFamily: fonts.bold }]}>Vider la collection</Text>
+          <Text style={[s.ghostText, { color: colors.danger, fontFamily: fonts.bold }]}>{t('acc.clear')}</Text>
         </Pressable>
       </Panel>
 
-      <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>
-        PokéMarket · données TCGdex, OPTCG API et Riftcodex. Pokémon, One Piece et Riftbound sont des marques de leurs ayants droit.
-      </Text>
+      <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>{t('acc.footer')}</Text>
     </ScrollView>
   );
 }

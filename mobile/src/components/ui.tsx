@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { GAME_LIST, LANG_LABEL } from '../lib/games';
-import { formatPrice } from '../lib/prices/marketplaces';
-import type { Card, CardLang, GameId } from '../lib/types';
+import { GAME_LIST } from '../lib/games';
+import { useStore } from '../lib/store';
+import type { Card, GameId } from '../lib/types';
 
 /** Palette « Rayquaza » (voir la direction artistique PokéMarket). */
 export const colors = {
@@ -54,31 +54,34 @@ export function GamePicker({
   );
 }
 
-export function LangPicker({ langs, value, onChange }: { langs: CardLang[]; value: CardLang; onChange(l: CardLang): void }) {
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
-      {langs.map((l) => (
-        <Chip key={l} label={LANG_LABEL[l]} active={value === l} onPress={() => onChange(l)} />
-      ))}
-    </ScrollView>
-  );
+/** Nom affiché selon la langue de l'app (traduction quand elle est connue). */
+export function displayName(card: Card, appLang: 'fr' | 'en'): string {
+  return appLang === 'fr' ? card.nameFr ?? card.nameEn ?? card.name : card.nameEn ?? card.name;
 }
 
-export function bestPrice(card: Card): string | null {
-  const p = card.prices[0];
-  return p ? formatPrice(p.value, p.currency) : null;
+/** Meilleur prix connu, converti dans la devise choisie. */
+export function useBestPrice(): (card: Card) => string | null {
+  const { money } = useStore();
+  return (card) => {
+    const p = card.prices[0];
+    return p ? money(p.value, p.currency) : null;
+  };
 }
 
 export function CardRow({ card, right }: { card: Card; right?: string }) {
+  const { settings } = useStore();
+  const price = useBestPrice()(card);
+  const name = displayName(card, settings.appLang);
   return (
     <Link href={{ pathname: '/card/[game]/[id]', params: { game: card.game, id: card.id, lang: card.lang } }} asChild>
       <Pressable style={s.cardRow}>
         <Image source={card.imageSmall} style={s.thumb} contentFit="contain" />
         <View style={{ flex: 1 }}>
-          <Text style={s.name} numberOfLines={2}>{card.name}</Text>
+          <Text style={s.name} numberOfLines={2}>{name}</Text>
+          {name !== card.name && <Text style={s.meta} numberOfLines={1}>{card.name}</Text>}
           <Text style={s.meta}>{[card.number, card.setName, card.rarity].filter(Boolean).join(' · ')}</Text>
         </View>
-        {(right ?? bestPrice(card)) && <Text style={s.price}>{right ?? bestPrice(card)}</Text>}
+        {(right ?? price) && <Text style={s.price}>{right ?? price}</Text>}
       </Pressable>
     </Link>
   );

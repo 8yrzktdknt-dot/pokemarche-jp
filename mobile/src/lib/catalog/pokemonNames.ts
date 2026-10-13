@@ -39,7 +39,9 @@ const RARITY_ABBR: Record<string, string> = {
   'special illustration rare': 'SAR', 'ultra rare': 'SR', 'hyper rare': 'UR', 'secret rare': 'UR',
   'ace spec rare': 'ACE', 'shiny rare': 'S', 'chromatique rare': 'S', 'shiny ultra rare': 'SSR',
   'chromatique ultra rare': 'SSR', 'amazing rare': 'A', 'radiant rare': 'K', 'black white rare': 'BWR',
-  'mega hyper rare': 'MUR', 'character rare': 'CHR', 'character super rare': 'CSR', promo: 'PR',
+  'mega hyper rare': 'MUR', 'méga hyper rare': 'MUR', 'hyper rare méga': 'MUR',
+  'rare illustration spéciale': 'SAR', 'rare illustration': 'AR',
+  'double rare ': 'RR', 'rare double': 'RR', 'triple rare ': 'RRR', 'character rare': 'CHR', 'character super rare': 'CSR', promo: 'PR',
   'full art trainer': 'SR', 'classic collection': 'CC', 'crown': 'UR', 'one diamond': '◇', none: '—',
 };
 
@@ -53,3 +55,37 @@ export function rarityAbbr(name: string): string {
 
 /** Les cartes japonaises et chinoises s'affichent avec le nom anglais de l'extension. */
 export const ENGLISH_NAMED_LANGS = ['en', 'ja', 'zh-tw', 'zh-cn'];
+
+/** Raretés Pokémon dans l'ordre d'affichage voulu (les autres suivent, par ordre alphabétique). */
+export const RARITY_ORDER: { abbr: string; fr: string; en: string }[] = [
+  { abbr: 'C', fr: 'Commune', en: 'Common' },
+  { abbr: 'U', fr: 'Peu commune', en: 'Uncommon' },
+  { abbr: 'R', fr: 'Rare', en: 'Rare' },
+  { abbr: 'RR', fr: 'Double Rare', en: 'Double Rare' },
+  { abbr: 'RRR', fr: 'Triple Rare', en: 'Triple Rare' },
+  { abbr: 'AR', fr: 'Illustration Rare', en: 'Illustration Rare' },
+  { abbr: 'UR', fr: 'Hyper Rare', en: 'Hyper Rare' },
+  { abbr: 'SR', fr: 'Ultra Rare', en: 'Ultra Rare' },
+  { abbr: 'SAR', fr: 'Illustration Spéciale Rare', en: 'Special Illustration Rare' },
+  { abbr: 'MUR', fr: 'Méga Hyper Rare', en: 'Mega Hyper Rare' },
+];
+
+/**
+ * Options du filtre de rareté : les abréviations connues dans l'ordre ci-dessus, puis les autres valeurs.
+ * `values` : raretés renvoyées par la source (dans la langue des cartes). La valeur d'une option est l'abréviation.
+ */
+export function rarityOptions(values: string[], appLang: 'fr' | 'en'): { value: string; label: string }[] {
+  const known = RARITY_ORDER.map((r) => ({ value: r.abbr, label: `${r.abbr} - ${r[appLang]}` }));
+  const knownAbbr = new Set(RARITY_ORDER.map((r) => r.abbr));
+  const others = new Map<string, string>();
+  for (const v of values) {
+    const a = rarityAbbr(v);
+    if (!knownAbbr.has(a) && !others.has(a)) others.set(a, a === v ? v : `${a} - ${v}`);
+  }
+  return [...known, ...[...others].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label))];
+}
+
+/** Valeurs de la source correspondant à une abréviation (ex. « SAR » → « Special illustration rare »). */
+export function rarityValuesFor(abbr: string, values: string[]): string[] {
+  return values.filter((v) => rarityAbbr(v) === abbr);
+}
