@@ -1,4 +1,4 @@
-import type { Match } from './visualIndex';
+import type { IndexItem, Match } from './visualIndex';
 
 /**
  * Reconnaissance visuelle sur iOS / Android : pas encore disponible (il faudra embarquer le modèle
@@ -10,6 +10,6 @@ export async function prepareVisual(_onStatus?: (percent: number) => void): Prom
   return 0;
 }
 
-export async function matchVisual(_cardImage: string): Promise<Match[] | null> {
+export async function matchVisual(_cardImage: string, _accept?: (item: IndexItem) => boolean): Promise<Match[] | null> {
   return null;
 }

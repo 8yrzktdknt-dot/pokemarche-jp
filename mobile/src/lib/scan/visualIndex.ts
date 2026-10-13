@@ -89,10 +89,11 @@ export interface Match {
 }
 
 /** Les k cartes les plus proches (similarité cosinus, vecteurs déjà normalisés). */
-export function topMatches(q: Float32Array, ix: VisualIndex, k = 5): Match[] {
+export function topMatches(q: Float32Array, ix: VisualIndex, k = 5, accept?: (item: IndexItem) => boolean): Match[] {
   const n = ix.items.length;
   const best: Match[] = [];
   for (let i = 0; i < n; i++) {
+    if (accept && !accept(ix.items[i])) continue;
     let s = 0;
     const o = i * DIM;
     for (let j = 0; j < DIM; j++) s += q[j] * ix.vecs[o + j];
