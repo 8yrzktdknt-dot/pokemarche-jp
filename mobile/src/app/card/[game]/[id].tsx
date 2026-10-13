@@ -100,17 +100,35 @@ export default function CardScreen() {
   // Glisser le doigt vers la gauche / la droite : carte suivante / précédente.
   const { width } = useWindowDimensions();
   const shift = useRef(new Animated.Value(0)).current;
+  // Glisser vers le bas (fiche tout en haut) : on quitte la fiche.
+  const drop = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(0);
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const navRef = useRef(nav);
   navRef.current = nav;
   const swipe = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        (Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2) ||
+        (scrollY.current <= 0 && g.dy > 18 && g.dy > Math.abs(g.dx) * 2),
       onPanResponderMove: (_, g) => {
+        if (Math.abs(g.dy) > Math.abs(g.dx)) {
+          drop.setValue(Math.max(0, g.dy));
+          return;
+        }
         const { prev, next } = navRef.current;
         // Résistance quand il n'y a pas de carte de ce côté.
         shift.setValue((g.dx > 0 && !prev) || (g.dx < 0 && !next) ? g.dx / 4 : g.dx);
       },
       onPanResponderRelease: (_, g) => {
+        if (Math.abs(g.dy) > Math.abs(g.dx)) {
+          if (g.dy > 120 || g.vy > 0.8) {
+            Animated.timing(drop, { toValue: 900, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start(close);
+          } else {
+            Animated.spring(drop, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+          }
+          return;
+        }
         const { prev, next } = navRef.current;
         const target = g.dx < -70 || g.vx < -0.5 ? next : g.dx > 70 || g.vx > 0.5 ? prev : undefined;
         if (!target) {
@@ -122,7 +140,10 @@ export default function CardScreen() {
           shift.setValue(0);
         });
       },
-      onPanResponderTerminate: () => Animated.spring(shift, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start(),
+      onPanResponderTerminate: () => {
+        Animated.spring(shift, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+        Animated.spring(drop, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+      },
     }),
   ).current;
 
@@ -164,8 +185,12 @@ export default function CardScreen() {
   const hasCmSales = card.prices.some((p) => p.label.startsWith('cm.avg'));
 
   return (
-    <Animated.View style={[s.screen, SWIPE_STYLE, { transform: [{ translateX: shift }] }]} {...swipe.panHandlers}>
-    <ScrollView style={s.screen} contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
+    <Animated.View style={[s.screen, SWIPE_STYLE, { transform: [{ translateX: shift }, { translateY: drop }], opacity: drop.interpolate({ inputRange: [0, 400], outputRange: [1, 0.4], extrapolate: 'clamp' }) }]} {...swipe.panHandlers}>
+    <ScrollView
+      style={s.screen}
+      onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
+      scrollEventThrottle={16}
+      contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: displayName(card, settings.appLang) }} />
       <Image source={card.imageLarge ?? card.imageSmall} style={{ width: '100%', aspectRatio: 63 / 88, borderRadius: 12 }} contentFit="contain" />
       {nav.total > 1 && (
@@ -212,15 +237,6 @@ export default function CardScreen() {
       ))}
       {hasCmSales && <Text style={[s.muted, { fontSize: 12 }]}>{t('card.salesNote')}</Text>}
 
-      {!!card.attributes?.length && (
-        <>
-          <Text style={s.h2}>{t('card.attributes')}</Text>
-          {card.attributes.map((a) => (
-            <AttributeRow key={a.key} a={a} game={card.game} appLang={settings.appLang} label={t(`attr.${a.key}` as TKey)} />
-          ))}
-        </>
-      )}
-
       <Text style={s.h2}>{t('card.seeOn')}</Text>
       {marketLinks(card, settings.appLang).map((l) => (
         <Pressable key={l.id} style={st.link} onPress={() => Linking.openURL(l.url)}>
@@ -229,6 +245,15 @@ export default function CardScreen() {
           <Ionicons name="open-outline" size={18} color={colors.muted} />
         </Pressable>
       ))}
+
+      {!!card.attributes?.length && (
+        <>
+          <Text style={s.h2}>{t('card.attributes')}</Text>
+          {card.attributes.map((a) => (
+            <AttributeRow key={a.key} a={a} game={card.game} appLang={settings.appLang} label={t(`attr.${a.key}` as TKey)} />
+          ))}
+        </>
+      )}
     </ScrollView>
     </Animated.View>
   );
