@@ -34,6 +34,29 @@ export function loadEnglishNames() {
   };
 }
 
+/**
+ * Cartes très courantes dont la version internationale n'est pas reliée automatiquement
+ * (impressions promo, decks) : noms officiels anglais et français (anglais quand le français n'est pas sûr).
+ */
+const STAPLES = {
+  '博士の研究': ["Professor's Research", 'Recherches Professorales'],
+  'ポケモンキャッチャー': ['Pokémon Catcher', 'Pokémon Catcher'],
+  'ボスの指令': ["Boss's Orders", 'Ordres du Boss'],
+  'クラッシュハンマー': ['Crushing Hammer', 'Maillet Écrasant'],
+  'エネルギーつけかえ': ['Energy Switch', "Échange d'Énergie"],
+  'チェレン': ['Cheren', 'Tcheren'],
+  'マリィ': ['Marnie', 'Rosemary'],
+  'N': ['N', 'N'],
+  'ベル': ['Bianca', 'Bianca'],
+  'まんたんのくすり': ['Max Potion', 'Potion Max'],
+  'ポケモンだいすきクラブ': ['Pokémon Fan Club', 'Club des Fans de Pokémon'],
+  'レスキュータンカ': ['Rescue Stretcher', 'Brancard de Secours'],
+  'アセロラ': ['Acerola', 'Acerola'],
+  'カキ': ['Kiawe', 'Kiawe'],
+  'デンジ': ['Volkner', 'Tanguy'],
+  '勝利の勲章': ['Victory Medal', 'Victory Medal'],
+};
+
 /** Énergies de base : « 基本水エネルギー » → Basic Water Energy / Énergie Eau de base. */
 const ENERGY = {
   草: ['Grass', 'Plante'], 炎: ['Fire', 'Feu'], 水: ['Water', 'Eau'], 雷: ['Lightning', 'Électrique'], 超: ['Psychic', 'Psy'],
@@ -60,7 +83,7 @@ export async function translateRemaining() {
   for (const { f, cards } of decks) {
     for (const c of cards) {
       if (c.nameEn || known[c.name]) continue;
-      const energy = basicEnergy(c.name);
+      const energy = basicEnergy(c.name) ?? STAPLES[c.name];
       if (energy) { known[c.name] = energy; continue; }
       if (!/^\d+$/.test(c.localId)) continue;
       // Plusieurs exemplaires par nom : une impression exclusive au Japon n'a pas de version internationale.
