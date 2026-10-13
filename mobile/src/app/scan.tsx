@@ -116,11 +116,13 @@ export default function Scan() {
   useEffect(() => {
     if (!visualSupported) return;
     setStatus(t('scan.loadingAi'));
-    prepareVisual((p) => setStatus(t('scan.downloadAi', { p }))).then(
+    setVisualCount(null);
+    // Seul l'index Pokémon de la langue choisie avec le drapeau est téléchargé.
+    prepareVisual((p) => setStatus(t('scan.downloadAi', { p })), scanLang).then(
       (n) => { setVisualCount(n); setStatus(n ? t('scan.take') : t('scan.noIndex')); },
       () => { setVisualCount(0); setStatus(t('scan.noAi')); },
     );
-  }, [t]);
+  }, [t, scanLang]);
 
   /**
    * Pokémon : les cartes diffèrent d'une langue à l'autre (extensions, numéros), on ne garde que l'index de la langue
@@ -180,7 +182,7 @@ export default function Scan() {
     if (!shot) return false;
     if (!visualSupported) { await analyseByCode(shot.ocr); return false; }
     if (!visualCount || !shot.card) return false;
-    const matches = await matchVisual(shot.card, accept);
+    const matches = await matchVisual(shot.card, accept, scanLang);
     if (!matches?.length) return false;
     history.current = [...history.current.slice(-5), matches];
     const sure = isConfident(matches);
@@ -188,7 +190,7 @@ export default function Scan() {
     if (stabilizer.current.push(sure ? matches[0].item.id : null)) { await showMatches(matches, true); return true; }
     if (!sure && isLikely(history.current)) { history.current = []; await showMatches(matches, false); return true; }
     return false;
-  }, [visualCount, accept, analyseByCode, showMatches]);
+  }, [visualCount, accept, scanLang, analyseByCode, showMatches]);
 
   // Boucle d'analyse : pendant un scan déclenché (au plus MAX_TRIES images) ou en continu en mode Auto.
   useEffect(() => {

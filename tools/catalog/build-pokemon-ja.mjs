@@ -1,5 +1,6 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
+import { officialNumber, officialRecentCards, serebiiLogos } from './official-jp.mjs';
 import { getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
 
@@ -56,6 +57,9 @@ export async function buildPokemonJa() {
 
   // Nombre officiel de cartes (dénominateur imprimé « 110/076 ») depuis TCGdex.
   const official = new Map(((await getJson('https://api.tcgdex.net/v2/ja/sets')) ?? []).map((s) => [s.id.toUpperCase(), s.cardCount?.official]));
+  // Base officielle (extensions récentes) pour les cartes que Limitless n'a pas encore (cartes rares notamment).
+  const recent = await officialRecentCards().catch((e) => { console.warn('pokemon-card.com :', e.message); return new Map(); });
+  let added = 0;
 
   let total = 0;
   let translated = 0;
@@ -86,12 +90,53 @@ export async function buildPokemonJa() {
           rarity: c.rarity,
         };
       });
+      added += await completeFromOfficial(set, list, recent.get(set.id.toUpperCase()), off);
       set.count = list.length || set.count;
       total += list.length;
       writeJson(`cards/pokemon-ja/${set.id}.json`, list);
     });
   }
+  // Vrais logos (Serebii) ; le petit symbole Limitless reste en secours.
+  const logos = await serebiiLogos(blocs.flatMap((b) => b.sets)).catch((e) => { console.warn('Serebii :', e.message); return new Map(); });
+  for (const s of blocs.flatMap((b) => b.sets)) {
+    if (logos.has(s.id)) { s.symbol = s.logo; s.logo = logos.get(s.id); }
+  }
   sortByRelease(blocs);
   writeJson('sets/pokemon-ja.json', { built: new Date().toISOString(), source: 'limitlesstcg.com', blocs });
-  console.log(`Pokémon JP : ${total} cartes, ${translated} avec nom anglais`);
+  console.log(`Pokémon JP : ${total} cartes, ${translated} avec nom anglais, ${added} ajoutées depuis pokemon-card.com`);
 }
+
+/**
+ * Ajoute à `list` les cartes de la base officielle absentes de Limitless (même numéro imprimé = même carte).
+ * Seules les extensions où l'officiel a plus de cartes sont examinées (une fiche à lire par carte).
+ */
+async function completeFromOfficial(set, list, offCards, officialCount) {
+  const numbered = offCards?.filter((c) => !c.energy) ?? [];
+  const have = new Set(list.map((c) => numberKey(c.localId)));
+  if (numbered.length <= list.filter((c) => /^\d+$/.test(c.localId)).length) return 0;
+  const numbers = await pool(numbered, 4, (c) => officialNumber(c.cardID).catch(() => null));
+  let added = 0;
+  numbered.forEach((c, i) => {
+    const num = numbers[i];
+    if (!num || have.has(numberKey(num.n))) return;
+    const t = translateJa(c.name);
+    const localId = /^\d+$/.test(num.n) ? pad3(num.n) : num.n;
+    const total = officialCount ?? num.total;
+    list.push({
+      id: `${set.id}-${localId}`,
+      localId,
+      number: total ? `${localId}/${pad3(total)}` : localId,
+      name: c.name,
+      nameEn: t?.[0],
+      nameFr: t?.[1],
+      image: c.image,
+    });
+    have.add(numberKey(num.n));
+    added++;
+  });
+  list.sort((a, b) => (Number(a.localId) || 1e4) - (Number(b.localId) || 1e4));
+  if (added) console.log(`${set.id} : ${added} cartes ajoutées depuis pokemon-card.com`);
+  return added;
+}
+
+const numberKey = (n) => (/^\d+$/.test(n) ? String(Number(n)) : String(n).toUpperCase());

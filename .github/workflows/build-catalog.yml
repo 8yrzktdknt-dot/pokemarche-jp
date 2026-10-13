@@ -8,7 +8,11 @@ on:
   workflow_dispatch:
     inputs:
       steps:
-        description: "Étapes (pokemon-ja, pokemon-intl, onepiece, riftbound, visual), séparées par des virgules ; vide = toutes"
+        description: "Étapes (pokemon-ja, pokemon-intl, pokemon-cards, onepiece, riftbound, visual), séparées par des virgules ; vide = toutes"
+        default: ""
+        required: false
+      visual:
+        description: "Index visuels à refaire (ex. pokemon-ja,pokemon-fr) ; vide = tous"
         default: ""
         required: false
   schedule:
@@ -53,6 +57,7 @@ jobs:
         working-directory: tools/catalog
         env:
           STEPS: ${{ github.event.inputs.steps || '' }}
+          VISUAL_TARGETS: ${{ github.event.inputs.visual || '' }}
         run: npm test && npm run build
 
       - name: Enregistrer dans le dépôt

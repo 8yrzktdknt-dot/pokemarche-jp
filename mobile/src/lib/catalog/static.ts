@@ -20,6 +20,21 @@ export function catalogBase(): string {
 
 const DAY = 24 * 3600 * 1000;
 
+/** Logos publiés avec le catalogue (« logos/pokemon-ja/M6.png ») : chemin relatif au catalogue. */
+export const assetUrl = (u?: string) => (u && !/^https?:/.test(u) ? `${catalogBase()}/${u}` : u);
+
+/**
+ * Grande image d'une carte selon sa source : Limitless (_SM → _LG), TCGdex (low → high),
+ * pokemontcg.io (.png → _hires.png) ; les images officielles japonaises n'ont qu'une taille.
+ */
+export function largeImage(u?: string): string | undefined {
+  if (!u) return u;
+  if (/_SM\.(png|jpg|webp)$/.test(u)) return u.replace(/_SM\.(png|jpg|webp)$/, '_LG.$1');
+  if (u.endsWith('/low.webp')) return u.replace(/\/low\.webp$/, '/high.webp');
+  if (/images\.pokemontcg\.io\/.+\/[^/_]+\.png$/.test(u)) return u.replace(/\.png$/, '_hires.png');
+  return u;
+}
+
 export interface StaticSet {
   id: string;
   code: string;
@@ -71,7 +86,7 @@ export function toBlocs(blocs: StaticBloc[], appLang: 'fr' | 'en' = 'fr'): Bloc[
       id: x.id,
       code: x.code,
       name: (appLang === 'fr' && x.nameFr) || x.name,
-      logo: x.logo,
+      logo: assetUrl(x.logo),
       count: x.count,
       blocId: b.id,
     })),
@@ -123,7 +138,7 @@ export function staticToCard(
     setName: set?.name,
     rarity: c.rarity || undefined,
     imageSmall: image,
-    imageLarge: image?.replace(/_SM\.(png|jpg|webp)$/, '_LG.$1'),
+    imageLarge: largeImage(image),
     prices: usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [],
     facets: (c as { facets?: Record<string, string[]> }).facets,
   };
@@ -136,7 +151,7 @@ export async function staticSetCardsAsApp(game: GameId, lang: CardLang, setId: s
   const [blocs, cards] = await Promise.all([staticBlocs(game, lang), staticSetCards(game, lang, setId)]);
   if (!cards) return null;
   const st = blocs?.flatMap((b) => b.sets.map((x) => ({ ...x, blocId: b.id }))).find((x) => x.id === setId);
-  const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, logo: st.logo, count: st.count, blocId: st.blocId } : null;
+  const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, logo: assetUrl(st.logo), count: st.count, blocId: st.blocId } : null;
   return { set, cards: cards.map((c) => staticToCard(game, lang, c, { id: setId, name: st?.name })) };
 }
 

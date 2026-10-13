@@ -2,7 +2,7 @@ import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
 import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityAbbr, rarityValuesFor } from '../catalog/pokemonNames.ts';
-import { staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
+import { assetUrl, staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
 import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
@@ -251,24 +251,27 @@ async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
  * Catalogue publié avec l'app d'abord (extensions par date de sortie, logos ; pour le japonais :
  * toutes les cartes Limitless avec noms traduits), puis TCGdex en direct pour le reste et pour les prix.
  */
+/** Langues dont toutes les cartes sont publiées avec le catalogue (images complétées, noms traduits). */
+const STATIC_LANGS: CardLang[] = ['ja', 'fr', 'en'];
+
 async function blocsAll(lang: CardLang): Promise<Bloc[]> {
   const st = await staticBlocs('pokemon', lang);
   return st ? toBlocs(st) : blocs(lang);
 }
 
 async function setCardsAll(setId: string, lang: CardLang) {
-  if (lang === 'ja') {
+  if (STATIC_LANGS.includes(lang)) {
     const st = await staticSetCardsAsApp('pokemon', lang, setId);
     if (st) return st;
   }
   const live = await setCards(setId, lang);
   // Infos d'extension (logo, nom) du catalogue quand TCGdex ne les a pas.
   const info = (await staticBlocs('pokemon', lang))?.flatMap((b) => b.sets).find((x) => x.id === setId);
-  return info && live.set ? { ...live, set: { ...live.set, name: info.name, logo: info.logo ?? live.set.logo } } : live;
+  return info && live.set ? { ...live, set: { ...live.set, name: info.name, logo: assetUrl(info.logo) ?? live.set.logo } } : live;
 }
 
 async function searchAll(f: SearchFilters, lang: CardLang): Promise<Card[]> {
-  if (lang === 'ja') {
+  if (STATIC_LANGS.includes(lang)) {
     const st = await staticSearch('pokemon', lang, f, rarityAbbr);
     if (st) return st;
   }
@@ -276,7 +279,7 @@ async function searchAll(f: SearchFilters, lang: CardLang): Promise<Card[]> {
 }
 
 async function filterOptionsAll(lang: CardLang): Promise<FilterOptions> {
-  if (lang === 'ja') {
+  if (STATIC_LANGS.includes(lang)) {
     const st = await staticFilterOptions('pokemon', lang, []);
     if (st) return st;
   }
@@ -288,7 +291,7 @@ async function filterOptionsAll(lang: CardLang): Promise<FilterOptions> {
 async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
   const [live, st] = await Promise.all([
     getCard(id, lang).catch(() => null),
-    lang === 'ja' ? staticGetCard('pokemon', lang, id) : Promise.resolve(null),
+    STATIC_LANGS.includes(lang) ? staticGetCard('pokemon', lang, id) : Promise.resolve(null),
   ]);
   if (!live) return st;
   if (!st) return live;

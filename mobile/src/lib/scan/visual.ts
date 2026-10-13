@@ -6,10 +6,10 @@ import type { IndexItem, Match } from './visualIndex';
  */
 export const visualSupported = false;
 
-export async function prepareVisual(_onStatus?: (percent: number) => void): Promise<number> {
+export async function prepareVisual(_onStatus?: (percent: number) => void, _pokemonLang?: string): Promise<number> {
   return 0;
 }
 
-export async function matchVisual(_cardImage: string, _accept?: (item: IndexItem) => boolean): Promise<Match[] | null> {
+export async function matchVisual(_cardImage: string, _accept?: (item: IndexItem) => boolean, _pokemonLang?: string): Promise<Match[] | null> {
   return null;
 }
