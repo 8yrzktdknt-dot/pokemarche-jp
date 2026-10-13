@@ -22,6 +22,8 @@ Stack : Expo (SDK 57) + React Native + TypeScript + Expo Router.
 
 ## Lancer l'app
 
+👉 **Pas développeur ? Suivez le guide pas à pas [LANCER.md](LANCER.md).**
+
 L'OCR ML Kit est un module natif : l'app ne tourne **pas dans Expo Go**, il faut un *development build*.
 
 ```bash
