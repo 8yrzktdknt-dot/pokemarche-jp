@@ -1,6 +1,7 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, distinct, sortCards } from '../search.ts';
+import { staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
 import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
@@ -141,14 +142,22 @@ async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
   return cards.sort((a, b) => nameScore(b.name, hint.text) - nameScore(a.name, hint.text));
 }
 
+/** Catalogue publié avec l'app d'abord (listes officielles), source en direct ensuite. */
+const withStatic = {
+  blocs: async (lang: CardLang) => {
+    const st = await staticBlocs('onepiece', lang);
+    return st ? toBlocs(st) : blocs(lang);
+  },
+  setCards: async (setId: string, lang: CardLang) => (await staticSetCardsAsApp('onepiece', lang, setId)) ?? setCards(setId, lang),
+  search: async (f: SearchFilters, lang: CardLang) => (await staticSearch('onepiece', lang, f)) ?? search(f, lang),
+  filterOptions: async (lang: CardLang) => (await staticFilterOptions('onepiece', lang, ['color', 'category'])) ?? filterOptions(lang),
+  getCard: async (id: string, lang: CardLang) => (await staticGetCard('onepiece', lang, id)) ?? getCard(id, lang),
+};
+
 export const onepiece: GameProvider = {
   id: 'onepiece',
   label: 'One Piece',
   langs: ['en', 'ja', 'fr', 'zh-cn', 'ko'],
-  search,
-  filterOptions,
-  blocs,
-  setCards,
-  getCard,
+  ...withStatic,
   resolveScan,
 };
