@@ -20,6 +20,8 @@ export function ptcgCandidates(id) {
     base.replace(/\./g, ''),
     base.replace(/cc$/, 'c'),
     base.replace(/-fr$/, ''),
+    // Collections McDonald's : « 2019sm » → « mcd19 »
+    ...(/^20(\d\d)[a-z]+(-fr)?$/.test(base) ? [`mcd${base.slice(2, 4)}`] : []),
   ])];
 }
 
