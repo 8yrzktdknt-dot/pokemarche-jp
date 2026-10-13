@@ -35,6 +35,7 @@ export type SortKey = 'relevance' | 'name' | 'number' | 'price-desc' | 'price-as
 
 export interface SearchFilters {
   text: string;
+  blocId?: string;
   setId?: string;
   /** Valeur choisie par facette (clé → valeur). */
   facets: Record<string, string>;
@@ -47,7 +48,26 @@ export interface Facet {
   values: string[];
 }
 
+/** Une extension. `code` est le code imprimé / court (« SV4a », « OP05 »). */
+export interface SetInfo {
+  id: string;
+  code: string;
+  name: string;
+  logo?: string;
+  symbol?: string;
+  count?: number;
+  blocId?: string;
+}
+
+/** Un bloc (série) regroupant des extensions, les plus récentes d'abord. */
+export interface Bloc {
+  id: string;
+  name: string;
+  sets: SetInfo[];
+}
+
 export interface FilterOptions {
+  blocs: Bloc[];
   sets: { id: string; name: string }[];
   facets: Facet[];
   sorts: SortKey[];
@@ -72,6 +92,8 @@ export interface GameProvider {
   langs: CardLang[];
   search(filters: SearchFilters, lang: CardLang): Promise<Card[]>;
   filterOptions(lang: CardLang): Promise<FilterOptions>;
+  blocs(lang: CardLang): Promise<Bloc[]>;
+  setCards(setId: string, lang: CardLang): Promise<{ set: SetInfo | null; cards: Card[] }>;
   getCard(id: string, lang: CardLang): Promise<Card | null>;
   /** Résout un code lu par le scanner en cartes candidates (meilleure en premier). */
   resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]>;

@@ -1,8 +1,8 @@
 import { createElement, forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { GUIDE } from '../lib/scan/guide';
-import type { ScanCameraHandle } from './ScanCamera';
+import type { Capture, ScanCameraHandle } from './ScanCamera';
 
-export type { ScanCameraHandle } from './ScanCamera';
+export type { Capture, ScanCameraHandle } from './ScanCamera';
 
 /** Largeur de l'image envoyée à l'OCR : les numéros de carte font quelques pixels sans agrandissement. */
 const OCR_WIDTH = 1400;
@@ -41,7 +41,7 @@ export const ScanCamera = forwardRef<ScanCameraHandle, { active: boolean }>(func
   }, [active]);
 
   useImperativeHandle(ref, () => ({
-    async capture() {
+    async capture(): Promise<Capture | null> {
       const v = video.current;
       if (!v || !v.videoWidth) return null;
       // Le flux est affiché en « cover » : on convertit le cadre de visée (en px écran) en px vidéo.
@@ -60,6 +60,22 @@ export const ScanCamera = forwardRef<ScanCameraHandle, { active: boolean }>(func
       const sy = (cardY + cardH * GUIDE.codeBandFrom + offY) / scale;
       const sw = (cardW + 2 * margin) / scale;
       const sh = (cardH * (1.04 - GUIDE.codeBandFrom)) / scale;
+
+      // Carte entière dans un carré 224×224 sur fond gris, exactement comme les images de l'index visuel.
+      const S = 224;
+      const sq = document.createElement('canvas');
+      sq.width = sq.height = S;
+      const g = sq.getContext('2d');
+      if (g) {
+        const cx = (cardX + offX) / scale;
+        const cy = (cardY + offY) / scale;
+        const cw = cardW / scale;
+        const ch = cardH / scale;
+        g.fillStyle = '#808080';
+        g.fillRect(0, 0, S, S);
+        const k = Math.min(S / cw, S / ch);
+        g.drawImage(v, cx, cy, cw, ch, (S - cw * k) / 2, (S - ch * k) / 2, cw * k, ch * k);
+      }
 
       const canvas = document.createElement('canvas');
       canvas.width = OCR_WIDTH;
@@ -85,7 +101,7 @@ export const ScanCamera = forwardRef<ScanCameraHandle, { active: boolean }>(func
         d[i] = d[i + 1] = d[i + 2] = g;
       }
       ctx.putImageData(img, 0, 0);
-      return canvas.toDataURL('image/png');
+      return { ocr: canvas.toDataURL('image/png'), card: g ? sq.toDataURL('image/jpeg', 0.92) : undefined };
     },
   }));
 

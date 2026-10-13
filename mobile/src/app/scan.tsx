@@ -12,6 +12,8 @@ import { GUIDE } from '../lib/scan/guide';
 import { recognizeText } from '../lib/scan/ocr';
 import { parseScanText } from '../lib/scan/parse';
 import { ScanStabilizer } from '../lib/scan/stabilizer';
+import { matchVisual, prepareVisual, visualSupported } from '../lib/scan/visual';
+import { isConfident, type Match } from '../lib/scan/visualIndex';
 import { useStore } from '../lib/store';
 import type { Card, ScanHint } from '../lib/types';
 
@@ -30,6 +32,18 @@ export default function Scan() {
   const [lastText, setLastText] = useState('');
   const [manual, setManual] = useState(false);
   const [manualCode, setManualCode] = useState('');
+  /** Nombre de cartes reconnaissables par l'image (0 = reconnaissance visuelle indisponible). */
+  const [visualCount, setVisualCount] = useState(0);
+  // Ouvert directement (lien, rechargement) : pas d'écran précédent, on revient à l'accueil.
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+  useEffect(() => {
+    if (!visualSupported) return;
+    prepareVisual(setStatus).then(
+      (n) => { setVisualCount(n); if (n) setStatus('Place la carte dans le cadre'); },
+      () => setVisualCount(0),
+    );
+  }, []);
 
   // On ne scanne que lorsque l'écran est visible.
   useFocusEffect(
@@ -49,21 +63,60 @@ export default function Scan() {
     setStatus(found.length > 1 ? `${found.length} cartes possibles` : 'Carte reconnue');
   }, [settings.lang]);
 
+  /** Cartes proposées par la reconnaissance visuelle (index des cartes japonaises). */
+  const resolveVisual = useCallback(async (matches: Match[]) => {
+    const top = matches.slice(0, 3);
+    const cards = await Promise.all(
+      top.map(async (m): Promise<Card> => {
+        const full = await GAMES.pokemon.getCard(m.item.id, 'ja').catch(() => null);
+        return full ?? {
+          game: 'pokemon', id: m.item.id, lang: 'ja', name: m.item.name, number: m.item.localId, prices: [],
+          imageSmall: m.item.image ? `${m.item.image}/low.webp` : undefined,
+        };
+      }),
+    );
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setCandidates(cards);
+    setStatus(`Reconnue par l'image (${Math.round(top[0].score * 100)} %)`);
+  }, []);
+
+  const useVisual = visualCount > 0 && (settings.game === 'auto' || settings.game === 'pokemon');
+
   const analyse = useCallback(async () => {
-    const uri = await camera.current?.capture();
-    if (!uri) return setStatus('Démarrage de la caméra…');
-    const text = await recognizeText(uri, settings.lang);
+    const cap = await camera.current?.capture();
+    if (!cap) return setStatus('Démarrage de la caméra…');
+    // Lecture du numéro et comparaison visuelle en parallèle ; le numéro a la priorité.
+    const visualP = useVisual && cap.card ? matchVisual(cap.card).catch(() => null) : Promise.resolve(null);
+    const text = await recognizeText(cap.ocr, settings.lang);
     const game = settings.game === 'auto' ? undefined : settings.game;
     const hint = parseScanText(text, game);
-    const confirmed = stabilizer.current.push(hint ? `${hint.game}:${hint.code}` : null);
-    if (!hint) {
-      setLastText(text.replace(/\s+/g, ' ').trim().slice(0, 40));
-      return setStatus('Recherche du numéro de carte…');
+    const matches = hint ? null : await visualP;
+    const visualHit = matches && isConfident(matches) ? matches : null;
+    const key = hint ? `${hint.game}:${hint.code}` : visualHit ? `visual:${visualHit[0].item.id}` : null;
+    const confirmed = stabilizer.current.push(key);
+    if (hint) {
+      setLastText('');
+      if (!confirmed) return setStatus(`Lu : ${hint.code}…`);
+      return resolve(hint);
     }
-    setLastText('');
-    if (!confirmed) return setStatus(`Lu : ${hint.code}…`);
-    await resolve(hint);
-  }, [settings.game, settings.lang, resolve]);
+    if (visualHit) {
+      if (!confirmed) return setStatus(`Ressemble à ${visualHit[0].item.name}…`);
+      return resolveVisual(visualHit);
+    }
+    setLastText(text.replace(/\s+/g, ' ').trim().slice(0, 40));
+    setStatus(useVisual ? 'Recherche de la carte (numéro ou visuel)…' : 'Recherche du numéro de carte…');
+  }, [settings.game, settings.lang, resolve, resolveVisual, useVisual]);
+
+  /** Bouton « Identifier par l'image » : les 3 cartes les plus ressemblantes, même sans certitude. */
+  const identifyNow = async () => {
+    const cap = await camera.current?.capture();
+    if (!cap?.card) return;
+    setStatus("Comparaison avec le catalogue…");
+    const m = await matchVisual(cap.card).catch(() => null);
+    if (!m?.length) return setStatus('Aucune carte ressemblante');
+    await resolveVisual(m);
+    if (!isConfident(m)) setStatus('Pas certain : vérifie et choisis la bonne carte');
+  };
 
   const searchManual = async () => {
     const game = settings.game === 'auto' ? undefined : settings.game;
@@ -109,7 +162,7 @@ export default function Scan() {
       <SafeAreaView style={[s.screen, s.pad, { justifyContent: 'center' }]}>
         <Text style={[s.h2, { textAlign: 'center' }]}>La caméra est nécessaire pour scanner tes cartes.</Text>
         <Pressable style={s.button} onPress={requestPermission}><Text style={s.buttonText}>Autoriser la caméra</Text></Pressable>
-        <Pressable style={s.ghost} onPress={() => router.back()}><Text style={s.ghostText}>Retour</Text></Pressable>
+        <Pressable style={s.ghost} onPress={close}><Text style={s.ghostText}>Retour</Text></Pressable>
       </SafeAreaView>
     );
   }
@@ -123,7 +176,7 @@ export default function Scan() {
       <SafeAreaView style={st.overlay} edges={['top', 'bottom']}>
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Pressable onPress={() => router.back()} style={st.pill}><Text style={s.ghostText}>✕</Text></Pressable>
+            <Pressable onPress={close} style={st.pill}><Text style={s.ghostText}>✕</Text></Pressable>
             {addedCount > 0 && (
               <Pressable onPress={() => router.replace('/collection')} style={st.pill}>
                 <Text style={s.ghostText}>{addedCount} ajoutée{addedCount > 1 ? 's' : ''} →</Text>
@@ -156,9 +209,16 @@ export default function Scan() {
             </View>
           ) : (
             !candidates.length && (
-              <Pressable style={st.pill} onPress={() => setManual(true)}>
-                <Text style={[s.ghostText, { textAlign: 'center' }]}>Saisir le numéro à la main</Text>
-              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {useVisual && (
+                  <Pressable style={[st.pill, { flex: 1 }]} onPress={identifyNow}>
+                    <Text style={[s.ghostText, { textAlign: 'center' }]}>Identifier par l'image</Text>
+                  </Pressable>
+                )}
+                <Pressable style={[st.pill, { flex: 1 }]} onPress={() => setManual(true)}>
+                  <Text style={[s.ghostText, { textAlign: 'center' }]}>Saisir le numéro</Text>
+                </Pressable>
+              </View>
             )
           )}
           {candidates.slice(0, 4).map((c) => (

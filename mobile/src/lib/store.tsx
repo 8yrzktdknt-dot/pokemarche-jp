@@ -8,9 +8,11 @@ export interface CollectionEntry {
   addedAt: number;
 }
 
-interface Settings {
+export interface Settings {
   game: GameId | 'auto';
   lang: CardLang;
+  /** Pseudo affiché sur la page Compte (en attendant les vrais comptes). */
+  profileName?: string;
 }
 
 interface Store {
@@ -20,6 +22,7 @@ interface Store {
   collection: CollectionEntry[];
   add(card: Card): void;
   remove(card: Card): void;
+  clear(): void;
 }
 
 const KEY_COLLECTION = 'collection.v1';
@@ -71,11 +74,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const clear = useCallback(() => setCollection([]), []);
+
   const setSettings = useCallback((s: Partial<Settings>) => setSettingsState((prev) => ({ ...prev, ...s })), []);
 
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove }),
-    [ready, settings, setSettings, collection, add, remove],
+    () => ({ ready, settings, setSettings, collection, add, remove, clear }),
+    [ready, settings, setSettings, collection, add, remove, clear],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
