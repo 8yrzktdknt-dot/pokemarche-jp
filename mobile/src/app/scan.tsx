@@ -46,7 +46,7 @@ export default function Scan() {
     setStatus(t('scan.loadingAi'));
     prepareVisual((p) => setStatus(t('scan.downloadAi', { p }))).then(
       (n) => { setVisualCount(n); setStatus(n ? t('scan.frame') : t('scan.noIndex')); },
-      () => { setVisualCount(0); setStatus(t('scan.noIndex')); },
+      () => { setVisualCount(0); setStatus(t('scan.noAi')); },
     );
   }, [t]);
 
