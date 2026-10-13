@@ -6,21 +6,30 @@ aux prix **Cardmarket**, **TCGplayer**, **CardTrader** et **eBay**.
 
 Stack : Expo (SDK 57) + React Native + TypeScript + Expo Router.
 
-## Fonctionnalités de cette première version
+## Fonctionnalités
 
-- **Scanner automatique** (`src/app/scan.tsx`) : la caméra analyse une image toutes les ~0,7 s
-  avec l'OCR ML Kit (sur l'appareil, hors-ligne). Pas de bouton à presser : dès que le code de la carte est lu
-  deux fois de suite, la carte est recherchée, le téléphone vibre et on peut l'ajouter d'un geste,
-  puis enchaîner la suivante.
-  - One Piece : code `OP05-119`, `ST10-001`, `EB01-001`, `PRB01-001`, `P-042`
-  - Riftbound : code `OGN-202/298`
-  - Pokémon : numéro `136/189`, `TG05/TG30`… et code d'extension s'il est imprimé (`SV4a`, `SSP EN`)
-  - Jeu « Auto » : le jeu est déduit du format du code. Langue détectée (japonais, coréen, EN/FR…).
-- **Recherche manuelle** : barre de recherche (nom ou numéro) et filtres par langue, extension, rareté,
-  type (Pokémon), couleur et catégorie (One Piece), domaine et type (Riftbound), avec tri par nom, numéro ou prix.
-  Pokémon est filtré par l'API TCGdex ; One Piece et Riftbound chargent leur catalogue (mis en cache 24 h) et filtrent sur l'appareil.
-- **Fiche carte** : image, prix automatiques (quand l'API en fournit) et boutons vers les 4 sites.
-- **Collection** locale (quantités, valeur estimée).
+Navigation en bas de l'écran : **Extensions** · **Rechercher** · **Scanner** (bouton central) · **Accueil** (tableau de bord) · **Compte**.
+
+- **Tableau de bord** (page d'accueil) : valeur estimée, nombre de cartes par jeu, cartes les plus précieuses,
+  répartition par langue et par rareté, derniers ajouts.
+- **Extensions** : par jeu et par langue, regroupées par bloc, en carrés avec logo. Noms anglais pour les
+  extensions anglaises, japonaises et chinoises (table `src/lib/catalog/pokemonNames.ts`), noms locaux pour les autres langues.
+  Un appui ouvre la liste de toutes les cartes de l'extension (✓ sur celles possédées).
+- **Rechercher** : par nom ou par code (`M6 110`, `SV4a-123`), avec menus déroulants Langue, Bloc,
+  Extension (avec code), Rareté (abréviations C, U, R, RR, AR, SAR, UR…), et tri.
+- **Scanner** :
+  - lecture du numéro de la carte (ML Kit sur iOS/Android, Tesseract.js sur le web) ;
+  - **reconnaissance visuelle** (web, cartes Pokémon japonaises) : l'IA CLIP calcule l'empreinte de l'image filmée
+    et la compare à celles de toutes les cartes du catalogue (`src/lib/scan/visual.web.ts`) ;
+  - saisie manuelle du numéro en secours.
+- **Compte** : pseudo, jeu et langue par défaut, gestion de la collection (les vrais comptes viendront plus tard).
+
+## Catalogue visuel des cartes
+
+`catalog/pokemon-ja.json` contient une empreinte visuelle par carte japonaise. Il est construit par GitHub Actions
+(`.github/workflows/build-catalog.yml`, script `tools/catalog/build.mjs`) : chaque semaine, ou à la main depuis
+l'onglet **Actions → Catalogue de cartes → Run workflow** (on peut y choisir une autre langue, ex. `en`).
+Tant que ce fichier n'existe pas, le scanner utilise `card-index.json` (≈ 1 700 cartes récentes, première version de l'app).
 
 ## Version web
 

@@ -1,7 +1,8 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
-import type { Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters } from '../types.ts';
+import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN } from '../catalog/pokemonNames.ts';
+import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
  * Pokémon via l'API publique TCGdex (https://tcgdex.dev), sans clé.
@@ -72,16 +73,76 @@ async function getCard(id: string, lang: CardLang): Promise<Card | null> {
 
 const setsOf = async (l: string) => (await getJson<TcgdexSetBrief[]>(`${API}/${l}/sets`, DAY)) ?? [];
 
+interface TcgdexSerieBrief { id: string; name: string }
+interface TcgdexSetFull extends TcgdexSetBrief {
+  logo?: string;
+  symbol?: string;
+  serie?: { id: string; name: string };
+  cards: TcgdexBrief[];
+}
+
+const asset = (u?: string) => (u ? `${u}.webp` : undefined);
+
+function displaySetName(id: string, name: string, lang: CardLang): string {
+  return ENGLISH_NAMED_LANGS.includes(lang) && lang !== 'en' ? JP_SET_EN[id.toUpperCase()] ?? name : name;
+}
+
+function toSetInfo(x: { id: string; name: string; logo?: string; symbol?: string; cardCount?: { official: number; total: number } }, lang: CardLang, blocId?: string): SetInfo {
+  return {
+    id: x.id,
+    code: x.id.toUpperCase(),
+    name: displaySetName(x.id, x.name, lang),
+    logo: asset(x.logo),
+    symbol: asset(x.symbol),
+    count: x.cardCount?.total,
+    blocId,
+  };
+}
+
+/** Blocs (séries TCGdex) et leurs extensions, les plus récents d'abord. */
+async function blocs(lang: CardLang): Promise<Bloc[]> {
+  const l = TCGDEX_LANG[lang];
+  const series = (await getJson<TcgdexSerieBrief[]>(`${API}/${l}/series`, DAY)) ?? [];
+  const full = await Promise.all(
+    series.map((x) =>
+      getJson<{ id: string; name: string; sets: TcgdexSetFull[] }>(`${API}/${l}/series/${enc(x.id)}`, DAY).catch(() => null),
+    ),
+  );
+  return full
+    .filter((x): x is NonNullable<typeof x> => !!x && x.sets?.length > 0)
+    .map((x) => ({
+      id: x.id,
+      name: ENGLISH_NAMED_LANGS.includes(lang) && lang !== 'en' ? JP_SERIE_EN[x.id.toUpperCase()] ?? x.name : x.name,
+      sets: [...x.sets].reverse().map((st) => toSetInfo(st, lang, x.id)),
+    }))
+    .reverse();
+}
+
+async function setCards(setId: string, lang: CardLang): Promise<{ set: SetInfo | null; cards: Card[] }> {
+  const l = TCGDEX_LANG[lang];
+  const st = await getJson<TcgdexSetFull>(`${API}/${l}/sets/${enc(setId)}`, DAY);
+  if (!st) return { set: null, cards: [] };
+  const set = toSetInfo(st, lang, st.serie?.id);
+  const official = st.cardCount?.official;
+  const cards = (st.cards ?? []).map((b) => ({
+    ...fromBrief(b, lang),
+    number: official ? `${b.localId}/${String(official).padStart(3, '0')}` : b.localId,
+    setId: st.id,
+    setName: set.name,
+  }));
+  return { set, cards };
+}
+
 async function filterOptions(lang: CardLang): Promise<FilterOptions> {
   const l = TCGDEX_LANG[lang];
-  const [sets, rarities, types] = await Promise.all([
-    setsOf(l),
+  const [bl, rarities, types] = await Promise.all([
+    blocs(lang),
     getJson<string[]>(`${API}/${l}/rarities`, DAY).catch(() => null),
     getJson<string[]>(`${API}/${l}/types`, DAY).catch(() => null),
   ]);
   return {
-    // Extensions les plus récentes en premier.
-    sets: [...sets].reverse().map((x) => ({ id: x.id, name: x.name })),
+    blocs: bl,
+    sets: bl.flatMap((b) => b.sets.map((x) => ({ id: x.id, name: `${x.code} · ${x.name}` }))),
     facets: [
       { key: 'rarity', label: 'Rareté', values: rarities ?? [] },
       { key: 'type', label: 'Type', values: types ?? [] },
@@ -90,32 +151,59 @@ async function filterOptions(lang: CardLang): Promise<FilterOptions> {
   };
 }
 
+/** « M6 110 », « SV4a-123 », « sv08 132/191 » → extension + numéro. */
+export function parseCodeQuery(text: string): { setCode: string; localId: string } | null {
+  const m = text.trim().match(/^([A-Za-z]{1,5}\d{0,3}(?:\.\d)?[A-Za-z]?)[\s-]+(\d{1,3})(?:\s*\/\s*\d+)?$/);
+  return m ? { setCode: m[1], localId: m[2] } : null;
+}
+
 /**
- * Le nom, la rareté et le type sont filtrés par l'API TCGdex ; l'extension se déduit de l'id
- * (« sv08-132 » → « sv08 »). Une extension seule liste toutes ses cartes.
+ * Recherche par code (« M6 110 »), sinon par nom/numéro, rareté et type via l'API TCGdex.
+ * L'extension et le bloc se déduisent de l'id de la carte (« sv08-132 » → « sv08 »).
  */
 async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
   const l = TCGDEX_LANG[lang];
   const text = f.text.trim();
   const { rarity, type } = f.facets;
-  const sets = await setsOf(l);
-  const setName = new Map(sets.map((x) => [x.id, x.name]));
+  const bl = await blocs(lang).catch(() => [] as Bloc[]);
+  const setInfo = new Map(bl.flatMap((b) => b.sets.map((x) => [x.id, x] as const)));
+
+  const code = parseCodeQuery(text);
+  if (code) {
+    const set = [...setInfo.values()].find((x) => x.id.toLowerCase() === code.setCode.toLowerCase());
+    if (set) {
+      const ids = [...new Set([code.localId, code.localId.padStart(3, '0'), code.localId.replace(/^0+(?=\d)/, '')])];
+      const found = await Promise.all(
+        ids.map((id) => getJson<TcgdexCard>(`${API}/${l}/sets/${enc(set.id)}/${enc(id)}`).catch(() => null)),
+      );
+      const hit = found.find(Boolean);
+      if (hit) return [{ ...fromFull(hit, lang), setName: set.name }];
+    }
+  }
 
   let briefs: TcgdexBrief[];
   if (!text && !rarity && !type && f.setId) {
-    briefs = (await getJson<{ cards: TcgdexBrief[] }>(`${API}/${l}/sets/${enc(f.setId)}`))?.cards ?? [];
+    return (await setCards(f.setId, lang)).cards;
+  } else if (!text && !rarity && !type && f.blocId) {
+    // Bloc seul : toutes les cartes de ses extensions.
+    const sets = bl.find((b) => b.id === f.blocId)?.sets ?? [];
+    const all = await Promise.all(sets.map((x) => setCards(x.id, lang).catch(() => ({ cards: [] as Card[] }))));
+    return sortCards(all.flatMap((x) => x.cards), f.sort, text);
   } else {
-    const params = ['pagination:itemsPerPage=250'];
+    const params = ['pagination:itemsPerPage=500'];
     if (/^\d{1,3}(\/\d+)?$/.test(text)) params.push(`localId=eq:${enc(text.split('/')[0])}`);
     else if (text) params.push(`name=${enc(text)}`);
     if (rarity) params.push(`rarity=eq:${enc(rarity)}`);
     if (type) params.push(`types=${enc(type)}`);
     briefs = (await getJson<TcgdexBrief[]>(`${API}/${l}/cards?${params.join('&')}`)) ?? [];
   }
-  const cards = briefs.map((b) => {
-    const setId = b.id.slice(0, b.id.lastIndexOf('-'));
-    return { ...fromBrief(b, lang), setId, setName: setName.get(setId) };
-  });
+  const blocSets = f.blocId ? new Set(bl.find((b) => b.id === f.blocId)?.sets.map((x) => x.id)) : null;
+  const cards = briefs
+    .map((b) => {
+      const setId = b.id.slice(0, b.id.lastIndexOf('-'));
+      return { ...fromBrief(b, lang), setId, setName: setInfo.get(setId)?.name };
+    })
+    .filter((c) => !blocSets || blocSets.has(c.setId));
   return sortCards(applyFilters(cards, { ...f, text: '' }), f.sort, text);
 }
 
@@ -152,6 +240,8 @@ export const pokemon: GameProvider = {
   langs: ['fr', 'en', 'ja', 'de', 'es', 'it', 'pt', 'ko', 'zh-tw', 'zh-cn', 'id', 'th'],
   search,
   filterOptions,
+  blocs,
+  setCards,
   getCard,
   resolveScan,
 };

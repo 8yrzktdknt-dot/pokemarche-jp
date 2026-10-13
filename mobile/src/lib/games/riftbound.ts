@@ -1,7 +1,7 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, distinct, sortCards } from '../search.ts';
-import type { Card, CardLang, FilterOptions, GameProvider, ScanHint, SearchFilters } from '../types.ts';
+import type { Bloc, Card, CardLang, FilterOptions, GameProvider, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
  * Riftbound (League of Legends TCG) via Riftcodex (https://riftcodex.com), sans clé.
@@ -64,11 +64,30 @@ async function catalogue(lang: CardLang): Promise<Card[]> {
   return all.map((c) => toCard(c, lang));
 }
 
+/** Riftbound n'a pas encore de blocs : un seul groupe avec toutes les extensions. */
+async function blocs(lang: CardLang): Promise<Bloc[]> {
+  const sets = new Map<string, SetInfo>();
+  for (const c of await catalogue(lang)) {
+    if (!c.setId) continue;
+    const s = sets.get(c.setId);
+    if (s) s.count = (s.count ?? 0) + 1;
+    else sets.set(c.setId, { id: c.setId, code: c.setId, name: c.setName ?? c.setId, count: 1, blocId: 'riftbound' });
+  }
+  return sets.size ? [{ id: 'riftbound', name: 'Riftbound', sets: [...sets.values()] }] : [];
+}
+
+async function setCards(setId: string, lang: CardLang): Promise<{ set: SetInfo | null; cards: Card[] }> {
+  const set = (await blocs(lang)).flatMap((b) => b.sets).find((x) => x.id === setId) ?? null;
+  const cards = (await catalogue(lang)).filter((c) => c.setId === setId);
+  return { set, cards: sortCards(cards, 'number') };
+}
+
 async function filterOptions(lang: CardLang): Promise<FilterOptions> {
   const cards = await catalogue(lang);
   const setName = new Map<string, string>();
   for (const c of cards) if (c.setId && !setName.has(c.setId)) setName.set(c.setId, c.setName ?? c.setId);
   return {
+    blocs: await blocs(lang),
     sets: [...setName].map(([id, name]) => ({ id, name: `${id} · ${name}` })),
     facets: [
       { key: 'rarity', label: 'Rareté', values: distinct(cards.map((c) => c.rarity)) },
@@ -101,6 +120,8 @@ export const riftbound: GameProvider = {
   langs: ['en', 'fr', 'zh-cn'],
   search,
   filterOptions,
+  blocs,
+  setCards,
   getCard,
   resolveScan,
 };

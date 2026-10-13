@@ -3,7 +3,7 @@ import { Unbounded_800ExtraBold } from '@expo-google-fonts/unbounded';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Wordmark, colors, fonts } from '../components/ui';
+import { colors, fonts } from '../components/ui';
 import { StoreProvider } from '../lib/store';
 
 export default function Layout() {
@@ -22,8 +22,9 @@ export default function Layout() {
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'PokéMarket', headerTitle: () => <Wordmark /> }} />
-        <Stack.Screen name="scan" options={{ title: 'Scanner', headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'PokéMarket' }} />
+        <Stack.Screen name="scan" options={{ title: 'Scanner', headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="set/[game]/[id]" options={{ title: 'Extension' }} />
         <Stack.Screen name="collection" options={{ title: 'Ma collection' }} />
         <Stack.Screen name="card/[game]/[id]" options={{ title: 'Carte' }} />
       </Stack>

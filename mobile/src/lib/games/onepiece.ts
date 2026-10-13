@@ -1,7 +1,7 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, distinct, sortCards } from '../search.ts';
-import type { Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters } from '../types.ts';
+import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
  * One Piece Card Game via OPTCG API (https://optcgapi.com), sans clé, données anglaises
@@ -82,11 +82,43 @@ async function catalogue(lang: CardLang): Promise<Card[]> {
   return lists.flatMap((l) => l ?? []).map((c) => toCard(c, lang));
 }
 
+const BLOC_OF: [RegExp, string, string][] = [
+  [/^OP/, 'op', 'Boosters'],
+  [/^EB/, 'eb', 'Extra Boosters'],
+  [/^PRB/, 'prb', 'Premium Boosters'],
+  [/^ST/, 'st', 'Starter Decks'],
+];
+
+/** Blocs One Piece : boosters, extra boosters, premium boosters et decks de démarrage. */
+async function blocs(lang: CardLang): Promise<Bloc[]> {
+  const cards = await catalogue(lang);
+  const sets = new Map<string, SetInfo>();
+  for (const c of cards) {
+    if (!c.setId) continue;
+    const s = sets.get(c.setId);
+    if (s) s.count = (s.count ?? 0) + 1;
+    else sets.set(c.setId, { id: c.setId, code: c.setId, name: c.setName ?? c.setId, count: 1 });
+  }
+  return BLOC_OF.map(([re, id, name]) => ({
+    id,
+    name,
+    sets: [...sets.values()].filter((x) => re.test(x.id)).map((x) => ({ ...x, blocId: id })).sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true })),
+  })).filter((b) => b.sets.length);
+}
+
+async function setCards(setId: string, lang: CardLang): Promise<{ set: SetInfo | null; cards: Card[] }> {
+  const all = await blocs(lang);
+  const set = all.flatMap((b) => b.sets).find((x) => x.id === setId) ?? null;
+  const cards = (await catalogue(lang)).filter((c) => c.setId === setId);
+  return { set, cards: sortCards(cards, 'number') };
+}
+
 async function filterOptions(lang: CardLang): Promise<FilterOptions> {
   const cards = await catalogue(lang);
   const setName = new Map<string, string>();
   for (const c of cards) if (c.setId && !setName.has(c.setId)) setName.set(c.setId, c.setName ?? c.setId);
   return {
+    blocs: await blocs(lang),
     sets: [...setName].map(([id, name]) => ({ id, name: `${id} · ${name}` })).sort((a, b) => b.id.localeCompare(a.id)),
     facets: [
       { key: 'rarity', label: 'Rareté', values: distinct(cards.map((c) => c.rarity)) },
@@ -100,7 +132,8 @@ async function filterOptions(lang: CardLang): Promise<FilterOptions> {
 async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
   const code = f.text.trim().toUpperCase();
   if (/^((OP|ST|EB|PRB)\d{2}|P)-\d{3}$/.test(code)) return byCode(code, lang);
-  return sortCards(applyFilters(await catalogue(lang), f), f.sort, f.text);
+  const inBloc = (c: Card) => !f.blocId || BLOC_OF.some(([re, id]) => id === f.blocId && re.test(c.setId ?? ''));
+  return sortCards(applyFilters((await catalogue(lang)).filter(inBloc), f), f.sort, f.text);
 }
 
 async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
@@ -114,6 +147,8 @@ export const onepiece: GameProvider = {
   langs: ['en', 'ja', 'fr', 'zh-cn', 'ko'],
   search,
   filterOptions,
+  blocs,
+  setCards,
   getCard,
   resolveScan,
 };
