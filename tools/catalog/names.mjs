@@ -41,8 +41,13 @@ export async function loadSpeciesNames() {
   return table;
 }
 
+/** Lettres et chiffres en pleine largeur, comme dans les noms PokeAPI (« ポリゴンZ » → « ポリゴンＺ »). */
+const fullWidth = (s) => s.replace(/[A-Za-z0-9]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0xfee0));
+
 function species(ja) {
   if (table.has(ja)) return table.get(ja);
+  if (table.has(fullWidth(ja))) return table.get(fullWidth(ja));
+  if (table.has(ja.normalize('NFKC'))) return table.get(ja.normalize('NFKC'));
   // Région (« アローラロコン » → « Alolan Vulpix », « Goupix d'Alola »)
   for (const [r, [en, fr]] of Object.entries(REGIONS)) {
     if (ja.startsWith(r) && table.has(ja.slice(r.length))) {

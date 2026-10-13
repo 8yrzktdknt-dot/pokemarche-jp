@@ -4,6 +4,7 @@ import { failures, findLogos, pokellectorLogos, saveLogos, serebiiLogoMap } from
 import { WIZARD_SETS, official30thImages, officialCard, officialRecentCards, samuraiCards, wizardCards } from './official-jp.mjs';
 import { getBuffer, getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
+import { translateRemaining } from './translate-ja.mjs';
 
 const SITE = 'https://limitlesstcg.com';
 
@@ -113,6 +114,8 @@ export async function buildPokemonJa() {
   const left = allSets.filter((s) => !logos.has(s.id)).map((s) => `${s.id} (${s.name})`);
   if (left.length) console.log(`Sans vrai logo : ${left.join(', ')}`);
   if (failures.length) console.log(`Logos introuvables au téléchargement (${failures.length}) : ${failures.slice(0, 20).join(', ')}`);
+  // Dresseurs, Objets, Stades, Énergies : noms des versions internationales.
+  translated += await translateRemaining().catch((e) => { console.warn('Traductions JP :', e.message); return 0; });
   sortByRelease(blocs);
   writeJson('sets/pokemon-ja.json', { built: new Date().toISOString(), source: 'limitlesstcg.com', blocs });
   console.log(`Pokémon JP : ${total} cartes, ${translated} avec nom anglais, ${added} ajoutées depuis pokemon-card.com`);
@@ -208,6 +211,9 @@ async function completeFromWizard(set, list, officialCount) {
   return added;
 }
 
+/** Image haute définition Scrydex d'une carte japonaise : …/pokemon/m6a_ja-104/large. */
+export const scrydexImage = (setId, localId) => `https://images.scrydex.com/pokemon/${setId.toLowerCase()}_ja-${Number(localId)}/large`;
+
 /** Rareté des cartes secrètes de M6a (bloc 104-135) : AR, SAR puis FUR. */
 const M6A_SECRET = (n) => (n >= 104 && n <= 123 ? 'AR' : n >= 124 && n <= 133 ? 'SAR' : n >= 134 && n <= 135 ? 'FUR' : undefined);
 
@@ -227,6 +233,13 @@ async function completeFrom30th(set, list, officialCount) {
     if (img && !/pokemon-card\.com\/assets\/images\/card_images/.test(c.image ?? '')) { c.image = img; improved++; }
     if (!c.rarity && /^\d+$/.test(c.localId)) c.rarity = M6A_SECRET(Number(c.localId));
   }
+  // Images en haute définition (Scrydex) à la place de celles de PokemonWizard.
+  let hd = 0;
+  await pool(list.filter((c) => /pokemonwizard|samuraisword/.test(c.image ?? '') && /^\d+$/.test(c.localId)), 4, async (c) => {
+    const url = scrydexImage(set.id, c.localId);
+    const r = await fetch(url, { method: 'HEAD' }).catch(() => null);
+    if (r?.ok) { c.image = url; hd++; }
+  });
   const have = new Set(list.map((c) => numberKey(c.localId)));
   let added = 0;
   for (const [n, w] of samurai) {
@@ -249,7 +262,13 @@ async function completeFrom30th(set, list, officialCount) {
     added++;
   }
   list.sort((a, b) => (Number(a.localId) || 1e4) - (Number(b.localId) || 1e4));
-  console.log(`${set.id} : site des 30 ans ${official.size} images (${improved} remplacées), Samurai Sword ${samurai.size} cartes lues, ${added} ajoutées`);
+  // Cartes ajoutées depuis Samurai Sword : image Scrydex si elle existe.
+  await pool(list.filter((c) => /samuraisword/.test(c.image ?? '')), 4, async (c) => {
+    const url = scrydexImage(set.id, c.localId);
+    const r = await fetch(url, { method: 'HEAD' }).catch(() => null);
+    if (r?.ok) { c.image = url; hd++; }
+  });
+  console.log(`${set.id} : site des 30 ans ${official.size} images (${improved} remplacées), Scrydex ${hd} images HD, Samurai Sword ${samurai.size} cartes lues, ${added} ajoutées`);
   return added;
 }
 
