@@ -3,7 +3,7 @@ import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
 import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityAbbr, rarityValuesFor } from '../catalog/pokemonNames.ts';
 import { assetUrl, staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
-import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
+import type { Bloc, Card, CardAttribute, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
  * Pokémon via l'API publique TCGdex (https://tcgdex.dev), sans clé.
@@ -24,17 +24,36 @@ interface TcgdexSetBrief { id: string; name: string; cardCount: { total: number;
 interface TcgdexCard extends TcgdexBrief {
   rarity?: string;
   set: { id: string; name: string; cardCount?: { official: number } };
+  illustrator?: string;
+  dexId?: number[];
+  hp?: number;
+  types?: string[];
+  stage?: string;
+  category?: string;
+  trainerType?: string;
+  energyType?: string;
+  regulationMark?: string;
   pricing?: {
-    cardmarket?: { trend?: number; avg?: number; low?: number; unit?: string };
-    tcgplayer?: Record<string, { marketPrice?: number } | string | undefined>;
+    cardmarket?: { idProduct?: number; trend?: number; avg?: number; low?: number; avg1?: number; avg7?: number; avg30?: number; unit?: string } | null;
+    tcgplayer?: Record<string, { marketPrice?: number; productId?: number } | string | undefined> | null;
   };
 }
 
+/**
+ * Prix Cardmarket : moyennes des ventes réalisées (1, 7 et 30 jours), tendance et prix le plus bas ;
+ * TCGplayer : prix « Market » par variante. La moyenne des ventes sur 7 jours sert de prix de référence.
+ */
 function prices(c: TcgdexCard): Price[] {
   const out: Price[] = [];
   const cm = c.pricing?.cardmarket;
-  if (cm?.trend) out.push({ source: 'cardmarket', label: 'Tendance', value: cm.trend, currency: 'EUR' });
-  if (cm?.low) out.push({ source: 'cardmarket', label: 'À partir de', value: cm.low, currency: 'EUR' });
+  const push = (label: string, value?: number) => {
+    if (value) out.push({ source: 'cardmarket', label, value, currency: 'EUR' });
+  };
+  push('cm.avg7', cm?.avg7);
+  push('cm.avg1', cm?.avg1);
+  push('cm.avg30', cm?.avg30);
+  push('cm.trend', cm?.trend);
+  push('cm.low', cm?.low);
   const tp = c.pricing?.tcgplayer;
   if (tp) {
     for (const [variant, v] of Object.entries(tp)) {
@@ -44,6 +63,32 @@ function prices(c: TcgdexCard): Price[] {
     }
   }
   return out;
+}
+
+function marketIds(c: TcgdexCard): Card['marketIds'] {
+  const tp = Object.values(c.pricing?.tcgplayer ?? {}).find((v) => v && typeof v === 'object' && v.productId);
+  const ids = {
+    cardmarket: c.pricing?.cardmarket?.idProduct || undefined,
+    tcgplayer: (tp && typeof tp === 'object' ? tp.productId : undefined) || undefined,
+  };
+  return ids.cardmarket || ids.tcgplayer ? ids : undefined;
+}
+
+/** Attributs de la fiche TCGdex (la date de sortie vient de l'extension, ajoutée plus loin). */
+function attributes(c: TcgdexCard): CardAttribute[] {
+  const a: CardAttribute[] = [];
+  const add = (key: CardAttribute['key'], v?: string | number) => {
+    if (v !== undefined && v !== null && v !== '') a.push({ key, value: String(v) });
+  };
+  add('illustrator', c.illustrator);
+  add('rarity', c.rarity);
+  add('dex', c.dexId?.join(', '));
+  add('type', c.types?.join(' / ') ?? c.energyType);
+  add('hp', c.hp);
+  add('stage', c.stage);
+  add('category', c.trainerType ? `${c.category} · ${c.trainerType}` : c.category);
+  add('regulation', c.regulationMark);
+  return a;
 }
 
 function fromBrief(b: TcgdexBrief, lang: CardLang): Card {
@@ -64,6 +109,8 @@ function fromFull(c: TcgdexCard, lang: CardLang): Card {
     setName: c.set.name,
     rarity: c.rarity,
     prices: prices(c),
+    attributes: attributes(c),
+    marketIds: marketIds(c),
   };
 }
 
@@ -288,19 +335,28 @@ async function filterOptionsAll(lang: CardLang): Promise<FilterOptions> {
   return st ? { ...live, blocs: toBlocs(st) } : live;
 }
 
+/** Date de sortie de l'extension (catalogue publié), ajoutée aux attributs après l'illustrateur. */
+async function withRelease(card: Card, lang: CardLang): Promise<Card> {
+  const sets = (await staticBlocs('pokemon', lang).catch(() => null))?.flatMap((b) => b.sets) ?? [];
+  const date = sets.find((x) => x.id === card.setId)?.releaseDate;
+  const attrs = [...(card.attributes ?? [])];
+  if (!attrs.some((a) => a.key === 'rarity') && card.rarity) attrs.push({ key: 'rarity', value: card.rarity });
+  if (date) attrs.splice(attrs[0]?.key === 'illustrator' ? 1 : 0, 0, { key: 'release', value: date });
+  return { ...card, attributes: attrs };
+}
+
 async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
   const [live, st] = await Promise.all([
     getCard(id, lang).catch(() => null),
     STATIC_LANGS.includes(lang) ? staticGetCard('pokemon', lang, id) : Promise.resolve(null),
   ]);
-  if (!live) return st;
-  if (!st) return live;
-  // Prix et rareté de TCGdex, noms traduits et images du catalogue quand TCGdex n'en a pas.
-  return {
+  const card = !live ? st : !st ? live : {
+    // Prix, rareté et attributs de TCGdex ; noms traduits et images du catalogue quand TCGdex n'en a pas.
     ...live,
     nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName,
     imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
   };
+  return card ? withRelease(card, lang) : null;
 }
 
 export const pokemon: GameProvider = {

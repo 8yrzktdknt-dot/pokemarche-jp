@@ -20,6 +20,19 @@ function findKey(o, key) {
   return null;
 }
 
+/** Attributs de la fiche : artiste, énergie, puissance (« might »), coût en puissance. */
+export function attrsOf(c) {
+  const label = (f) => f?.value?.label ?? f?.values?.map((v) => v.label).join(', ');
+  const a = {
+    illustrator: label(c.illustrator),
+    energy: label(c.energy),
+    might: label(c.might),
+    power: label(c.power),
+  };
+  const out = Object.fromEntries(Object.entries(a).filter(([, v]) => v !== undefined && v !== null && v !== ''));
+  return Object.keys(out).length ? out : undefined;
+}
+
 export async function buildRiftbound() {
   for (const [lang, locale] of Object.entries(LOCALES)) {
     const html = await getText(`https://riftbound.leagueoflegends.com/${locale}/card-gallery/`);
@@ -40,6 +53,7 @@ export async function buildRiftbound() {
         name: c.name,
         image: c.cardImage?.url,
         rarity: c.rarity?.value?.label,
+        attrs: attrsOf(c),
         facets: {
           domain: (c.domain?.values ?? []).map((d) => d.label),
           type: (c.cardType?.type ?? []).map((t) => t.label),

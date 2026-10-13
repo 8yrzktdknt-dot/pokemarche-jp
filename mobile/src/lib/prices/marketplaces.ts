@@ -42,6 +42,9 @@ const LANG_WORD: Partial<Record<CardLang, string>> = {
 
 const q = encodeURIComponent;
 
+/** Filtre de langue des offres sur une fiche produit Cardmarket (1 anglais, 2 français, 7 japonais…). */
+const CARDMARKET_LANGUAGE: Partial<Record<CardLang, number>> = { en: 1, fr: 2, de: 3, es: 4, it: 5, pt: 8, ja: 7, ko: 10, 'zh-tw': 11 };
+
 /**
  * Requête de recherche : « nom (CODE numéro) », ex. « Mega Rayquaza (M6 110/076) », « Monkey.D.Luffy (OP05-119) ».
  * Le nom anglais est préféré quand il est connu (c'est celui des fiches Cardmarket / TCGplayer).
@@ -54,7 +57,8 @@ export function searchTerms(card: Card): string {
 }
 
 /**
- * Liens de recherche vers les places de marché.
+ * Liens vers les places de marché : fiche produit directe quand son identifiant est connu
+ * (Cardmarket et TCGplayer, fournis avec les prix TCGdex), sinon recherche « nom (CODE numéro) ».
  * Ce sont des liens profonds (pas d'API) : ils marchent sans clé et peuvent porter un identifiant d'affiliation.
  */
 export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
@@ -65,16 +69,24 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
   const langWord = card.lang !== 'en' ? LANG_WORD[card.lang] : undefined;
   const ebayQuery = [EBAY_GAME[card.game], terms, langWord].filter(Boolean).join(' ');
 
+  const cmId = card.marketIds?.cardmarket;
+  const cmLanguage = CARDMARKET_LANGUAGE[card.lang];
+  const tpId = card.marketIds?.tcgplayer;
+
   return [
     {
       id: 'cardmarket',
       label: 'Cardmarket',
-      url: `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Search?searchString=${q(terms)}`,
+      url: cmId
+        ? `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products?idProduct=${cmId}${cmLanguage ? `&language=${cmLanguage}` : ''}`
+        : `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Search?searchString=${q(terms)}`,
     },
     {
       id: 'tcgplayer',
       label: 'TCGplayer',
-      url: `https://www.tcgplayer.com/search/${tcgGame}/product?q=${q(terms)}&view=grid`,
+      url: tpId
+        ? `https://www.tcgplayer.com/product/${tpId}`
+        : `https://www.tcgplayer.com/search/${tcgGame}/product?q=${q(terms)}&view=grid`,
     },
     {
       id: 'cardtrader',

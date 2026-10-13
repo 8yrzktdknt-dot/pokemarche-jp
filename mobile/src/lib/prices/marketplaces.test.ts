@@ -35,3 +35,10 @@ test('One Piece en français sur Cardmarket et eBay.fr', () => {
 test('langue de site inconnue → anglais', () => {
   assert.match(marketLinks(base, 'ja')[0].url, /cardmarket\.com\/en\//);
 });
+
+test('fiches produit directes quand les identifiants sont connus', () => {
+  const card: Card = { game: 'pokemon', id: 'sv08-238', lang: 'fr', name: 'Pikachu-ex', number: '238/191', setId: 'sv08', prices: [], marketIds: { cardmarket: 794611, tcgplayer: 590027 } };
+  const links = marketLinks(card, 'fr');
+  assert.equal(links.find((l) => l.id === 'cardmarket')?.url, 'https://www.cardmarket.com/fr/Pokemon/Products?idProduct=794611&language=2');
+  assert.equal(links.find((l) => l.id === 'tcgplayer')?.url, 'https://www.tcgplayer.com/product/590027');
+});

@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { getJson } from '../http';
 import { distinct, normalize, sortCards } from '../search';
-import type { Bloc, Card, CardLang, FilterOptions, GameId, SearchFilters, SetInfo } from '../types';
+import type { AttributeKey, Bloc, Card, CardAttribute, CardLang, FilterOptions, GameId, SearchFilters, SetInfo } from '../types';
 
 /**
  * Catalogue publié avec le site (construit chaque semaine par GitHub Actions, dossier catalog/ du dépôt) :
@@ -65,6 +65,7 @@ export interface StaticCard {
   rarity?: string;
   price?: { value: number; currency: string; source: string };
   facets?: Record<string, string[]>;
+  attrs?: Partial<Record<AttributeKey, string>>;
 }
 
 export async function staticBlocs(game: GameId, lang: CardLang): Promise<StaticBloc[] | null> {
@@ -105,15 +106,34 @@ export interface StaticRow {
   image: string;
   priceUsd: number;
   facets?: Record<string, string[]>;
+  attrs?: Partial<Record<AttributeKey, string>>;
 }
 
 /** Toutes les cartes d'un jeu et d'une langue (fichier compact), pour chercher par nom traduit. */
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets]) => ({
-    id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets: facets || undefined,
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs]) => ({
+    id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets: facets || undefined, attrs: attrs || undefined,
   }) as StaticRow);
+}
+
+/** Facettes affichées comme attributs (couleur One Piece, domaine Riftbound…). */
+const FACET_ATTR: Record<string, AttributeKey> = { color: 'color', category: 'category', domain: 'domain', type: 'category' };
+
+/** Attributs d'une carte du catalogue : illustrateur, date de sortie, rareté, puis ceux propres au jeu. */
+export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string): CardAttribute[] {
+  const out: CardAttribute[] = [];
+  const add = (key: AttributeKey, value?: string) => {
+    if (value && !out.some((a) => a.key === key)) out.push({ key, value });
+  };
+  const attrs = c.attrs ?? {};
+  add('illustrator', attrs.illustrator);
+  add('release', releaseDate);
+  add('rarity', c.rarity);
+  for (const [k, v] of Object.entries(attrs)) if (k !== 'illustrator') add(k as AttributeKey, v);
+  for (const [k, v] of Object.entries(c.facets ?? {})) if (FACET_ATTR[k] && v.length) add(FACET_ATTR[k], v.join(' / '));
+  return out;
 }
 
 /** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */
@@ -121,7 +141,7 @@ export function staticToCard(
   game: GameId,
   lang: CardLang,
   c: StaticCard | StaticRow,
-  set?: { id: string; name?: string },
+  set?: { id: string; name?: string; releaseDate?: string },
 ): Card {
   const image = c.image || undefined;
   const price = 'price' in c ? (c as { price?: { value: number; currency: string; source: string } }).price : undefined;
@@ -141,6 +161,7 @@ export function staticToCard(
     imageLarge: largeImage(image),
     prices: usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [],
     facets: (c as { facets?: Record<string, string[]> }).facets,
+    attributes: staticAttributes(c, set?.releaseDate),
   };
 }
 
@@ -201,7 +222,8 @@ export async function staticGetCard(game: GameId, lang: CardLang, id: string): P
   const [rows, blocs] = await Promise.all([staticSearchRows(game, lang), staticBlocs(game, lang)]);
   const r = rows?.find((x) => x.id === id);
   if (!r) return null;
-  return staticToCard(game, lang, r, { id: r.setId, name: blocs ? setNames(blocs).get(r.setId) : undefined });
+  const set = blocs?.flatMap((b) => b.sets).find((x) => x.id === r.setId);
+  return staticToCard(game, lang, r, { id: r.setId, name: set?.name, releaseDate: set?.releaseDate });
 }
 
 /** Options de filtre depuis le catalogue (raretés et facettes présentes). */

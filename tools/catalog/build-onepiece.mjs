@@ -33,6 +33,19 @@ export function parseCards(html, site) {
     const img = block.match(/data-src="([^"]+)"/)?.[1];
     const color = block.match(/<div class="color"><h3>[^<]*<\/h3>([^<]+)<\/div>/)?.[1];
     if (!id || !name) continue;
+    // Dos de la fiche : coût (ou vie pour un Leader), puissance, contre, attribut, type, bloc.
+    const field = (cls) => block.match(new RegExp(`<div class="${cls}"><h3>([\\s\\S]*?)<\\/h3>([^<]*)<\\/div>`));
+    const value = (cls) => { const v = clean(field(cls)?.[2] ?? ''); return v && v !== '-' ? v : undefined; };
+    const costHead = clean(field('cost')?.[1] ?? '');
+    const attribute = block.match(/<div class="attribute">[\s\S]*?<i>([^<]+)<\/i>/)?.[1];
+    const attrs = {
+      [/life|ライフ/i.test(costHead) ? 'life' : 'cost']: value('cost'),
+      power: value('power'),
+      counter: value('counter'),
+      attribute: attribute && clean(attribute) !== '-' ? clean(attribute) : undefined,
+      feature: value('feature'),
+      block: value('block'),
+    };
     cards.push({
       id,
       number: spans[0] ?? id.replace(/_.*$/, ''),
@@ -41,6 +54,7 @@ export function parseCards(html, site) {
       name: unescapeHtml(name),
       image: img ? new URL(img.replace(/\?.*$/, ''), `${site}/cardlist/`).href : undefined,
       colors: (color ?? '').split('/').map((c) => c.trim()).filter(Boolean),
+      attrs: Object.fromEntries(Object.entries(attrs).filter(([, v]) => v)),
     });
   }
   return cards;
@@ -86,6 +100,7 @@ export async function buildOnePiece() {
         rarity: c.rarity,
         price: lang === 'en' && prices.has(c.id) ? { value: prices.get(c.id), currency: 'USD', source: 'tcgplayer' } : undefined,
         facets: { color: c.colors, category: c.category ? [c.category] : [] },
+        attrs: Object.keys(c.attrs ?? {}).length ? c.attrs : undefined,
       }));
       if (!cards.length) return;
       total += cards.length;
