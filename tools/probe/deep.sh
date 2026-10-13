@@ -5,45 +5,45 @@ get() { curl -sS -L -m 40 -A "$UA" "$1"; }
 head_() { curl -sS -o /dev/null -L -m 30 -A "$UA" -w "%{http_code} %{content_type} %{size_download}o  $1\n" "$1"; }
 section() { echo; echo "=================== $1"; }
 
-section "Limitless : logos (taille réelle)"
-head_ "https://s3.limitlesstcg.com/sets/jp/M6.png"
-python3 - <<'PY'
-import urllib.request,struct
-b=urllib.request.urlopen(urllib.request.Request("https://s3.limitlesstcg.com/sets/jp/M6.png",headers={'User-Agent':'x'})).read()
-print('png', struct.unpack('>II', b[16:24]) if b[:8]==b'\x89PNG\r\n\x1a\n' else b[:20])
-PY
-section "Limitless : M6a (liste et nombre de cartes)"
-get "https://limitlesstcg.com/cards/jp/M6a?display=list" | grep -oE 'href="/cards/jp/M6a/[0-9A-Za-z]+"' | sort -u | wc -l
-get "https://limitlesstcg.com/cards/jp/M6a?display=list" | grep -oE 'href="/cards/jp/M6a/[0-9A-Za-z]+"' | sort -t/ -k5 -n -u | tail -5
-get "https://limitlesstcg.com/cards/jp/M6a" | grep -oE '[0-9]+ Cards' | head -2
-get "https://limitlesstcg.com/cards/jp/M6a" | grep -oiE '(secret|rare|show all|variants?|parallel)[^<]{0,80}' | sort -u | head -15
-section "TCGdex ja M6a / fr 30th"
-get "https://api.tcgdex.net/v2/ja/sets/M6a" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('cardCount'), len(d.get('cards',[])), [c['localId'] for c in d.get('cards',[])][-5:])"
-get "https://api.tcgdex.net/v2/fr/sets" | python3 -c "import json,sys;d=json.load(sys.stdin);print([ (s['id'],s['name'],s['cardCount']) for s in d if '30' in s['id'] or 'célébr' in s['name'].lower() or 'celebr' in s['name'].lower()])"
-get "https://api.tcgdex.net/v2/fr/sets/30th-c" | python3 -c "import json,sys;d=json.load(sys.stdin);c=d.get('cards',[]);print(d.get('cardCount'), len(c), sum(1 for x in c if x.get('image')))"
-section "TCGdex fr : extensions récentes, cartes avec / sans image"
+section "pokemon-card.com : API de recherche, M6a"
+get "https://www.pokemon-card.com/card-search/resultAPI.php?keyword=&regulation_sidebar_form=all&pg=1&expansionCodes=M6a" | head -c 1500; echo
+get "https://www.pokemon-card.com/card-search/resultAPI.php?keyword=&regulation_sidebar_form=all&pg=1&expansionCodes=M6a" | python3 -c "
+import json,sys
+d=json.load(sys.stdin); print({k:v for k,v in d.items() if k!='cardList'}); l=d.get('cardList',[]); print(len(l)); print(l[:2]); print(l[-2:])" || true
+get "https://www.pokemon-card.com/card-search/index.php?keyword=&regulation_sidebar_form=all&expansionCodes=M6a" | grep -oE '(resultAPI|expansionCodes|card_images)[^"]{0,120}' | sort -u | head -10
+section "pokemon-card.com : fiche carte (image, numéro)"
+ID=$(get "https://www.pokemon-card.com/card-search/resultAPI.php?keyword=&regulation_sidebar_form=all&pg=1&expansionCodes=M6a" | python3 -c "import json,sys;l=json.load(sys.stdin).get('cardList',[]);print(l[-1]['cardID'] if l else '')" 2>/dev/null)
+echo "id=$ID"
+[ -n "$ID" ] && get "https://www.pokemon-card.com/card-search/details.php/card/$ID/regu/all" | grep -oE '(card_images[^"]+|subtext[^<]{0,80}<[^<]{0,80}|[0-9]{3} ?/ ?[0-9]{3}[^<]{0,30})' | head -10
+section "pokemon-card.com : logos d'extension (page liste)"
+get "https://www.pokemon-card.com/card-search/index.php" | grep -oE 'src="[^"]*(logo|expansion|pack|ex_)[^"]*"' | sort -u | head -20
+section "Limitless : page d'extension, images plus grandes ?"
+get "https://limitlesstcg.com/cards/jp/M6" | grep -oE '(src|href)="[^"]*(\.png|\.webp|\.jpg)"' | grep -v '/cards/jp/M6/' | sort -u | head -10
+section "TCGdex ja : logos disponibles ?"
 python3 - <<'PY'
 import json,urllib.request
 def g(u): return json.load(urllib.request.urlopen(urllib.request.Request(u,headers={'User-Agent':'x'}),timeout=40))
-for sid in ['me01','me02','sv10','sv08','swsh12','sm12']:
-    try:
-        d=g(f'https://api.tcgdex.net/v2/fr/sets/{sid}'); c=d.get('cards',[])
-        print(sid, d['name'], len(c), 'avec image', sum(1 for x in c if x.get('image')), 'logo', bool(d.get('logo')))
-    except Exception as e: print(sid, e)
+s=g('https://api.tcgdex.net/v2/ja/sets'); print(len(s), 'avec logo', sum(1 for x in s if x.get('logo')), [x['id'] for x in s if x.get('logo')][:20])
 PY
-section "pokemon.com : images officielles FR / EN"
-for u in \
- "https://assets.pokemon.com/assets/cms2-fr-fr/img/cards/web/SV08/SV08_FR_1.png" \
- "https://assets.pokemon.com/assets/cms2/img/cards/web/SV08/SV08_EN_1.png" \
- "https://assets.pokemon.com/assets/cms2-fr-fr/img/cards/web/ME01/ME01_FR_1.png" \
- "https://assets.pokemon.com/assets/cms2/img/cards/web/ME01/ME01_EN_1.png" \
- "https://assets.pokemon.com/assets/cms2-fr-fr/img/cards/web/SV10/SV10_FR_1.png" \
- "https://www.pokemon.com/fr/jcc-pokemon/galerie-de-cartes/"; do head_ "$u"; done
-get "https://www.pokemon.com/fr/jcc-pokemon/galerie-de-cartes/?cardName=pikachu" | grep -oE 'src="[^"]*cards/web[^"]*"' | head -5
-section "pokemon-card.com : page produit (logo) SV8 / M6"
-for p in "https://www.pokemon-card.com/ex/sv8/" "https://www.pokemon-card.com/ex/m6/" "https://www.pokemon-card.com/products/"; do head_ "$p"; get "$p" | grep -oE '(src|data-src)="[^"]*(logo|title|mainvisual|kv|ttl)[^"]*"' | head -6; done
-section "pokemon-card.com : liste des produits (images)"
-get "https://www.pokemon-card.com/products/" | grep -oE 'src="[^"]*(\.png|\.jpg)"' | head -15
-section "Bulbagarden archives : logos JP"
-for u in "https://archives.bulbagarden.net/wiki/File:SV8_Super_Electric_Breaker_Logo.png" "https://archives.bulbagarden.net/wiki/Category:Japanese_expansion_logos"; do head_ "$u"; done
-get "https://archives.bulbagarden.net/wiki/Category:Japanese_expansion_logos" | grep -oE 'title="File:[^"]+"' | head -20
+section "TCGdex fr / en : images manquantes par extension"
+python3 - <<'PY'
+import json,urllib.request,concurrent.futures as cf
+def g(u): return json.load(urllib.request.urlopen(urllib.request.Request(u,headers={'User-Agent':'x'}),timeout=60))
+for lang in ['fr','en']:
+    sets=g(f'https://api.tcgdex.net/v2/{lang}/sets')
+    def one(s):
+        try:
+            d=g(f'https://api.tcgdex.net/v2/{lang}/sets/{s["id"]}'); c=d.get('cards',[])
+            return (s['id'], d['name'], len(c), sum(1 for x in c if not x.get('image')), bool(d.get('logo')), (d.get('releaseDate') or ''))
+        except Exception as e: return (s['id'], str(e), 0, 0, False, '')
+    with cf.ThreadPoolExecutor(12) as ex: r=list(ex.map(one, sets))
+    tot=sum(x[2] for x in r); miss=sum(x[3] for x in r)
+    print(lang, 'extensions', len(r), 'cartes', tot, 'sans image', miss, 'sans logo', sum(1 for x in r if not x[4]))
+    for x in sorted(r, key=lambda x:x[5], reverse=True):
+        if x[3]: print('  ', x)
+PY
+section "TCGdex fr 30th : cartes > 128"
+get "https://api.tcgdex.net/v2/fr/sets/30th" | python3 -c "import json,sys;d=json.load(sys.stdin);c=d['cards'];print(len(c));print([ (x['localId'],x['name'],bool(x.get('image'))) for x in c[120:]])"
+section "pokecardex (FR)"
+head_ "https://www.pokecardex.com/series/ME1"
+get "https://www.pokecardex.com/series/ME1" | grep -oE 'src="[^"]*(\.png|\.jpg|\.webp)"' | head -8
