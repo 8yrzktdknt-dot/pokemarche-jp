@@ -1,7 +1,8 @@
 import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
-import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityValuesFor } from '../catalog/pokemonNames.ts';
+import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityAbbr, rarityValuesFor } from '../catalog/pokemonNames.ts';
+import { staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
 import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
@@ -246,14 +247,67 @@ async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
   return [...unique.values()].sort((a, b) => nameScore(b.name, hint.text) - nameScore(a.name, hint.text));
 }
 
+/**
+ * Catalogue publié avec l'app d'abord (extensions par date de sortie, logos ; pour le japonais :
+ * toutes les cartes Limitless avec noms traduits), puis TCGdex en direct pour le reste et pour les prix.
+ */
+async function blocsAll(lang: CardLang): Promise<Bloc[]> {
+  const st = await staticBlocs('pokemon', lang);
+  return st ? toBlocs(st) : blocs(lang);
+}
+
+async function setCardsAll(setId: string, lang: CardLang) {
+  if (lang === 'ja') {
+    const st = await staticSetCardsAsApp('pokemon', lang, setId);
+    if (st) return st;
+  }
+  const live = await setCards(setId, lang);
+  // Infos d'extension (logo, nom) du catalogue quand TCGdex ne les a pas.
+  const info = (await staticBlocs('pokemon', lang))?.flatMap((b) => b.sets).find((x) => x.id === setId);
+  return info && live.set ? { ...live, set: { ...live.set, name: info.name, logo: info.logo ?? live.set.logo } } : live;
+}
+
+async function searchAll(f: SearchFilters, lang: CardLang): Promise<Card[]> {
+  if (lang === 'ja') {
+    const st = await staticSearch('pokemon', lang, f, rarityAbbr);
+    if (st) return st;
+  }
+  return search(f, lang);
+}
+
+async function filterOptionsAll(lang: CardLang): Promise<FilterOptions> {
+  if (lang === 'ja') {
+    const st = await staticFilterOptions('pokemon', lang, []);
+    if (st) return st;
+  }
+  const live = await filterOptions(lang);
+  const st = await staticBlocs('pokemon', lang);
+  return st ? { ...live, blocs: toBlocs(st) } : live;
+}
+
+async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
+  const [live, st] = await Promise.all([
+    getCard(id, lang).catch(() => null),
+    lang === 'ja' ? staticGetCard('pokemon', lang, id) : Promise.resolve(null),
+  ]);
+  if (!live) return st;
+  if (!st) return live;
+  // Prix et rareté de TCGdex, noms traduits et images du catalogue quand TCGdex n'en a pas.
+  return {
+    ...live,
+    nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName,
+    imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
+  };
+}
+
 export const pokemon: GameProvider = {
   id: 'pokemon',
   label: 'Pokémon',
   langs: ['fr', 'en', 'ja', 'de', 'es', 'it', 'pt', 'ko', 'zh-tw', 'zh-cn', 'id', 'th'],
-  search,
-  filterOptions,
-  blocs,
-  setCards,
-  getCard,
+  search: searchAll,
+  filterOptions: filterOptionsAll,
+  blocs: blocsAll,
+  setCards: setCardsAll,
+  getCard: getCardAll,
   resolveScan,
 };

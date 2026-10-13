@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseCards, parseSeries } from './build-onepiece.mjs';
+import { parseCards, parseSeries, setName } from './build-onepiece.mjs';
 
 test('sélecteur des extensions (extraits réels)', () => {
   const html = `<option value="569105" >BOOSTER PACK &lt;br class=&quot;spInline&quot;&gt;-AWAKENING OF THE NEW ERA- [OP-05]
@@ -32,4 +32,11 @@ test('cartes d\'une page officielle (extrait réel)', () => {
   assert.equal(c.name, 'サボ');
   assert.equal(c.image, 'https://www.onepiece-cardgame.com/images/cardlist/card/OP05-001.png');
   assert.deepEqual(c.colors, ['赤', '黒']);
+});
+
+test('noms des extensions', () => {
+  assert.equal(setName('BOOSTER PACK -AWAKENING OF THE NEW ERA- [OP-05]'), 'Awakening Of The New Era');
+  assert.equal(setName('エクストラブースター EGGHEAD CRISIS【EB-04】'), 'Egghead Crisis');
+  assert.equal(setName('ブースターパック 新時代の主役【OP-05】'), '新時代の主役');
+  assert.equal(setName('STARTER DECK EX -Luffy & Ace- [ST-30]'), 'Luffy & Ace');
 });

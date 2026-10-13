@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { getJson } from '../http';
-import type { Bloc, CardLang, GameId } from '../types';
+import { distinct, normalize, sortCards } from '../search';
+import type { Bloc, Card, CardLang, FilterOptions, GameId, SearchFilters, SetInfo } from '../types';
 
 /**
  * Catalogue publié avec le site (construit chaque semaine par GitHub Actions, dossier catalog/ du dépôt) :
@@ -47,6 +48,8 @@ export interface StaticCard {
   nameFr?: string;
   image?: string;
   rarity?: string;
+  price?: { value: number; currency: string; source: string };
+  facets?: Record<string, string[]>;
 }
 
 export async function staticBlocs(game: GameId, lang: CardLang): Promise<StaticBloc[] | null> {
@@ -73,4 +76,132 @@ export function toBlocs(blocs: StaticBloc[], appLang: 'fr' | 'en' = 'fr'): Bloc[
       blocId: b.id,
     })),
   }));
+}
+
+export interface StaticRow {
+  id: string;
+  setId: string;
+  localId: string;
+  number: string;
+  name: string;
+  nameEn: string;
+  nameFr: string;
+  rarity: string;
+  image: string;
+  priceUsd: number;
+  facets?: Record<string, string[]>;
+}
+
+/** Toutes les cartes d'un jeu et d'une langue (fichier compact), pour chercher par nom traduit. */
+export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
+  const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
+  if (!r?.rows?.length) return null;
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets]) => ({
+    id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets: facets || undefined,
+  }) as StaticRow);
+}
+
+/** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */
+export function staticToCard(
+  game: GameId,
+  lang: CardLang,
+  c: StaticCard | StaticRow,
+  set?: { id: string; name?: string },
+): Card {
+  const image = c.image || undefined;
+  const price = 'price' in c ? (c as { price?: { value: number; currency: string; source: string } }).price : undefined;
+  const usd = 'priceUsd' in c && c.priceUsd ? c.priceUsd : price?.value;
+  return {
+    game,
+    id: c.id,
+    lang,
+    name: c.name,
+    nameEn: c.nameEn || undefined,
+    nameFr: c.nameFr || undefined,
+    number: c.number,
+    setId: set?.id ?? ('setId' in c ? c.setId : undefined),
+    setName: set?.name,
+    rarity: c.rarity || undefined,
+    imageSmall: image,
+    imageLarge: image?.replace(/_SM\.(png|jpg|webp)$/, '_LG.$1'),
+    prices: usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [],
+    facets: (c as { facets?: Record<string, string[]> }).facets,
+  };
+}
+
+const setNames = (blocs: StaticBloc[]) => new Map(blocs.flatMap((b) => b.sets.map((x) => [x.id, x.name] as const)));
+
+/** Cartes d'une extension depuis le catalogue (null si absente). */
+export async function staticSetCardsAsApp(game: GameId, lang: CardLang, setId: string): Promise<{ set: SetInfo | null; cards: Card[] } | null> {
+  const [blocs, cards] = await Promise.all([staticBlocs(game, lang), staticSetCards(game, lang, setId)]);
+  if (!cards) return null;
+  const st = blocs?.flatMap((b) => b.sets.map((x) => ({ ...x, blocId: b.id }))).find((x) => x.id === setId);
+  const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, logo: st.logo, count: st.count, blocId: st.blocId } : null;
+  return { set, cards: cards.map((c) => staticToCard(game, lang, c, { id: setId, name: st?.name })) };
+}
+
+/** « M6 110 », « SV4a-123 », « OP05-119 » → extension + numéro. */
+export function parseCode(text: string): { setCode: string; localId: string } | null {
+  const m = text.trim().match(/^([A-Za-z]{1,5}\d{0,3}(?:\.\d)?[A-Za-z]?)[\s-]+(\d{1,3})(?:\s*\/\s*\d+)?$/);
+  return m ? { setCode: m[1], localId: m[2] } : null;
+}
+
+/**
+ * Recherche dans le catalogue : nom d'origine, anglais ou français, numéro, ou code « M6 110 » ;
+ * filtres bloc, extension, rareté (`rarityKey` convertit la rareté en clé de filtre, ex. abréviation) et facettes.
+ */
+export async function staticSearch(
+  game: GameId,
+  lang: CardLang,
+  f: SearchFilters,
+  rarityKey: (r: string) => string = (r) => r,
+): Promise<Card[] | null> {
+  const [rows, blocs] = await Promise.all([staticSearchRows(game, lang), staticBlocs(game, lang)]);
+  if (!rows || !blocs) return null;
+  const names = setNames(blocs);
+  const blocSets = f.blocId ? new Set(blocs.find((b) => b.id === f.blocId)?.sets.map((x) => x.id)) : null;
+  const code = parseCode(f.text);
+  const q = normalize(f.text).trim();
+  const words = q.split(/\s+/).filter(Boolean);
+  const hit = rows.filter((r) => {
+    if (f.setId && r.setId !== f.setId) return false;
+    if (blocSets && !blocSets.has(r.setId)) return false;
+    if (f.facets.rarity && rarityKey(r.rarity) !== f.facets.rarity) return false;
+    for (const [k, v] of Object.entries(f.facets)) {
+      if (!v || k === 'rarity') continue;
+      if (r.facets?.[k] && !r.facets[k].includes(v)) return false;
+    }
+    if (!q) return true;
+    if (code && r.setId.toLowerCase() === code.setCode.toLowerCase() && Number(r.localId) === Number(code.localId)) return true;
+    const hay = normalize(`${r.name} ${r.nameEn} ${r.nameFr} ${r.number}`);
+    return words.every((w) => hay.includes(w));
+  });
+  // Code exact (« M6 110 ») : la carte seule.
+  const exact = code ? hit.filter((r) => r.setId.toLowerCase() === code.setCode.toLowerCase() && Number(r.localId) === Number(code.localId)) : [];
+  const cards = (exact.length ? exact : hit).map((r) => staticToCard(game, lang, r, { id: r.setId, name: names.get(r.setId) }));
+  return sortCards(cards, f.sort, f.text);
+}
+
+export async function staticGetCard(game: GameId, lang: CardLang, id: string): Promise<Card | null> {
+  const [rows, blocs] = await Promise.all([staticSearchRows(game, lang), staticBlocs(game, lang)]);
+  const r = rows?.find((x) => x.id === id);
+  if (!r) return null;
+  return staticToCard(game, lang, r, { id: r.setId, name: blocs ? setNames(blocs).get(r.setId) : undefined });
+}
+
+/** Options de filtre depuis le catalogue (raretés et facettes présentes). */
+export async function staticFilterOptions(game: GameId, lang: CardLang, facetKeys: string[]): Promise<FilterOptions | null> {
+  const [rows, blocs] = await Promise.all([staticSearchRows(game, lang), staticBlocs(game, lang)]);
+  if (!blocs) return null;
+  const app = toBlocs(blocs);
+  const values = (k: string) => distinct((rows ?? []).flatMap((r) => r.facets?.[k] ?? []));
+  return {
+    blocs: app,
+    sets: app.flatMap((b) => b.sets.map((x) => ({ id: x.id, name: `${x.code} · ${x.name}` }))),
+    facets: [
+      { key: 'rarity', label: 'rarity', values: distinct((rows ?? []).map((r) => r.rarity)) },
+      ...facetKeys.map((k) => ({ key: k, label: k, values: values(k) })),
+    ],
+    sorts: game === 'pokemon' && lang !== 'ja' ? ['relevance', 'name', 'number'] : ['relevance', 'name', 'number', 'price-desc', 'price-asc'],
+  };
 }

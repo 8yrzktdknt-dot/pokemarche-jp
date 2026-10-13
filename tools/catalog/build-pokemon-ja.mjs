@@ -5,21 +5,25 @@ import { loadSpeciesNames, translateJa } from './names.mjs';
 
 const SITE = 'https://limitlesstcg.com';
 
-/** Tableau des extensions japonaises : blocs (sous-titres) et lignes. */
+/** Tableau des extensions japonaises : blocs (sous-titres) et lignes, lues cellule par cellule (formats variables). */
 export function parseSetList(html) {
   const blocs = [];
   let bloc = null;
-  const re = /sub-heading"[^>]*>([^<]+)<|<a href="\/cards\/jp\/([A-Za-z0-9-]+)"><img class="set" alt="[^"]*" src="([^"]+)">\s*([^<]*?)\s*<span class="code annotation">[^<]*<\/span><\/a><\/td>\s*<td><a href="\/cards\/jp\/[^"]+">([^<]+)<\/a><\/td>\s*<td class="md-only"><a href="\/cards\/jp\/[^"]+">(\d+)/g;
-  for (const m of html.matchAll(re)) {
-    if (m[1]) {
-      bloc = { id: unescapeHtml(m[1]).toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: unescapeHtml(m[1]), sets: [] };
+  for (const row of html.split(/<tr[\s>]/).slice(1)) {
+    const head = row.match(/sub-heading"[^>]*>([^<]+)</);
+    if (head) {
+      bloc = { id: unescapeHtml(head[1]).toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: unescapeHtml(head[1]), sets: [] };
       blocs.push(bloc);
       continue;
     }
+    const code = row.match(/href="\/cards\/jp\/([A-Za-z0-9.-]+)"/)?.[1];
+    if (!code) continue;
+    const logo = row.match(/<img class="set"[^>]*src="([^"]+)"/)?.[1];
+    const name = row.match(/<img class="set"[^>]*>\s*([^<]*?)\s*<(?:span|\/a)/)?.[1] ?? code;
+    const date = row.match(/>(\d{1,2} \w{3} \d{2})</)?.[1];
+    const count = row.match(/md-only"[^>]*>\s*<a[^>]*>\s*(\d+)/)?.[1];
     if (!bloc) { bloc = { id: 'other', name: 'Other', sets: [] }; blocs.push(bloc); }
-    bloc.sets.push({
-      id: m[2], code: m[2], name: unescapeHtml(m[4]), logo: m[3], releaseDate: parseShortDate(m[5]), count: Number(m[6]),
-    });
+    bloc.sets.push({ id: code, code, name: unescapeHtml(name) || code, logo, releaseDate: date && parseShortDate(date), count: count ? Number(count) : undefined });
   }
   return blocs;
 }

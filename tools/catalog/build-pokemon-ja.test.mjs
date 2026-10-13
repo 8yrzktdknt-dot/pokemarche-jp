@@ -21,6 +21,15 @@ test('liste des extensions Limitless (extrait réel)', () => {
   assert.equal(blocs[1].sets[0].releaseDate, '2024-10-18');
 });
 
+test('ligne sans pourcentage ni code annoté (format plus ancien)', () => {
+  const html = `<tr><th class="sub-heading" colspan=4>Sun &amp; Moon</th></tr>
+  <tr><td><a href="/cards/jp/SM1M"><img class="set" alt="SM1M" src="https://s3.limitlesstcg.com/sets/jp/SM1M.png"> Collection Moon</a></td>
+  <td><a href="/cards/jp/SM1M">2 Dec 16</a></td><td class="md-only"><a href="/cards/jp/SM1M">60</a></td></tr>`;
+  const [b] = parseSetList(html);
+  assert.equal(b.name, 'Sun & Moon');
+  assert.deepEqual(b.sets[0], { id: 'SM1M', code: 'SM1M', name: 'Collection Moon', logo: 'https://s3.limitlesstcg.com/sets/jp/SM1M.png', releaseDate: '2016-12-02', count: 60 });
+});
+
 test('vue liste d\'une extension (extrait réel)', () => {
   const html = `<table><tr data-hover="https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpc/M6/M6_1_R_JP_XS.png">
                     <td><span class="card-set" data-tooltip="ストームエメラルダ"><img class="set" alt="M6" src="x">M6</span></td>

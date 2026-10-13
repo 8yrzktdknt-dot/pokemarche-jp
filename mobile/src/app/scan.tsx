@@ -60,7 +60,8 @@ export default function Scan() {
         const full = await GAMES[game].getCard(m.item.id, lang).catch(() => null);
         return full ?? {
           game, id: m.item.id, lang, name: m.item.name, number: m.item.localId, prices: [],
-          imageSmall: m.item.image ? `${m.item.image}/low.webp` : undefined,
+          // Images du catalogue (adresse complète) ou de TCGdex (adresse de base sans extension).
+          imageSmall: m.item.image ? (/\.(png|jpe?g|webp)(\?|$)/.test(m.item.image) ? m.item.image : `${m.item.image}/low.webp`) : undefined,
         };
       }),
     );

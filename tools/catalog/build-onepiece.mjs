@@ -48,6 +48,15 @@ export function parseCards(html, site) {
 
 const setId = (code) => code.replace('-', '');
 
+const TYPES = /^(BOOSTER PACK|EXTRA BOOSTER|PREMIUM BOOSTER|STARTER DECK EX|STARTER DECK|ULTRA DECK|ブースターパック|エクストラブースター|プレミアムブースター|スタートデッキEX|スタートデッキ|アルティメットデッキ)\s*/i;
+const titleCase = (s) => (s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()) : s);
+
+/** « BOOSTER PACK -AWAKENING OF THE NEW ERA- [OP-05] » → « Awakening Of The New Era » ; « ブースターパック 新時代の主役【OP-05】 » → « 新時代の主役 ». */
+export function setName(label) {
+  const core = label.replace(/\s*[\[【][^\]】]*[\]】]\s*$/, '').replace(TYPES, '').trim().replace(/^-\s*|\s*-$/g, '').trim();
+  return titleCase(core);
+}
+
 export async function buildOnePiece() {
   // Prix TCGplayer (anglais) par identifiant d'image.
   const priceLists = await Promise.all(['allSetCards', 'allSTCards'].map((p) => getJson(`https://optcgapi.com/api/${p}/`)));
@@ -82,7 +91,7 @@ export async function buildOnePiece() {
       total += cards.length;
       const id = setId(s.code);
       writeJson(`cards/onepiece-${lang}/${id}.json`, cards);
-      const name = s.label.replace(/^.*?-(.+)-\s*\[.*$/, '$1').replace(/^[^【]*?([^ 【]+)【.*$/, '$1').trim();
+      const name = setName(s.label);
       const bloc = blocs.find((b) => BLOCS.find((x) => x.id === b.id).test.test(s.label)) ?? other;
       bloc.sets.push({ id, code: s.code, name: name || s.label, count: cards.length, order: Number(s.value) });
     });
