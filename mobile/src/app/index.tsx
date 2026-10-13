@@ -55,7 +55,7 @@ export default function Home() {
           returnKeyType="search"
         />
         {loading && <ActivityIndicator color={colors.accent} />}
-        {error && <Text style={{ color: '#f87171' }}>{error}</Text>}
+        {error && <Text style={{ color: colors.danger }}>{error}</Text>}
       </View>
       <FlatList
         data={results}

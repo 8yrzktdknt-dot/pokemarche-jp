@@ -1,5 +1,10 @@
-# pokemarche-jp
+# PokéMarket
 Analyse du marché Pokémon japonais
+
+## PokéMarket (web, iPhone, Android)
+
+- **Version web à installer sur l'écran d'accueil** : https://bananaintrouble.github.io/pokemarche-jp/app/
+  (dans Safari : Partager → Sur l'écran d'accueil). Fichiers générés dans `app/`, ne pas les modifier à la main.
 
 ## Application mobile
 

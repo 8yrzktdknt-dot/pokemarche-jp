@@ -1,4 +1,4 @@
-# TCG Scanner (iOS + Android)
+# PokéMarket (iOS, Android et web)
 
 Application mobile façon « Dex », avec **scanner automatique** de cartes pour
 **Pokémon**, **One Piece** et **Riftbound**, cartes en plusieurs langues et accès
@@ -19,6 +19,20 @@ Stack : Expo (SDK 57) + React Native + TypeScript + Expo Router.
 - **Recherche** par nom, par jeu et par langue.
 - **Fiche carte** : image, prix automatiques (quand l'API en fournit) et boutons vers les 4 sites.
 - **Collection** locale (quantités, valeur estimée).
+
+## Version web
+
+Le même code produit un site installable sur l'écran d'accueil (PWA), publié par GitHub Pages :
+https://bananaintrouble.github.io/pokemarche-jp/app/
+
+- Le scanner y lit le texte avec Tesseract.js (`src/lib/scan/ocr.web.ts`) au lieu de ML Kit (`ocr.ts`) : plus lent.
+- Mettre à jour le site : `npm run build:web`, puis commit des dossiers `../app` et `../404.html`.
+
+## Direction artistique
+
+Palette « Rayquaza » : fond `#0A1F17`, surfaces `#133325`, vert principal `#1A7D4C`, émeraude `#3CCB7F`,
+or `#F5C542` (prix, actions), rouge `#E5484D` (alertes). Titres en Unbounded, texte en Manrope.
+Couleurs et polices centralisées dans `src/components/ui.tsx`.
 
 ## Lancer l'app
 
