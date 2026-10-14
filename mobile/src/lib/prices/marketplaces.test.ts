@@ -21,8 +21,8 @@ test('recherche « nom (CODE numéro/total) », nom anglais en priorité', () =>
   assert.equal(searchTerms(card), 'Mega Rayquaza ex (M6 110/076)');
   assert.equal(searchTerms({ ...card, game: 'onepiece', name: 'Monkey.D.Luffy', nameEn: undefined, number: 'OP05-119' }), 'Monkey.D.Luffy (OP05-119)');
   const cm = marketLinks(card, 'fr')[0];
-  // Carte japonaise : Cardmarket cherche « nom anglais + code japonais » (m6110) ; TCGplayer garde « nom (CODE numéro) ».
-  assert.match(cm.url, /searchString=Mega%20Rayquaza%20ex%20m6110$/);
+  // Carte japonaise : Cardmarket cherche « nom anglais + code japonais » (m6 110) ; TCGplayer garde « nom (CODE numéro) ».
+  assert.match(cm.url, /searchString=Mega%20Rayquaza%20ex%20m6%20110$/);
   assert.match(marketLinks(card, 'fr')[1].url, /q=Mega%20Rayquaza%20ex%20\(M6%20110%2F076\)/);
 });
 
@@ -52,5 +52,5 @@ test('fiche Cardmarket exacte quand son chemin est connu, offres dans la langue 
 
 test('carte japonaise : recherche Cardmarket par nom anglais (pas la version internationale)', () => {
   const card: Card = { game: 'pokemon', id: 'M6a-001', lang: 'ja', name: 'タマタマ', nameEn: 'Exeggcute', number: '001', setId: 'M6a', prices: [], marketIds: { cardmarket: 1, cardmarketPath: '30th-Celebration/Exeggcute-30C001' } };
-  assert.equal(marketLinks(card, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=Exeggcute%20m6a001');
+  assert.equal(marketLinks(card, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=Exeggcute%20m6a%20001');
 });
