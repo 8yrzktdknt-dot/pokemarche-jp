@@ -103,7 +103,9 @@ export default function CardScreen() {
   };
 
   // Glisser le doigt vers la gauche / la droite : carte suivante / précédente.
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  // Visuel limité à ~45 % de la hauteur d'écran : le bouton « Ajouter » reste visible sans faire défiler.
+  const imgH = Math.min(((Math.min(width, 700) - 32) * 88) / 63, height * 0.45);
   const shift = useRef(new Animated.Value(0)).current;
   // Glisser vers le bas (fiche tout en haut) : on quitte la fiche.
   const drop = useRef(new Animated.Value(0)).current;
@@ -201,7 +203,7 @@ export default function CardScreen() {
       scrollEventThrottle={16}
       contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: displayName(card, appLang) }} />
-      <Image source={card.imageLarge ?? card.imageSmall} style={{ width: '100%', aspectRatio: 63 / 88, borderRadius: 12 }} contentFit="contain" />
+      <Image source={card.imageLarge ?? card.imageSmall} style={{ width: (imgH * 63) / 88, height: imgH, borderRadius: 12, alignSelf: 'center' }} contentFit="contain" />
       {nav.total > 1 && (
         <View style={st.nav}>
           <Pressable style={[st.navBtn, !nav.prev && st.navOff]} disabled={!nav.prev} onPress={() => go(nav.prev)} accessibilityLabel={t('card.prev')}>
