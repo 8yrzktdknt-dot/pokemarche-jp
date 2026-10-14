@@ -15,6 +15,10 @@ on:
         description: "Index visuels à refaire (ex. pokemon-ja,pokemon-fr) ; vide = tous"
         default: ""
         required: false
+      grab:
+        description: "Images à télécharger dans catalog/_grab pour examen (URL séparées par des virgules)"
+        default: ""
+        required: false
   schedule:
     - cron: "17 3 * * 1"
   push:
@@ -58,6 +62,7 @@ jobs:
         env:
           STEPS: ${{ github.event.inputs.steps || '' }}
           VISUAL_TARGETS: ${{ github.event.inputs.visual || '' }}
+          GRAB_URLS: ${{ github.event.inputs.grab || '' }}
         run: npm test && npm run build
 
       - name: Enregistrer dans le dépôt

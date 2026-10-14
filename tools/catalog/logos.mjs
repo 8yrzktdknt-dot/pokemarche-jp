@@ -1,5 +1,6 @@
 // Logos des extensions, rassemblés depuis plusieurs sources et publiés avec le catalogue
 // (catalog/logos/<dossier>/<id>.png, réduits à 400 px de large) pour ne pas dépendre des sites d'origine.
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -62,9 +63,13 @@ const ALIASES = {
   violetex: ['violet'],
   forbiddenlight: ['forbiddenlightjp'],
 };
+/** Mêmes mots dans un autre ordre (« ex Starter Set Eevee ex » = « Starter Set ex Eevee ex ») : clé triée. */
+export const sortedKey = (name) =>
+  '~' + name.toLowerCase().normalize('NFKD').replace(/&/g, ' and ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).sort().join('');
+
 export const keysFor = (name) => {
   const k = setKey(name);
-  return [k, ...(ALIASES[k] ?? []), k.replace(/ex$/, ''), `${k}ex`];
+  return [k, ...(ALIASES[k] ?? []), k.replace(/ex$/, ''), `${k}ex`, sortedKey(name)];
 };
 
 // Les sites de logos refusent souvent les robots : on se présente comme un navigateur.
@@ -84,12 +89,29 @@ async function download(url) {
 }
 export const failures = [];
 
+// Image générique « Pokémon Trading Card Game » que Scrydex renvoie quand il n'a pas le logo : à refuser.
+const hash = (buf) => createHash('sha1').update(buf).digest('hex');
+let placeholders = null;
+async function placeholderHashes() {
+  placeholders ??= (async () => {
+    const out = new Set();
+    for (const id of ['zz-inconnu_ja', 'zz-inconnu']) {
+      const buf = await download(`https://images.scrydex.com/pokemon/${id}-logo/logo`);
+      if (buf) out.add(hash(buf));
+    }
+    return out;
+  })();
+  return placeholders;
+}
+
 /** Logos Pokellector (anglais ou japonais) : « …/logos/Storm-Emeralda.logo.437.png » → clé du nom → URL. */
 export function parsePokellectorLogos(html) {
   const out = new Map();
   for (const m of html.matchAll(/https:\/\/den-media\.pokellector\.com\/logos\/([^"'\s]+?)\.logo\.\d+\.png/g)) {
-    const k = setKey(decodeURIComponent(m[1]).replace(/-/g, ' '));
+    const name = decodeURIComponent(m[1]).replace(/-/g, ' ');
+    const k = setKey(name);
     if (k && !out.has(k)) out.set(k, m[0]);
+    if (!out.has(sortedKey(name))) out.set(sortedKey(name), m[0]);
   }
   return out;
 }
@@ -104,8 +126,10 @@ export async function pokellectorLogos(site) {
 export function parseSerebiiLogos(html) {
   const out = new Map();
   for (const m of html.matchAll(/<img src="(\/card\/logo\/[^"]+\.png)"[^>]*alt="([^"]+?) Set Icon"/g)) {
-    const k = setKey(unescapeHtml(m[2]));
+    const name = unescapeHtml(m[2]);
+    const k = setKey(name);
     if (k && !out.has(k)) out.set(k, `https://www.serebii.net${m[1]}`);
+    if (!out.has(sortedKey(name))) out.set(sortedKey(name), `https://www.serebii.net${m[1]}`);
   }
   return out;
 }
@@ -115,6 +139,10 @@ export async function serebiiLogoMap() {
   const html = r?.ok ? await r.text() : null;
   return html ? parseSerebiiLogos(html) : new Map();
 }
+
+/** Logo et symbole Scrydex d'une extension (« mbg_ja » pour le japonais, identifiant pokemontcg.io pour l'anglais). */
+export const scrydexLogo = (id) => `https://images.scrydex.com/pokemon/${id}-logo/logo`;
+export const scrydexSymbol = (id) => `https://images.scrydex.com/pokemon/${id}-symbol/symbol`;
 
 /** Premier logo trouvé pour ce nom dans les tables (dans l'ordre de préférence). */
 export function findLogo(name, tables) {
@@ -132,14 +160,15 @@ export function findLogos(name, tables) {
  * Télécharge un logo, le réduit (400 px de large au plus) et l'enregistre dans catalog/logos/<folder>/<id>.png.
  * Renvoie le chemin relatif au catalogue, ou undefined si l'image est introuvable.
  */
-export async function saveLogo(url, folder, id) {
+export async function saveLogo(url, folder, id, width = 400) {
   const rel = `logos/${folder}/${id.replace(/[^A-Za-z0-9._-]/g, '_')}.png`;
   const file = join(CATALOG, rel);
   if (existsSync(file)) return rel;
   const buf = await download(url);
   if (!buf || buf.length < 200) { failures.push(url); return undefined; }
+  if ((await placeholderHashes()).has(hash(buf))) return undefined;
   try {
-    const png = await sharp(buf).resize({ width: 400, withoutEnlargement: true }).png({ compressionLevel: 9, palette: true }).toBuffer();
+    const png = await sharp(buf).resize({ width, withoutEnlargement: true }).png({ compressionLevel: 9, palette: true }).toBuffer();
     mkdirSync(join(CATALOG, 'logos', folder), { recursive: true });
     writeFileSync(file, png);
     return rel;

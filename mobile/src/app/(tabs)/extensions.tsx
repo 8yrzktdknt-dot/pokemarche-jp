@@ -49,10 +49,11 @@ export default function Extensions() {
                 <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${x.name} (${x.code})`}>
                   <View style={[st.logoBox, { height: tile * 0.62 }]}>
                     {x.logo ? (
-                      <Image source={x.logo} style={StyleSheet.absoluteFill} contentFit="contain" />
+                      <Image source={x.logo} style={st.logo} contentFit="contain" />
                     ) : (
                       <Text style={st.code}>{x.code}</Text>
                     )}
+                    {x.symbol && x.symbol !== x.logo && <Image source={x.symbol} style={st.symbol} contentFit="contain" />}
                   </View>
                   <Text style={st.name} numberOfLines={2}>{x.name}</Text>
                   <Text style={st.meta}>{x.code}{x.count ? ` · ${x.count}` : ''}</Text>
@@ -69,6 +70,8 @@ export default function Extensions() {
 const st = StyleSheet.create({
   tile: { backgroundColor: colors.card, borderRadius: 14, padding: 8, gap: 4 },
   logoBox: { borderRadius: 10, backgroundColor: '#0E2A1D', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 6 },
+  logo: { position: 'absolute', top: 18, left: 8, right: 8, bottom: 8 },
+  symbol: { position: 'absolute', top: 6, left: 6, width: 28, height: 14 },
   code: { color: colors.accent, fontFamily: fonts.display, fontSize: 16 },
   name: { color: colors.text, fontFamily: fonts.bold, fontSize: 12, lineHeight: 15 },
   meta: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },

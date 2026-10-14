@@ -9,7 +9,23 @@ import { buildRiftbound } from './build-riftbound.mjs';
 import { buildSearch } from './build-search.mjs';
 import { buildVisual } from './build-visual.mjs';
 
-const STEPS = { 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), 'pokemon-cards': () => buildPokemonCards(), onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual(), search: buildSearch };
+/** Télécharge des images dans catalog/_grab pour les examiner (étape « grab », URL dans GRAB_URLS). */
+async function grab() {
+  const { getBuffer, writeJson } = await import('./lib.mjs');
+  const { writeFileSync, mkdirSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { CATALOG } = await import('./lib.mjs');
+  mkdirSync(join(CATALOG, '_grab'), { recursive: true });
+  const urls = (process.env.GRAB_URLS || '').split(',').map((u) => u.trim()).filter(Boolean);
+  for (const [i, u] of urls.entries()) {
+    const buf = await getBuffer(u);
+    if (buf) writeFileSync(join(CATALOG, '_grab', `${String(i).padStart(2, '0')}-${u.split('/').pop().split('?')[0]}`), buf);
+  }
+  writeJson('_grab/urls.json', urls);
+}
+
+const STEPS = {
+  grab, 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), 'pokemon-cards': () => buildPokemonCards(), onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual(), search: buildSearch };
 const wanted = (process.env.STEPS || Object.keys(STEPS).join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 // Les fichiers de recherche suivent toujours les catalogues reconstruits.
 if (!wanted.includes('search')) wanted.push('search');
