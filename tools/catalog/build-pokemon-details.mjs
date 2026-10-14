@@ -141,8 +141,12 @@ export function applyClassicCollection(cards, pages, lang) {
       c.name = `${base} (${lang === 'fr' ? (top ? 'Haut' : 'Bas') : top ? 'Top' : 'Bottom'})`;
       if (c.nameEn) c.nameEn = `${c.nameEn.replace(/ \((Top|Bottom)\)$/, '')} (${top ? 'Top' : 'Bottom'})`;
       if (c.nameFr) c.nameFr = `${c.nameFr.replace(/ \((Haut|Bas)\)$/, '')} (${top ? 'Haut' : 'Bas'})`;
-      if (p.image) c.image = p.image;
-    } else if (!c.image && p.image) c.image = p.image;
+    }
+    // Visuel : celui de la page Limitless, sinon Scrydex au numéro d'origine (me55c-97 pour Genesect PLB 97 ;
+    // me55c-{n° dans la collection} serait une autre carte).
+    const num = p.path.match(/-30C[A-Z]+-(\d+)$/)?.[1];
+    const image = p.image ?? (num && `https://images.scrydex.com/pokemon/me55c-${num}/large`);
+    if (image) c.image = image;
   }
   return n;
 }
