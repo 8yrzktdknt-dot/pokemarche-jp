@@ -5,7 +5,7 @@
 // Les cartes japonaises sont retrouvées par extension et numéro dans le catalogue japonais de TCGdex.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cardmarketPaths } from './cardmarket-links.mjs';
+import { cardmarketPaths, classicCollectionPaths } from './cardmarket-links.mjs';
 import { completeJapanesePrices, loadCardmarketFiles } from './cardmarket-japanese.mjs';
 import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
 import { matchWizardSet, officialCardId, parseOfficialAttrs, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
@@ -71,6 +71,7 @@ export function applyDetails(c, d, lang) {
   if (!c.rarity && d.rarity) c.rarity = d.rarity;
 }
 
+const nameKey = (n) => (n ?? '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
 const numKey = (n) => (/^\d+$/.test(n) ? String(Number(n)) : String(n).toUpperCase());
 
 /** Fiches TCGdex des cartes japonaises : extension TCGdex de même code, carte de même numéro. */
@@ -212,12 +213,14 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
     for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
       const setId = f.replace(/\.json$/, '');
       for (const c of JSON.parse(readFileSync(join(dir, f), 'utf8'))) {
+        if (setId === '30th-c') continue;
         const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
         if (r && !refs.has(r.key)) refs.set(r.key, r);
       }
     }
   }
-  const paths = await cardmarketPaths([...refs.values()]);
+  const paths = await cardmarketPaths([...refs.values()].filter((r) => !r.classic));
+  const classic = langs.some((l) => l !== 'ja') ? await classicCollectionPaths().catch(() => new Map()) : new Map();
 
   for (const lang of langs) {
     const codes = setCodes(lang);
@@ -231,6 +234,12 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       const setId = f.replace(/\.json$/, '');
       const cards = JSON.parse(readFileSync(join(dir, f), 'utf8'));
       for (const c of cards) {
+        // Collection Classique : liens à part (le code « 30C » est partagé avec l'extension principale).
+        if (setId === '30th-c') {
+          const p = classic.get(nameKey(c.nameEn ?? c.name));
+          if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
+          continue;
+        }
         const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
         const p = r && paths.get(r.key);
         if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
