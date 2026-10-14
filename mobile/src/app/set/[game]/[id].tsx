@@ -3,14 +3,16 @@ import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { setBrowseList } from '../../../lib/browse';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { SetOverview } from '../../../components/SetOverview';
 import { colors, displayName, fonts, s } from '../../../components/ui';
+import { setStats } from '../../../lib/setStats';
 import { GAMES } from '../../../lib/games';
 import { useStore } from '../../../lib/store';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
 
 export default function SetScreen() {
   const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
-  const { collection, t, settings } = useStore();
+  const { collection, t, settings, toCurrency } = useStore();
   const [set, setSet] = useState<SetInfo | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,11 +27,13 @@ export default function SetScreen() {
     );
   }, [game, id, lang]);
 
+  // Même carte, même langue : une carte japonaise ne compte pas pour l'extension chinoise de même code.
   const owned = useMemo(
-    () => new Set(collection.filter((e) => e.card.game === game).map((e) => e.card.id)),
-    [collection, game],
+    () => new Set(collection.filter((e) => e.card.game === game && e.card.lang === lang).map((e) => e.card.id)),
+    [collection, game, lang],
   );
   const ownedCount = cards?.filter((c) => owned.has(c.id)).length ?? 0;
+  const stats = useMemo(() => (cards ? setStats(cards, (c) => owned.has(c.id), toCurrency) : null), [cards, owned, toCurrency]);
 
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!cards) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
@@ -49,6 +53,7 @@ export default function SetScreen() {
             {set?.logo && <Image source={set.logo} style={{ width: '70%', height: 90 }} contentFit="contain" />}
             <Text style={[s.h2, { textAlign: 'center' }]}>{set?.name ?? id}</Text>
             <Text style={s.muted}>{t('set.summary', { code: set?.code ?? id, n: cards.length, owned: ownedCount })}</Text>
+            {stats && <View style={{ width: '100%', marginTop: 8 }}><SetOverview stats={stats} game={game} id={id} lang={lang} /></View>}
           </View>
         }
         renderItem={({ item }) => (
