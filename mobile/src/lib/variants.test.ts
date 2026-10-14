@@ -30,6 +30,9 @@ test('variantLabel : libellés traduits, tampons et motifs inconnus', () => {
   assert.equal(variantLabel('reverse', 'fr'), 'Reverse Holo');
   assert.equal(variantLabel('pokeball', 'ja'), 'モンスターボール柄');
   assert.equal(variantLabel('holo|shadowless|1st-edition', 'fr'), 'Holo · Sans ombre · 1re édition');
-  assert.equal(variantLabel('reverse-league|30th-pokeday', 'fr'), 'Reverse Holo League · tampon 30th Pokeday');
+  assert.equal(variantLabel('reverse-league|30th-pokeday', 'fr'), 'Reverse Holo Ligue · tampon 30th Pokeday');
+  assert.equal(variantLabel('reverse-energy', 'fr'), 'Reverse Holo Énergie');
+  assert.equal(variantLabel('reverse-quickball', 'fr'), 'Rapide Ball Holo');
+  assert.equal(variantLabel('reverse-loveball', 'en'), 'Love Ball Holo');
   assert.equal(variantLabel('normal', 'xx'), 'Normal');
 });

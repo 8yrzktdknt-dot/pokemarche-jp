@@ -26,6 +26,13 @@ const PARTS: Record<string, Labels> = {
   stamp: L('tampon', 'stamp', 'スタンプ', '印章', '印章', 'sello', 'timbro', 'Stempel', 'stempel', 'carimbo', 'штамп', 'ตราประทับ', '스탬프'),
 };
 
+/** Motifs de reverse (« reverse-energy ») : nom du motif. */
+const MOTIFS: Record<string, Labels> = {
+  energy: L('Énergie', 'Energy', 'エネルギー', '能量', '能量', 'Energía', 'Energia', 'Energie', 'Energie', 'Energia', 'Энергия', 'พลังงาน', '에너지'),
+  league: L('Ligue', 'League', 'リーグ', '聯盟', '联盟', 'Liga', 'Lega', 'Liga', 'League', 'Liga', 'Лига', 'ลีก', '리그'),
+  cosmos: L('Cosmos', 'Cosmos', 'コスモ', '宇宙', '宇宙', 'Cosmos', 'Cosmo', 'Kosmos', 'Kosmos', 'Cosmos', 'Космос', 'คอสมอส', '코스모'),
+};
+
 const human = (s: string) => s.replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
 
 /** Libellé d'une variante : « Reverse Holo », « Holo · Sans ombre · 1re édition », « Reverse Holo · tampon 30th Pokeday ». */
@@ -35,7 +42,12 @@ export function variantLabel(key: string, lang: string): string {
     const known = PARTS[part]?.[l];
     if (known) return known;
     // Motif sans libellé (« reverse-cosmos ») : reverse + nom du motif ; tampon (« 30th-pokeday ») : « tampon 30th Pokeday ».
-    if (i === 0 && part.startsWith('reverse-')) return `${PARTS.reverse[l]} ${human(part.slice(8))}`;
+    if (i === 0 && part.startsWith('reverse-')) {
+      const motif = part.slice(8);
+      if (PARTS[motif]) return PARTS[motif][l];
+      if (motif.endsWith('ball')) return `${human(motif.slice(0, -4))} Ball Holo`;
+      return `${PARTS.reverse[l]} ${MOTIFS[motif]?.[l] ?? human(motif)}`;
+    }
     if (i === 0 && part.endsWith('ball')) return `${human(part.slice(0, -4))} Ball Holo`;
     return i === 0 ? human(part) : `${PARTS.stamp[l]} ${human(part)}`;
   }).join(' · ');
