@@ -3,8 +3,8 @@
  * par conception : la base n'autorise chaque utilisateur qu'à lire et écrire ses propres données (règles RLS,
  * voir supabase/schema.sql). Vides tant que le projet n'est pas créé : l'app reste alors sans compte.
  */
-export const SUPABASE_URL = '';
-export const SUPABASE_KEY = '';
+export const SUPABASE_URL = 'https://pobettqrcmaqqtwvidlf.supabase.co';
+export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvYmV0dHFyY21hcXF0d3ZpZGxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5Nzg0NzgsImV4cCI6MjEwNzU1NDQ3OH0.mBamLEvUqFob7-_CCwr44Y9WCSYDTgwfudQ_6TtPvnE';
 
 /** Fournisseurs de connexion activés dans le projet (Apple : abonnement Apple Developer requis). */
 export const PROVIDERS = { email: true, google: true, apple: false };
