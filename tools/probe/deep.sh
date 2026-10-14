@@ -1,29 +1,21 @@
 #!/usr/bin/env bash
-# Exploration : sources chinoises, 2e passage.
+# Exploration : mik.moe (chinois simplifié) et site officiel TW (listes).
 set -u
-UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-G() { curl -sL -m 40 -A "$UA" "$@"; }
-echo "=========== zsjy947 sets_index"
-G https://raw.githubusercontent.com/zsjy947/PTCG-card-data/master/data/sets_index.json | head -c 6000; echo
-echo "=========== zsjy947 CSV1C sample"
-G https://raw.githubusercontent.com/zsjy947/PTCG-card-data/master/data/cards/CSV1C.json | head -c 3000; echo
-G https://raw.githubusercontent.com/zsjy947/PTCG-card-data/master/fetch_data.py | head -c 5000; echo
-echo "=========== mik.moe"
-G -o /tmp/m.html -w "%{http_code} %{size_download}\n" https://tcg.mik.moe/
-grep -oE '(src|href)="[^"]*"' /tmp/m.html | head -30
-for js in $(grep -oE 'src="[^"]*\.js"' /tmp/m.html | sed 's/src="//;s/"$//' | head -5); do
-  case $js in http*) u=$js;; *) u="https://tcg.mik.moe$js";; esac
-  echo "--- $u"; G "$u" | grep -oE '"(/api|https?://[^"]*mik[^"]*)[^"]{0,120}"' | sort -u | head -40
-done
-echo "=========== TW expansions pages"
-for p in 2 3 4 5; do G "https://asia.pokemon-card.com/tw/card-search/?pageNo=$p" | grep -oE 'expansionCodes=[A-Za-z0-9-]+' | sort -u | tr '\n' ' '; echo; done
-echo "=========== TW list M6a"
-G "https://asia.pokemon-card.com/tw/card-search/list/?expansionCodes=M6a" > /tmp/l.html
-grep -oE 'detail/[0-9]+' /tmp/l.html | head -3; grep -oE 'resultTotalPages[^<]{0,80}|totalCount[^<]{0,80}|共[^<]{0,40}' /tmp/l.html | head
-grep -oE '<img[^>]*>' /tmp/l.html | head -5
-D=$(grep -oE 'detail/[0-9]+' /tmp/l.html | head -1)
-echo "=========== TW detail $D"
-G "https://asia.pokemon-card.com/tw/card-search/$D/" > /tmp/d.html
-sed -e 's/<script.*//' /tmp/d.html | tr -s ' \n' | grep -vE '^\s*$' | sed -n '/<main/,/<\/main>/p' | head -c 9000; echo
-echo "=========== TW list old (SV8, S12a)"
-for e in SV8 S12a SV2a; do G "https://asia.pokemon-card.com/tw/card-search/list/?expansionCodes=$e" | grep -oE 'detail/[0-9]+' | head -2 | tr '\n' ' '; echo " $e"; done
+UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
+P() { curl -s -m 60 -A "$UA" -H "Content-Type: application/json" -H "Referer: https://tcg.mik.moe/" -X POST "https://tcg.mik.moe/api/v3/$1" -d "$2"; }
+echo "=========== params"
+P card/card-advance-search-params '{}' > /tmp/params.json; head -c 300 /tmp/params.json; echo
+node -e 'const d=JSON.parse(require("fs").readFileSync("/tmp/params.json","utf8")).data;console.log(Object.keys(d));const e=d.expansion;console.log("expansions",e.length);for(const x of e)console.log(JSON.stringify(x))' | head -150
+echo "=========== search CSV1C page1"
+P card/card-advance-search '{"type":"advance","name":"","text":"","m":[],"s":[],"label":[],"t":[],"has":[],"weak":[],"rs":[],"series":[],"set":["CSV1C"],"artist":[],"r":[],"hp":null,"rc":null,"reg":[],"mark":[],"unique":false,"page":1,"pageSize":3}' | head -c 6000; echo
+echo "=========== bundle hints"
+curl -s -m 30 -A "$UA" https://tcg.mik.moe/ -o /tmp/m.html
+JS=$(grep -oE '/assets/index-[^"]+\.js' /tmp/m.html | head -1)
+curl -s -m 60 -A "$UA" "https://tcg.mik.moe$JS" -o /tmp/i.js; wc -c /tmp/i.js
+grep -oE '.{80}(\.png|\.webp|\.jpg|/img/|image|cdn)[^,;]{0,100}' /tmp/i.js | grep -iE 'http|/img|\.webp|\.png' | head -30
+grep -oE 'https?://[a-zA-Z0-9./_-]+' /tmp/i.js | sort -u | head -60
+grep -oE '"card/[a-zA-Z/-]+"|`card/[^`]+`|v3/[a-zA-Z/-]+' /tmp/i.js | sort -u | head -40
+for f in $(grep -oE 'assets/[A-Za-z0-9_-]+\.js' /tmp/i.js | sort -u | head -80); do curl -s -m 30 -A "$UA" "https://tcg.mik.moe/$f" | grep -oE '.{60}(webp|png|jpg)["`].{0,40}' | head -3 | sed "s|^|$f: |"; done | head -40
+echo "=========== TW expansion list page names"
+curl -sL -m 30 -A "$UA" "https://asia.pokemon-card.com/tw/card-search/" | tr -s ' \n' | grep -oE 'expansionCodes=[A-Za-z0-9-]+">.{0,600}' | head -4
+curl -sL -m 30 -A "$UA" "https://asia.pokemon-card.com/tw/card-search/list/?expansionCodes=M6a" | tr -s ' \n' | grep -oE '<li class="card">.{0,500}' | head -3
