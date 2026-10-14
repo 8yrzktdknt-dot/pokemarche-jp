@@ -26,7 +26,7 @@ export async function buildPokemonIntl(langs = ['en', 'fr', 'de', 'es', 'it', 'p
         const set = {
           id: b.id,
           code: (st?.abbreviation?.official ?? st?.tcgOnline ?? b.id).toUpperCase(),
-          name: b.name,
+          name: b.name.replace(/([a-zé])(\d+ᵉ)/, '$1 $2'), // « Collection Classique30ᵉ Anniversaire » (TCGdex)
           releaseDate: st?.releaseDate ?? fb?.releaseDate,
           logo: asset(b.logo ?? st?.logo) ?? fb?.logo,
           count: b.cardCount?.total ?? st?.cardCount?.total,

@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
-# Fichiers publics Cardmarket : produits et prix de l'extension « 30th Celebration » (6601) et voisines.
+# Mew RGB (30th Celebration) : où trouver fiches et visuels (TCGdex, Limitless).
 set -u
-curl -s -m 120 -o p.json https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json
-curl -s -m 120 -o g.json https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_6.json
-ls -la p.json g.json
-for e in 6600 6601 6605 6606 6607; do
-  echo "== extension $e : $(jq "[.products[]|select(.idExpansion==$e)]|length" p.json) produits"
+UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
+for l in en fr; do
+  echo "== TCGdex $l me55"
+  curl -s -m 30 "https://api.tcgdex.net/v2/$l/sets/me55" | jq -c '{cardCount, last: [.cards[-6:][]|{id,localId,name,image}], rgb: [.cards[]|select(.localId|test("[A-Z]"))|{id,localId,name,image}]}'
 done
-echo "== 6601 (tous)"
-jq -c --slurpfile g g.json '($g[0].priceGuides|map({(.idProduct|tostring):.})|add) as $pg | .products[]|select(.idExpansion==6601)|[.idProduct,.name,.dateAdded,($pg[.idProduct|tostring]|{avg7,avg30,avg,"avg7-holo","avg30-holo"})]' p.json
-echo "== extensions récentes (id >= 6590)"
-jq -c '[.products[]|select(.idExpansion>=6590)]|group_by(.idExpansion)|map([.[0].idExpansion,length,.[0].name,.[1].name])[]' p.json
+echo "== Limitless liste 30C (RGB)"
+curl -s -m 30 -A "$UA" "https://limitlesstcg.com/cards/30C" | grep -o '[^"<> ]*RGB[^"<> ]*' | sort -u | head -40
+for n in RRGB R-RGB GRGB BRGB 159 160 161 R G B; do
+  code=$(curl -s -m 20 -A "$UA" -o /tmp/l.html -w "%{http_code}" "https://limitlesstcg.com/cards/30C/$n")
+  echo "== Limitless 30C/$n : $code"
+  grep -o 'https://limitlesstcg[^"]*\.\(png\|jpg\|webp\)' /tmp/l.html | sort -u | head -4
+  grep -o 'cardmarket[^"]*' /tmp/l.html | head -3
+  grep -o '<title>[^<]*' /tmp/l.html
+done
+echo "== Limitless recherche Mew 30C"
+curl -s -m 30 -A "$UA" "https://limitlesstcg.com/cards?q=mew+set%3A30C" | grep -o 'href="/cards/30C/[^"]*"' | sort -u | head -20
+for v in R G B; do
+  for p in "30C_${v}RGB_R_EN" "30C_${v}-RGB_R_EN" "30C_RGB${v}_R_EN" "30C_${v}_RGB_R_EN"; do
+    echo "$p $(curl -s -m 20 -o /dev/null -w "%{http_code}" "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/30C/${p}_LG.png")"
+  done
+done
+echo "== mik.moe 30thC R/G/B"
+for v in R G B; do echo "$v $(curl -s -m 20 -o /dev/null -w "%{http_code} %{size_download}" "https://tcg.mik.moe/static/img/30thC/$v.png")"; done

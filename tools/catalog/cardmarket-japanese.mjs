@@ -146,8 +146,11 @@ export function completeJapanesePrices(decks, files, known) {
  */
 export const INTL_EXPANSIONS = { '30th': 6601, '30th-c': 6601 };
 
-/** Nom comparable d'une fiche (« 30th-Celebration/Uxie-Lv55-30CLA-43 » → « uxielv55 ») ou d'un produit (« Uxie Lv.55 [Set Up] »). */
-const pathKey = (p) => p.split('/').pop().replace(/-30C[A-Z]*-?\d+$/, '').replace(/-V\d+$/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+/**
+ * Nom comparable d'une fiche (« 30th-Celebration/Uxie-Lv55-30CLA-43 » → « uxielv55 », « Mew-V1-30CRRGB » → « mew »)
+ * ou d'un produit (« Uxie Lv.55 [Set Up] »).
+ */
+const pathKey = (p) => p.split('/').pop().replace(/-30C[A-Z]*-?[A-Z0-9]*$/, '').replace(/-V\d+$/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const productKey = (name) => name.replace(/\s*\[[^\]]*\]\s*$/, '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /**
