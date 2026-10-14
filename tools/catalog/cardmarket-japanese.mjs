@@ -139,3 +139,50 @@ export function completeJapanesePrices(decks, files, known) {
   console.log(`Prix Cardmarket japonais (fichiers Cardmarket) : ${filled} cartes ; ${report.join(' ')}`);
   return filled;
 }
+
+/**
+ * Extensions internationales sans prix TCGdex, reliées à la main à leur extension Cardmarket.
+ * 30th Celebration (6601) : l'extension principale et la Collection Classique (CC1…CC30) y sont réunies.
+ */
+export const INTL_EXPANSIONS = { '30th': 6601, '30th-c': 6601 };
+
+/** Nom comparable d'une fiche (« 30th-Celebration/Uxie-Lv55-30CLA-43 » → « uxielv55 ») ou d'un produit (« Uxie Lv.55 [Set Up] »). */
+const pathKey = (p) => p.split('/').pop().replace(/-30C[A-Z]*-?\d+$/, '').replace(/-V\d+$/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const productKey = (name) => name.replace(/\s*\[[^\]]*\]\s*$/, '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Prix Cardmarket des extensions internationales d'INTL_EXPANSIONS. `decks` : [{ setId, cards }] (modifiés sur place),
+ * dans l'ordre de l'extension principale puis des sous-ensembles : les cartes de même nom prennent les n° produit dans l'ordre.
+ */
+export function completeIntlPrices(decks, files) {
+  const byExp = new Map();
+  for (const { setId, cards } of decks) {
+    const exp = INTL_EXPANSIONS[setId];
+    if (exp) byExp.set(exp, [...(byExp.get(exp) ?? []), ...cards]);
+  }
+  let filled = 0;
+  for (const [exp, cards] of byExp) {
+    const ids = new Map();
+    for (const p of files.products.filter((x) => x.idExpansion === exp).sort((a, b) => a.idProduct - b.idProduct)) {
+      const k = productKey(p.name);
+      ids.set(k, [...(ids.get(k) ?? []), p.idProduct]);
+    }
+    const groups = new Map();
+    for (const c of cards) {
+      const k = c.cmPath ? pathKey(c.cmPath) : c.nameEn && productKey(c.nameEn);
+      if (k) groups.set(k, [...(groups.get(k) ?? []), c]);
+    }
+    for (const [k, list] of groups) {
+      const found = ids.get(k) ?? [];
+      // Un à un, dans l'ordre des n° produit ; produits en trop (ajoutés après coup : éditions spéciales) ignorés.
+      // Moins de produits que de cartes : rien (mieux vaut pas de prix qu'un faux).
+      if (found.length < list.length) continue;
+      list.forEach((c, i) => {
+        const cm = priceOf(files.prices.get(found[i]));
+        if (cm) { c.cm = { ...cm, f: 1 }; filled++; }
+      });
+    }
+  }
+  console.log(`Prix Cardmarket (fichiers Cardmarket, extensions sans prix TCGdex) : ${filled} cartes`);
+  return filled;
+}
