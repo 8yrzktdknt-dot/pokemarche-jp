@@ -69,8 +69,12 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
   const langWord = card.lang !== 'en' ? LANG_WORD[card.lang] : undefined;
   const ebayQuery = [EBAY_GAME[card.game], terms, langWord].filter(Boolean).join(' ');
 
-  const cmId = card.marketIds?.cardmarket;
-  const cmPath = card.marketIds?.cardmarketPath;
+  // Cartes japonaises : Cardmarket a des fiches à part (« 30th-Celebration-JP/Exeggcute-m6a001 ») que nos sources
+  // ne donnent pas ; les liens connus mènent à la version internationale. On cherche donc par nom anglais.
+  const japanese = card.game === 'pokemon' && card.lang === 'ja';
+  const cmId = japanese ? undefined : card.marketIds?.cardmarket;
+  const cmPath = japanese ? undefined : card.marketIds?.cardmarketPath;
+  const cmSearch = japanese ? (card.nameEn ?? card.name) : terms;
   const cmLanguage = CARDMARKET_LANGUAGE[card.lang];
   const tpId = card.marketIds?.tcgplayer;
 
@@ -83,7 +87,7 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
         ? `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Singles/${cmPath.split('/').map(q).join('/')}${cmLanguage ? `?language=${cmLanguage}` : ''}`
         : cmId
           ? `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products?idProduct=${cmId}${cmLanguage ? `&language=${cmLanguage}` : ''}`
-          : `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Search?searchString=${q(terms)}`,
+          : `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Search?searchString=${q(cmSearch)}`,
     },
     {
       id: 'tcgplayer',
