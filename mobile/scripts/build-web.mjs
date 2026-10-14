@@ -17,9 +17,14 @@ const versionFile = join(root, 'version.json');
 const [major, minor, patch] = JSON.parse(readFileSync(versionFile, 'utf8')).version.split('.').map(Number);
 const version = `${major}.${minor}.${patch + 1}`;
 writeFileSync(versionFile, `${JSON.stringify({ version }, null, 2)}\n`);
+// Numéro écrit dans un module de l'app : le cache de construction (Metro) le reprend à coup sûr,
+// contrairement à une variable d'environnement lue dans un fichier qui n'a pas changé.
+writeFileSync(join(root, 'src', 'lib', 'version.ts'), `/** Numéro de version, écrit par scripts/build-web.mjs à chaque construction. */\nexport const APP_VERSION = '${version}';\n`);
 execSync(`npx expo export --platform web --output-dir ${dist}`, { cwd: root, stdio: 'inherit', env: { ...process.env, EXPO_PUBLIC_VERSION: version } });
 
 for (const f of ['apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png']) copyFileSync(join(root, 'assets', f), join(dist, f));
+// Version en ligne, lue par l'app au démarrage pour se mettre à jour d'elle-même.
+writeFileSync(join(dist, 'version.json'), JSON.stringify({ version }));
 
 writeFileSync(join(dist, 'manifest.json'), JSON.stringify({
   name: app.web.name,

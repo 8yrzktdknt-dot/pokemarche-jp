@@ -4,9 +4,12 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { colors, fonts } from '../components/ui';
+import { useEffect } from 'react';
+import { watchForUpdates } from '../lib/autoUpdate';
 import { StoreProvider, useStore } from '../lib/store';
 
 export default function Layout() {
+  useEffect(() => watchForUpdates(), []);
   const [loaded, error] = useFonts({ Manrope_400Regular, Manrope_700Bold, Manrope_800ExtraBold, Unbounded_800ExtraBold });
   // Polices introuvables (hors-ligne…) : on affiche quand même l'app avec les polices système.
   if (!loaded && !error) return null;
