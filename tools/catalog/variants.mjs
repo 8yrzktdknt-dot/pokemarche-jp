@@ -123,3 +123,21 @@ export function applyCardmarketPrices(cards, files) {
   }
   return n;
 }
+
+/** Extensions des 30 ans (toutes langues) : toutes les cartes sont holo. */
+export const ALL_HOLO = new Set(['30th', '30th-c', 'M6a', 'MF', '30thC', '30thDC']);
+
+/**
+ * Cartes toutes holo : la variante de base « normale » (TCGdex) devient « holo », avec sa fiche et son prix ;
+ * une carte sans liste de variantes reçoit la variante holo (fiche et prix de la carte).
+ */
+export function forceHolo(cards) {
+  for (const c of cards) {
+    if (!c.v?.length) {
+      c.v = [{ k: 'holo', ...(c.cm?.id ? { id: c.cm.id } : {}), ...(c.cm?.avg7 ? { p: c.cm.avg7 } : {}) }];
+      continue;
+    }
+    if (c.v[0].k === 'normal') c.v[0] = { ...c.v[0], k: 'holo' };
+  }
+  return cards;
+}

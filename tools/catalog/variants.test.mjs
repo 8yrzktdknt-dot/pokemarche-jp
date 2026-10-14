@@ -76,3 +76,14 @@ test('PokemonWizard : motifs et photo (n° produit TCGplayer) par numéro', asyn
     + '\\"tcgplayer_product_id\\":666096,\\"name\\":\\"Cynthia\'s Roserade (Energy Symbol Pattern)\\",\\"slug\\":\\"z\\",\\"card_number\\":\\"10\\",';
   assert.deepEqual(parseWizardVariants(html).get('10'), [{ k: 'pokeball', tp: 665930 }, { k: 'reverse-energy', tp: 666096 }]);
 });
+
+test('30 ans : toutes les cartes holo', async () => {
+  const { forceHolo, ALL_HOLO } = await import('./variants.mjs');
+  const cards = forceHolo([
+    { v: [{ k: 'normal', id: 1, p: 0.3 }] },
+    { cm: { id: 2, avg7: 5 } },
+    { v: [{ k: 'holo', id: 3 }, { k: 'reverse', id: 3 }] },
+  ]);
+  assert.deepEqual(cards.map((c) => c.v), [[{ k: 'holo', id: 1, p: 0.3 }], [{ k: 'holo', id: 2, p: 5 }], [{ k: 'holo', id: 3 }, { k: 'reverse', id: 3 }]]);
+  assert.ok(ALL_HOLO.has('M6a') && ALL_HOLO.has('30th-c'));
+});

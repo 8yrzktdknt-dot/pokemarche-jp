@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { loadCardmarketFiles, matchProducts, pickExpansion, priceOf } from './cardmarket-japanese.mjs';
 import { CATALOG, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { ownLogo } from './logos.mjs';
+import { ALL_HOLO, forceHolo } from './variants.mjs';
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
 const TW = 'https://asia.pokemon-card.com/tw';
@@ -203,6 +204,7 @@ function buildTraditional({ sets, details }) {
     for (const c of cards) { if (seen.has(c.id)) c.id = `${c.id}-tw${c.tw}`; seen.add(c.id); }
     total += cards.length;
     const id = js?.id ?? e.code;
+    if (ALL_HOLO.has(id)) forceHolo(cards);
     writeJson(`cards/pokemon-zh-tw/${id}.json`, cards);
     const set = {
       id, code: js?.code ?? e.code, name: js?.name ?? e.title, nameLocal: e.title,
@@ -381,6 +383,7 @@ async function buildSimplified({ sets, details }) {
       for (const k of Object.keys(c)) if (c[k] === undefined) delete c[k];
     }
     total += cards.length;
+    if (ALL_HOLO.has(e.code)) forceHolo(cards);
     writeJson(`cards/pokemon-zh-cn/${e.code}.json`, cards);
     const b = cnBloc(e.code);
     if (!blocs.has(b.id)) blocs.set(b.id, { ...b, sets: [] });
