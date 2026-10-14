@@ -3,15 +3,15 @@ import { test } from 'node:test';
 import { matchProducts, pickExpansion, priceOf } from './cardmarket-japanese.mjs';
 
 const exps = new Map([
-  [1, { count: 49, names: new Set(['tropius', 'zoroark', 'espeonex', 'umbreonex']) }],
-  [2, { count: 45, names: new Set(['tropius', 'zoroark', 'espeonex', 'umbreonex']) }],
-  [3, { count: 49, names: new Set(['tropius', 'zoroark', 'espeonex', 'umbreonex']) }],
+  [1, { count: 49, names: new Set(['tropius', 'zoroark', 'espeonex', 'umbreonex']), first: '2026-09-11' }],
+  [2, { count: 45, names: new Set(['tropius', 'zoroark', 'espeonex', 'umbreonex']), first: '2026-09-01' }],
+  [3, { count: 49, names: new Set(['tropius', 'zoroark', 'espeonex', 'umbreonex']), first: '2026-09-12' }],
 ]);
 const cards = Array.from({ length: 49 }, (_, i) => ({ id: `MF-${i}`, localId: String(i), nameEn: ['Tropius', 'Zoroark', 'Espeon ex', 'Umbreon ex'][i % 4] }));
 
-test('extension Cardmarket : taille la plus proche, rien si deux candidats équivalents', () => {
-  assert.equal(pickExpansion(cards, exps, new Set([3])), 1);
-  assert.equal(pickExpansion(cards, exps, new Set()), undefined);
+test('extension Cardmarket : taille la plus proche, puis la première créée', () => {
+  assert.equal(pickExpansion(cards, exps, new Set([1])), 3);
+  assert.equal(pickExpansion(cards, exps, new Set()), 1);
 });
 
 test('produits attribués par nom puis par ordre', () => {

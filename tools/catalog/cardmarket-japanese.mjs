@@ -2,15 +2,19 @@
 //  - liste des produits (n° produit, nom anglais « Exeggcute [Hypnosis] », n° d'extension, sans nom d'extension),
 //  - guide des prix (moyennes des ventes par n° produit).
 // L'extension japonaise de chaque extension du catalogue est celle qui contient ses cartes (noms anglais),
-// n'est ni anglaise ni déjà prise par une autre extension japonaise, et a le nombre de cartes le plus proche.
+// n'est ni anglaise ni déjà prise par une autre extension japonaise, et a le nombre de cartes le plus proche ;
+// à égalité, la première créée (Cardmarket crée l'extension japonaise avant les chinoises, thaï…).
 // Les cartes de même nom sont attribuées dans l'ordre des numéros (les n° produit suivent l'ordre de l'extension).
 import { getJson } from './lib.mjs';
 
 const PRODUCTS = 'https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json';
 const PRICES = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_6.json';
 
-/** Extensions dont le choix est confirmé à la main (code du catalogue → n° d'extension Cardmarket). */
-export const JA_EXPANSIONS = {};
+/**
+ * Extensions dont le choix est confirmé à la main (code du catalogue → n° d'extension Cardmarket).
+ * M6a : 6601 anglais/français, 6602 japonais (et coréen, chinois traditionnel), 6603 chinois simplifié, 6604 thaï/indonésien.
+ */
+export const JA_EXPANSIONS = { M6a: 6602 };
 
 const base = (name) => name.split(' [')[0].trim().toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
 
@@ -28,14 +32,10 @@ export function pickExpansion(cards, expansions, excluded) {
     if (excluded.has(id)) continue;
     let hit = 0;
     for (const n of names) if (e.names.has(n)) hit++;
-    if (hit / names.size >= 0.85) cand.push({ id, hit, diff: Math.abs(e.count - cards.length) });
+    if (hit / names.size >= 0.85) cand.push({ id, hit, diff: Math.abs(e.count - cards.length), first: e.first ?? '' });
   }
-  cand.sort((a, b) => b.hit - a.hit || a.diff - b.diff);
-  const best = cand[0];
-  if (!best) return undefined;
-  // Deux candidats équivalents (même couverture, même taille) : on ne devine pas.
-  if (cand[1] && cand[1].hit === best.hit && cand[1].diff === best.diff) return undefined;
-  return best.id;
+  cand.sort((a, b) => b.hit - a.hit || a.diff - b.diff || a.first.localeCompare(b.first));
+  return cand[0]?.id;
 }
 
 /** Cartes → n° produit dans une extension : par nom, puis dans l'ordre des numéros et des n° produit. */
@@ -82,8 +82,9 @@ export function completeJapanesePrices(decks, files, known) {
   const expansions = new Map();
   const productsByExp = new Map();
   for (const p of files.products) {
-    const e = expansions.get(p.idExpansion) ?? { count: 0, names: new Set() };
+    const e = expansions.get(p.idExpansion) ?? { count: 0, names: new Set(), first: p.dateAdded };
     e.count++;
+    if (p.dateAdded && p.dateAdded > '0000' && (!e.first || e.first <= '0000' || p.dateAdded < e.first)) e.first = p.dateAdded;
     e.names.add(base(p.name));
     expansions.set(p.idExpansion, e);
     productsByExp.set(p.idExpansion, [...(productsByExp.get(p.idExpansion) ?? []), p]);
