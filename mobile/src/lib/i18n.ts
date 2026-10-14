@@ -139,7 +139,7 @@ const fr = {
   'acc.clear': 'Vider la collection',
   'acc.clearConfirm': 'Supprimer toutes les cartes de la collection ?',
   'acc.footer': 'PokéMarket · données TCGdex, OPTCG API et Riftcodex. Pokémon, One Piece et Riftbound sont des marques de leurs ayants droit.',
-  'acc.version': 'Version du {v}',
+  'acc.version': 'Version {v}',
   'coll.count': '{n} carte|{n} cartes',
   'coll.value': 'Valeur estimée : {v}',
   'coll.empty': 'Scanne ta première carte !',
