@@ -24,3 +24,18 @@ test('moyennes du guide des prix', () => {
   assert.deepEqual(priceOf({ idProduct: 7, avg7: null, 'avg7-holo': 2, avg30: 3, avg: 0 }), { id: 7, avg7: 2, avg30: 3 });
   assert.equal(priceOf({ idProduct: 7 }), undefined);
 });
+
+test('trous de la suite des n° produit comblés', async () => {
+  const { fillGaps } = await import('./cardmarket-japanese.mjs');
+  const cards = ['013', '014', '015', '146', '147', '148', '149', '150'].map((n) => ({ id: n, localId: n }));
+  const products = [907777, 907778, 907779, 907910, 907911, 907912, 907913, 907914, 907915].map((idProduct) => ({ idProduct }));
+  const out = new Map([['013', 907777], ['015', 907779], ['146', 907911], ['150', 907915]]);
+  fillGaps(cards, products, out);
+  assert.equal(out.get('014'), 907778);
+  assert.equal(out.get('147'), 907912);
+  assert.equal(out.get('149'), 907914);
+  // Écart incohérent : rien.
+  const out2 = new Map([['013', 907777], ['015', 907790]]);
+  fillGaps(cards, products, out2);
+  assert.equal(out2.get('014'), undefined);
+});
