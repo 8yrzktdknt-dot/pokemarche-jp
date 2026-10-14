@@ -9,6 +9,7 @@ const asset = (u) => (u ? `${u}.webp` : undefined);
 // Blocs à part (promos, kits, cartes géantes) placés après les blocs principaux ; TCG Pocket (jeu mobile) exclu.
 const SIDE = new Set(['misc', 'tk', 'pop', 'mc', 'mcd']);
 const EXCLUDED = new Set(['tcgp']);
+const LOCAL_LOGOS = new Set(['en', 'fr']);
 
 export async function buildPokemonIntl(langs = ['en', 'fr', 'de', 'es', 'it', 'pt']) {
   // Les identifiants d'extensions sont communs aux langues : dates et logos anglais en secours.
@@ -34,6 +35,13 @@ export async function buildPokemonIntl(langs = ['en', 'fr', 'de', 'es', 'it', 'p
         return set;
       });
       blocs.push({ id: s.id, name: s.name, sets });
+    }
+    // Langues affichées dans l'app : logos TCGdex enregistrés avec le catalogue (un lien mort est remplacé par une autre source).
+    if (LOCAL_LOGOS.has(lang)) {
+      await pool(blocs.flatMap((b) => b.sets).filter((x) => /^https?:/.test(x.logo ?? '')), 6, async (x) => {
+        x.logo = await saveLogo(x.logo, `pokemon-${lang}`, x.id);
+        if (lang === 'en' && x.logo) fallback.set(x.id, { ...fallback.get(x.id), logo: x.logo });
+      });
     }
     // Logos absents de TCGdex : pokemontcg.io puis Pokellector (anglais), enregistrés avec le catalogue.
     // Les autres langues reprennent le logo anglais de la même extension (fallback).
