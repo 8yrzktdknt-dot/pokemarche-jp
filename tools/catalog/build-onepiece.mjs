@@ -1,6 +1,6 @@
 // One Piece Card Game : listes officielles (anglais et japonais) + prix TCGplayer d'OPTCG API pour l'anglais.
 import { getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
-import { saveLogos } from './logos.mjs';
+import { ownLogo, saveLogos } from './logos.mjs';
 
 const SITES = { en: 'https://en.onepiece-cardgame.com', ja: 'https://www.onepiece-cardgame.com' };
 const BLOCS = [
@@ -134,7 +134,7 @@ export async function buildOnePiece() {
       }
       return undefined;
     });
-    for (const x of all) if (logos.has(x.id)) x.logo = logos.get(x.id);
+    for (const x of all) x.logo = logos.get(x.id) ?? ownLogo(`onepiece-${lang}`, x.id);
     console.log(`One Piece ${lang} : logos ${logos.size}/${all.length}`);
     writeJson(`sets/onepiece-${lang}.json`, { built: new Date().toISOString(), blocs: [...blocs, other].filter((b) => b.sets.length) });
     console.log(`One Piece ${lang} : ${series.length} extensions, ${total} cartes`);

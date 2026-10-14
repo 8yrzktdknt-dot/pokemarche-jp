@@ -178,6 +178,12 @@ export async function saveLogo(url, folder, id, width = 400) {
   }
 }
 
+/** Logo déjà présent dans le catalogue (ex. créé par tools/logos/make-deck-logos.cjs) : chemin, sinon undefined. */
+export function ownLogo(folder, id) {
+  const rel = `logos/${folder}/${id.replace(/[^A-Za-z0-9._-]/g, '_')}.png`;
+  return existsSync(join(CATALOG, rel)) ? rel : undefined;
+}
+
 /**
  * Enregistre les logos trouvés pour une liste d'extensions ; `pick(set)` donne l'URL d'origine,
  * ou une liste d'URL à essayer dans l'ordre. Renvoie id → chemin.

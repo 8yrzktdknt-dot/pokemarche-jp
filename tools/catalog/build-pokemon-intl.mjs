@@ -1,7 +1,7 @@
 // Pokémon (cartes internationales) : extensions TCGdex par langue, triées par date de sortie, avec logos.
 import { ptcgCandidates } from './build-pokemon-cards.mjs';
 import { getJson, pool, sortByRelease, writeJson } from './lib.mjs';
-import { findLogo, pokellectorLogos, saveLogo, scrydexLogo } from './logos.mjs';
+import { findLogo, ownLogo, pokellectorLogos, saveLogo, scrydexLogo } from './logos.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
 const asset = (u) => (u ? `${u}.webp` : undefined);
@@ -43,6 +43,8 @@ export async function buildPokemonIntl(langs = ['en', 'fr', 'de', 'es', 'it', 'p
         if (lang === 'en' && x.logo) fallback.set(x.id, { ...fallback.get(x.id), logo: x.logo });
       });
     }
+    // Logos créés pour les produits qui n'en ont pas (tools/logos/make-deck-logos.cjs), dans la langue de l'extension.
+    for (const x of blocs.flatMap((b) => b.sets)) x.logo ??= ownLogo(`pokemon-${lang}`, x.id);
     // Logos absents de TCGdex : pokemontcg.io puis Pokellector (anglais), enregistrés avec le catalogue.
     // Les autres langues reprennent le logo anglais de la même extension (fallback).
     if (lang === 'en') {
