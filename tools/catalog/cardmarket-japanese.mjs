@@ -61,7 +61,32 @@ export function matchProducts(cards, products) {
     if (ids.length === sorted.length) sorted.forEach((c, i) => out.set(c.id, ids[i]));
     else if (sorted.length === 1 && ids.length === 1) out.set(sorted[0].id, ids[0]);
   }
+  fillGaps(cards, products, out);
   return out;
+}
+
+/**
+ * Cartes restées sans produit (nom différent chez Cardmarket) : les n° produit suivant l'ordre des numéros,
+ * une carte entre deux cartes reliées prend le n° produit à la même distance, s'il existe et n'est pas pris.
+ */
+export function fillGaps(cards, products, out) {
+  const exists = new Set(products.map((p) => p.idProduct));
+  const used = new Set(out.values());
+  const numbered = cards.filter((c) => /^\d+$/.test(c.localId)).sort((a, b) => Number(a.localId) - Number(b.localId));
+  for (let i = 0; i < numbered.length; i++) {
+    const c = numbered[i];
+    if (out.has(c.id)) continue;
+    let lo = i - 1;
+    while (lo >= 0 && !out.has(numbered[lo].id)) lo--;
+    let hi = i + 1;
+    while (hi < numbered.length && !out.has(numbered[hi].id)) hi++;
+    if (lo < 0 || hi >= numbered.length) continue;
+    const [a, b] = [numbered[lo], numbered[hi]];
+    const span = Number(b.localId) - Number(a.localId);
+    if (out.get(b.id) - out.get(a.id) !== span) continue;
+    const id = out.get(a.id) + Number(c.localId) - Number(a.localId);
+    if (exists.has(id) && !used.has(id)) { out.set(c.id, id); used.add(id); }
+  }
 }
 
 const numberOrder = (n) => (/^\d+$/.test(n) ? Number(n) : 10000 + n.charCodeAt(0));
