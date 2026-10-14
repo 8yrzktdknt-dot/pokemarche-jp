@@ -17,6 +17,8 @@ export interface SetViewOptions {
 export interface SetTile {
   /** Carte, dans sa variante quand les variantes sont séparées. */
   card: Card;
+  /** Carte de la liste pour passer d'une fiche à l'autre : la carte de base, avec sa variante en mode Séparer. */
+  browse: Card;
   key: string;
   /** Exemplaires possédés (toutes variantes confondues quand elles sont empilées). */
   quantity: number;
@@ -51,14 +53,14 @@ export function setView(
     if (o.split && variants) {
       for (const v of variants) {
         const card = withVariant(c, v.key);
-        tiles.push({ card, key: `${c.id}#${v.key}`, quantity: quantityOf(card), index, variantKey: v.key });
+        tiles.push({ card, browse: { ...c, variant: v.key }, key: `${c.id}#${v.key}`, quantity: quantityOf(card), index, variantKey: v.key });
       }
     } else if (o.split) {
-      tiles.push({ card: c, key: c.id, quantity: quantityOf(c), index, variantKey: baseVariant(c.rarity) });
+      tiles.push({ card: c, browse: c, key: c.id, quantity: quantityOf(c), index, variantKey: baseVariant(c.rarity) });
     } else {
       const card = variants ? withVariant(c) : c;
       const quantity = variants ? variants.reduce((n, v) => n + quantityOf(withVariant(c, v.key)), 0) : quantityOf(c);
-      tiles.push({ card, key: c.id, quantity, index });
+      tiles.push({ card, browse: c, key: c.id, quantity, index });
     }
   });
   const shown = o.state === 'all' ? tiles : tiles.filter((t) => (o.state === 'owned') === t.quantity > 0);

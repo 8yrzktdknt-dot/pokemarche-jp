@@ -102,12 +102,13 @@ export default function CardScreen() {
   const [variantKey, setVariantKey] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
 
-  const nav = neighbors({ game, id, lang });
+  const nav = neighbors({ game, id, lang, variant });
   const go = (c?: Card, from: 1 | -1 = 1) => {
     if (!c) return;
     // La carte suivante arrive en glissant du côté opposé au geste (voir l'effet d'entrée plus bas).
     enterFrom = from;
-    router.replace({ pathname: '/card/[game]/[id]', params: { game: c.game, id: c.id, lang: c.lang } });
+    // Variantes séparées : chaque variante est une étape du parcours (la fiche s'ouvre sur elle).
+    router.replace({ pathname: '/card/[game]/[id]', params: { game: c.game, id: c.id, lang: c.lang, ...(c.variant ? { variant: c.variant } : {}) } });
   };
 
   // Glisser le doigt vers la gauche / la droite : carte suivante / précédente.
@@ -177,12 +178,14 @@ export default function CardScreen() {
   useEffect(() => {
     let alive = true;
     // Affichage immédiat avec les infos de la liste, puis la fiche complète (prix, attributs).
-    setCard(browseCard({ game, id, lang }) ?? null);
+    setCard(browseCard({ game, id, lang, variant }) ?? null);
     setVariantKey(variant);
     setError(null);
     // Fiche complète : le visuel déjà affiché est gardé (pas de second chargement d'image en plein geste).
     GAMES[game].getCard(id, lang).then(
-      (c) => alive && setCard((prev) => (prev && c ? { ...c, imageSmall: prev.imageSmall ?? c.imageSmall, imageLarge: prev.imageLarge ?? c.imageLarge } : c)),
+      (c) => alive && setCard((prev) => (prev && c
+        ? { ...c, imageSmall: prev.baseImage?.small ?? prev.imageSmall ?? c.imageSmall, imageLarge: prev.baseImage?.large ?? prev.imageLarge ?? c.imageLarge }
+        : c)),
       (e) => alive && setError(String(e)),
     );
     return () => { alive = false; };
@@ -203,7 +206,8 @@ export default function CardScreen() {
   if (!card) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
   // Images des cartes voisines préchargées : le passage d'une carte à l'autre est instantané.
   for (const c of [nav.prev, nav.next]) {
-    for (const u of [c?.imageLarge, c?.imageSmall]) if (u) Image.prefetch(u).catch(() => {});
+    const v = c ? withVariant(c, c.variant) : undefined;
+    for (const u of [v?.imageLarge, v?.imageSmall]) if (u) Image.prefetch(u).catch(() => {});
   }
 
   // La carte dans la variante choisie : prix (moyenne Cardmarket 7 jours) et fiche Cardmarket de la variante.
