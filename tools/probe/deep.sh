@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Message de test au support (même envoi que « Signaler un problème ») et vérification de la table « reports ».
+# Fichiers publics Cardmarket : produits et prix de l'extension « 30th Celebration » (6601) et voisines.
 set -u
-curl -s -m 60 -X POST https://api.web3forms.com/submit \
-  -H "Content-Type: application/json" -H "Accept: application/json" \
-  -H "Origin: https://bananaintrouble.github.io" -H "Referer: https://bananaintrouble.github.io/tcgmarket/app/report" \
-  -H "User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1" \
-  -d '{"access_key":"bb7cad15-ec72-4d2e-a04e-382e7ce1c473","subject":"[TCGMarket] Test · Signaler un problème","from_name":"TCGMarket","Sujet":"Test","Message":"Ceci est un message de test envoyé par le formulaire « Signaler un problème » de TCGMarket.","Carte":"Bulbizarre · 001/132 · Méga-Évolution","Identifiant":"pokemon / fr / me01-001","Version":"0.0.20"}' -w "\n[%{http_code}]\n"
-K=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvYmV0dHFyY21hcXF0d3ZpZGxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5Nzg0NzgsImV4cCI6MjEwNzU1NDQ3OH0.mBamLEvUqFob7-_CCwr44Y9WCSYDTgwfudQ_6TtPvnE
-echo "== table reports (insert test)"
-curl -s -m 30 -X POST "https://pobettqrcmaqqtwvidlf.supabase.co/rest/v1/reports" -H "apikey: $K" -H "Authorization: Bearer $K" -H "Content-Type: application/json" -H "Prefer: return=minimal" \
-  -d '{"topic":"Test","message":"Message de test (vérification de la table)","version":"0.0.20"}' -w "[%{http_code}]\n"
+curl -s -m 120 -o p.json https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json
+curl -s -m 120 -o g.json https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_6.json
+ls -la p.json g.json
+for e in 6600 6601 6605 6606 6607; do
+  echo "== extension $e : $(jq "[.products[]|select(.idExpansion==$e)]|length" p.json) produits"
+done
+echo "== 6601 (tous)"
+jq -c --slurpfile g g.json '($g[0].priceGuides|map({(.idProduct|tostring):.})|add) as $pg | .products[]|select(.idExpansion==6601)|[.idProduct,.name,.dateAdded,($pg[.idProduct|tostring]|{avg7,avg30,avg,"avg7-holo","avg30-holo"})]' p.json
+echo "== extensions récentes (id >= 6590)"
+jq -c '[.products[]|select(.idExpansion>=6590)]|group_by(.idExpansion)|map([.[0].idExpansion,length,.[0].name,.[1].name])[]' p.json

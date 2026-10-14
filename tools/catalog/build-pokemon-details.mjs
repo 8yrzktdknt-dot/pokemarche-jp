@@ -4,9 +4,9 @@
 // Source : fiche TCGdex de chaque carte, dans la langue de la carte (les prix sont communs aux langues).
 // Les cartes japonaises sont retrouvées par extension et numéro dans le catalogue japonais de TCGdex.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { cardmarketPaths, classicCollectionPaths, classicKey } from './cardmarket-links.mjs';
-import { completeJapanesePrices, loadCardmarketFiles } from './cardmarket-japanese.mjs';
+import { INTL_EXPANSIONS, completeIntlPrices, completeJapanesePrices, loadCardmarketFiles } from './cardmarket-japanese.mjs';
 import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
 import { matchWizardSet, officialCardId, parseOfficialAttrs, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
 import { CATALOG, getJson, getText, pool, writeJson } from './lib.mjs';
@@ -167,8 +167,23 @@ export function applyClassicCollection(cards, pages, lang) {
 }
 
 /** Cartes japonaises sans prix TCGdex : n° produit et moyennes depuis les fichiers publics de Cardmarket. */
+/** Fichiers publics Cardmarket (produits, guide des prix), téléchargés une fois par exécution. */
+let cmFiles;
+const cardmarketFiles = () => (cmFiles ??= loadCardmarketFiles().catch(() => null));
+
+/** Extensions internationales sans prix TCGdex (30th Celebration et sa Collection Classique) : fichiers Cardmarket. */
+async function completeIntlCardmarket(dir, files) {
+  const ids = Object.keys(INTL_EXPANSIONS).filter((id) => files.includes(`${id}.json`));
+  if (!ids.length) return;
+  const cmf = await cardmarketFiles();
+  if (!cmf?.products.length) { console.warn('Fichiers Cardmarket indisponibles'); return; }
+  const decks = ids.map((setId) => ({ setId, cards: JSON.parse(readFileSync(join(dir, `${setId}.json`), 'utf8')) }));
+  completeIntlPrices(decks, cmf);
+  for (const { setId, cards } of decks) writeJson(`cards/${basename(dir)}/${setId}.json`, cards);
+}
+
 async function completeJapaneseCardmarket(dir, files) {
-  const cmf = await loadCardmarketFiles().catch(() => null);
+  const cmf = await cardmarketFiles();
   if (!cmf?.products.length) { console.warn('Fichiers Cardmarket indisponibles'); return; }
   const expOf = new Map(cmf.products.map((p) => [p.idProduct, p.idExpansion]));
   // Extensions déjà occupées : anglaises (prix des cartes internationales) et japonaises reliées par TCGdex.
@@ -319,6 +334,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       applyRarityOverrides(setId, cards);
       writeJson(`cards/pokemon-${lang}/${f}`, cards);
     });
+    if (lang !== 'ja') await completeIntlCardmarket(dir, files);
     if (lang === 'ja') {
       await completeJapaneseFromLimitless(dir, files);
       await completeJapaneseCardmarket(dir, files);
