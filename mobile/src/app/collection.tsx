@@ -5,10 +5,10 @@ import { collectionStats } from '../lib/stats';
 import { useStore } from '../lib/store';
 
 export default function Collection() {
-  const { collection, settings, t, toCurrency } = useStore();
+  const { collection, settings, t, toCurrency, locale } = useStore();
   const st = collectionStats(collection, toCurrency);
   const cards = collection.map((e) => e.card);
-  const total = formatMoney(st.value, settings.currency, settings.appLang === 'en' ? 'en-US' : 'fr-FR');
+  const total = formatMoney(st.value, settings.currency, locale);
 
   return (
     <View style={s.screen}>

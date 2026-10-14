@@ -9,9 +9,8 @@ import { collectionStats } from '../../lib/stats';
 import { useStore } from '../../lib/store';
 
 export default function Dashboard() {
-  const { collection, settings, t, langLabel, toCurrency } = useStore();
+  const { collection, settings, t, langLabel, toCurrency, locale } = useStore();
   const st = useMemo(() => collectionStats(collection, toCurrency), [collection, toCurrency]);
-  const locale = settings.appLang === 'en' ? 'en-US' : 'fr-FR';
   const fmt = (v: number) => formatMoney(v, settings.currency, locale);
   const hello = settings.profileName ? `${t('dash.hello')} ${settings.profileName}` : t('dash.hello');
 

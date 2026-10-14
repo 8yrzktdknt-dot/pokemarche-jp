@@ -56,12 +56,11 @@ function Bar({ label, p }: { label: string; p: Progress }) {
  * les plus chères. Un appui ouvre la page de statistiques de l'extension.
  */
 export function SetOverview({ stats, game, id, lang }: { stats: SetStats; game: GameId; id: string; lang: CardLang }) {
-  const { t, settings } = useStore();
+  const { t, settings, appLang, locale } = useStore();
   const [w, setW] = useState(0);
   const [page, setPage] = useState(0);
   const scroller = useRef<ScrollView>(null);
   const goTo = (i: number) => { scroller.current?.scrollTo({ x: i * w, animated: true }); setPage(i); };
-  const locale = settings.appLang === 'en' ? 'en-US' : 'fr-FR';
   const money = (v: number) => formatMoney(v, settings.currency, locale);
   const open = () => router.push({ pathname: '/set-stats/[game]/[id]', params: { game, id, lang } });
   const pct = percent(stats.base);
@@ -121,7 +120,7 @@ export function SetOverview({ stats, game, id, lang }: { stats: SetStats; game: 
               {stats.top.slice(0, 3).map((x) => (
                 <View key={x.card.id} style={st.topRow}>
                   <Image source={x.card.imageSmall} style={st.thumb} contentFit="cover" />
-                  <Text style={st.topName} numberOfLines={1}>{displayName(x.card, settings.appLang)}</Text>
+                  <Text style={st.topName} numberOfLines={1}>{displayName(x.card, appLang)}</Text>
                   <Text style={st.topPrice}>{money(x.unit)}</Text>
                 </View>
               ))}

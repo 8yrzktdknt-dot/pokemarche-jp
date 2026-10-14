@@ -10,6 +10,7 @@ import { buildPokemonJa } from './build-pokemon-ja.mjs';
 import { buildPokemonZh } from './build-pokemon-zh.mjs';
 import { buildRiftbound } from './build-riftbound.mjs';
 import { buildSearch } from './build-search.mjs';
+import { buildSetNames } from './set-names.mjs';
 import { buildVisual } from './build-visual.mjs';
 
 /** Télécharge des images dans catalog/_grab pour les examiner (étape « grab », URL dans GRAB_URLS). */
@@ -28,9 +29,10 @@ async function grab() {
 }
 
 const STEPS = {
-  grab, 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), 'pokemon-cards': () => buildPokemonCards(), 'pokemon-details': () => buildPokemonDetails(), 'pokemon-zh': buildPokemonZh, onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual(), assets: buildAssets, search: buildSearch };
+  grab, 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), 'pokemon-cards': () => buildPokemonCards(), 'pokemon-details': () => buildPokemonDetails(), 'pokemon-zh': buildPokemonZh, onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual(), assets: buildAssets, 'set-names': () => buildSetNames(), search: buildSearch };
 const wanted = (process.env.STEPS || Object.keys(STEPS).join(',')).split(',').map((s) => s.trim()).filter(Boolean);
-// Les fichiers de recherche suivent toujours les catalogues reconstruits.
+// Noms traduits des extensions puis fichiers de recherche : toujours refaits après les catalogues.
+if (!wanted.includes('set-names')) wanted.push('set-names');
 if (!wanted.includes('search')) wanted.push('search');
 
 let failed = 0;

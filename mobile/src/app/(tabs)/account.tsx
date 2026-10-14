@@ -8,7 +8,7 @@ import { Panel } from '../../components/Stats';
 import { colors, fonts, s } from '../../components/ui';
 import { CURRENCIES, type Currency } from '../../lib/currency';
 import { GAME_LIST, VISIBLE_LANGS } from '../../lib/games';
-import type { AppLang } from '../../lib/i18n';
+import { APP_LANGS, APP_LANG_NAMES, deviceLang, type AppLang } from '../../lib/i18n';
 import { useStore } from '../../lib/store';
 import type { CardLang, GameId } from '../../lib/types';
 
@@ -58,9 +58,12 @@ export default function Account() {
       <Panel title={t('acc.prefs')}>
         <Dropdown
           label={t('lang.app')}
-          value={settings.appLang}
-          options={[{ value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }]}
-          onChange={(l) => l && setSettings({ appLang: l as AppLang })}
+          value={settings.appLang ?? 'auto'}
+          options={[
+            { value: 'auto', label: `${t('lang.auto')} (${APP_LANG_NAMES[deviceLang()]})` },
+            ...APP_LANGS.map((l) => ({ value: l, label: APP_LANG_NAMES[l] })),
+          ]}
+          onChange={(l) => l && setSettings({ appLang: l as AppLang | 'auto' })}
         />
         <Dropdown
           label={t('acc.currency')}

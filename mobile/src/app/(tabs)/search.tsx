@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'r
 import { Dropdown, type Option } from '../../components/Dropdown';
 import { CardRow, GamePicker, colors, fonts, s } from '../../components/ui';
 import { rarityOptions } from '../../lib/catalog/pokemonNames';
+import { localName } from '../../lib/catalog/static';
 import { GAMES, langFor } from '../../lib/games';
 import type { TKey } from '../../lib/i18n';
 import { hasCriteria } from '../../lib/search';
@@ -35,7 +36,7 @@ export default function Search() {
 }
 
 function GameSearch({ game, picker }: { game: GameId; picker: React.ReactNode }) {
-  const { settings, setSettings, t, langLabel } = useStore();
+  const { settings, setSettings, t, langLabel, appLang } = useStore();
   const lang = langFor(game, settings.lang);
   const saved = memory.get(game);
   const [filters, setFilters] = useState<SearchFilters>(saved && saved.lang === lang ? saved.filters : EMPTY);
@@ -91,14 +92,14 @@ function GameSearch({ game, picker }: { game: GameId; picker: React.ReactNode })
     return () => { alive = false; clearTimeout(timer); };
   }, [filters, game, lang, active]);
 
-  const blocOptions: Option[] = useMemo(() => (options?.blocs ?? []).map((b) => ({ value: b.id, label: b.name })), [options]);
+  const blocOptions: Option[] = useMemo(() => (options?.blocs ?? []).map((b) => ({ value: b.id, label: localName(b, appLang) })), [options, appLang]);
   const setOpts: Option[] = useMemo(() => {
     const blocs = (options?.blocs ?? []).filter((b) => !filters.blocId || b.id === filters.blocId);
-    return blocs.flatMap((b) => b.sets.map((x) => ({ value: x.id, label: `${x.code} · ${x.name}` })));
-  }, [options, filters.blocId]);
+    return blocs.flatMap((b) => b.sets.map((x) => ({ value: x.id, label: `${x.code} · ${localName(x, appLang)}` })));
+  }, [options, filters.blocId, appLang]);
   const rarityValues = options?.facets.find((f) => f.key === 'rarity')?.values ?? [];
   const rarityOpts: Option[] =
-    game === 'pokemon' ? rarityOptions(rarityValues, settings.appLang) : rarityValues.map((v) => ({ value: v, label: v }));
+    game === 'pokemon' ? rarityOptions(rarityValues, appLang === 'fr' ? 'fr' : 'en') : rarityValues.map((v) => ({ value: v, label: v }));
   // Pokémon : Blocs / Extensions / Raretés. Les autres jeux gardent leurs filtres propres.
   const extraFacets = game === 'pokemon' ? [] : (options?.facets ?? []).filter((f) => f.key !== 'rarity' && f.values.length);
   const setFacet = (key: string, v?: string) => setFilters({ ...filters, facets: { ...filters.facets, [key]: v ?? '' } });

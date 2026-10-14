@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SetOverview } from '../../../components/SetOverview';
 import { colors, displayName, fonts, s } from '../../../components/ui';
+import { localName } from '../../../lib/catalog/static';
 import { setStats } from '../../../lib/setStats';
 import { GAMES } from '../../../lib/games';
 import { useStore } from '../../../lib/store';
@@ -12,7 +13,7 @@ import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
 
 export default function SetScreen() {
   const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
-  const { collection, t, settings, toCurrency } = useStore();
+  const { collection, t, settings, toCurrency, appLang } = useStore();
   const [set, setSet] = useState<SetInfo | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export default function SetScreen() {
 
   return (
     <View style={s.screen}>
-      <Stack.Screen options={{ title: set?.name ?? id }} />
+      <Stack.Screen options={{ title: set ? localName(set, appLang) : id }} />
       <FlatList
         data={cards}
         key={cols}
@@ -51,7 +52,7 @@ export default function SetScreen() {
         ListHeaderComponent={
           <View style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {set?.logo && <Image source={set.logo} style={{ width: '70%', height: 90 }} contentFit="contain" />}
-            <Text style={[s.h2, { textAlign: 'center' }]}>{set?.name ?? id}</Text>
+            <Text style={[s.h2, { textAlign: 'center' }]}>{set ? localName(set, appLang) : id}</Text>
             <Text style={s.muted}>{t('set.summary', { code: set?.code ?? id, n: cards.length, owned: ownedCount })}</Text>
             {stats && <View style={{ width: '100%', marginTop: 8 }}><SetOverview stats={stats} game={game} id={id} lang={lang} /></View>}
           </View>
@@ -64,7 +65,7 @@ export default function SetScreen() {
                 {owned.has(item.id) && <View style={st.badge}><Text style={st.badgeText}>✓</Text></View>}
               </View>
               <Text style={st.num} numberOfLines={1}>{item.number}</Text>
-              <Text style={st.name} numberOfLines={1}>{displayName(item, settings.appLang)}</Text>
+              <Text style={st.name} numberOfLines={1}>{displayName(item, appLang)}</Text>
             </Pressable>
           </Link>
         )}

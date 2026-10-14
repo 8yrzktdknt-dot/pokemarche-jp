@@ -50,12 +50,15 @@ export interface StaticSet {
   /** Petit symbole d'extension (pastille du code). */
   symbol?: string;
   count?: number;
+  /** Nom par langue de l'app (catalogue : tools/catalog/set-names.mjs). */
+  names?: Record<string, string>;
 }
 
 export interface StaticBloc {
   id: string;
   name: string;
   nameFr?: string;
+  names?: Record<string, string>;
   sets: StaticSet[];
 }
 
@@ -88,21 +91,32 @@ export async function staticSetCards(game: GameId, lang: CardLang, setId: string
   return r?.length ? r : null;
 }
 
-/** Blocs du catalogue au format de l'app (noms en français si demandé et connus). */
-export function toBlocs(blocs: StaticBloc[], appLang: 'fr' | 'en' = 'fr'): Bloc[] {
+/** Noms connus par langue (le nom français historique « nameFr » compris). */
+const namesOf = (x: { nameFr?: string; names?: Record<string, string> }) =>
+  x.nameFr || x.names ? { ...(x.nameFr ? { fr: x.nameFr } : {}), ...(x.names ?? {}) } : undefined;
+
+/** Blocs du catalogue au format de l'app ; les noms traduits suivent (affichés avec localName). */
+export function toBlocs(blocs: StaticBloc[]): Bloc[] {
   return blocs.map((b) => ({
     id: b.id,
-    name: (appLang === 'fr' && b.nameFr) || b.name,
+    name: b.name,
+    names: namesOf(b),
     sets: b.sets.map((x) => ({
       id: x.id,
       code: x.code,
-      name: (appLang === 'fr' && x.nameFr) || x.name,
+      name: x.name,
+      names: namesOf(x),
       logo: assetUrl(x.logo),
       symbol: assetUrl(x.symbol),
       count: x.count,
       blocId: b.id,
     })),
   }));
+}
+
+/** Nom d'un bloc ou d'une extension dans la langue de l'app (sinon l'anglais, sinon le nom de la source). */
+export function localName(x: { name: string; names?: Record<string, string> }, appLang: string): string {
+  return x.names?.[appLang] || x.names?.en || x.name;
 }
 
 export interface StaticRow {
@@ -205,7 +219,7 @@ export async function staticSetCardsAsApp(game: GameId, lang: CardLang, setId: s
   const [blocs, cards] = await Promise.all([staticBlocs(game, lang), staticSetCards(game, lang, setId)]);
   if (!cards) return null;
   const st = blocs?.flatMap((b) => b.sets.map((x) => ({ ...x, blocId: b.id }))).find((x) => x.id === setId);
-  const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, logo: assetUrl(st.logo), count: st.count, blocId: st.blocId } : null;
+  const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, names: namesOf(st), logo: assetUrl(st.logo), count: st.count, blocId: st.blocId } : null;
   return { set, cards: cards.map((c) => staticToCard(game, lang, c, { id: setId, name: st?.name })) };
 }
 

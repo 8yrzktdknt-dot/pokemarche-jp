@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { setBrowseList } from '../lib/browse';
 import { GAME_LIST } from '../lib/games';
 import { useStore } from '../lib/store';
+import type { AppLang } from '../lib/i18n';
 import type { Card, GameId } from '../lib/types';
 
 /** Palette « Rayquaza » (voir la direction artistique TCGMarket). */
@@ -56,8 +57,11 @@ export function GamePicker({
 }
 
 /** Nom affiché selon la langue de l'app (traduction quand elle est connue). */
-export function displayName(card: Card, appLang: 'fr' | 'en'): string {
-  return appLang === 'fr' ? card.nameFr ?? card.nameEn ?? card.name : card.nameEn ?? card.name;
+export function displayName(card: Card, appLang: AppLang): string {
+  // Carte dans la langue de l'app : son nom imprimé ; sinon le nom traduit connu (français), puis l'anglais.
+  if (appLang === card.lang) return card.name;
+  if (appLang === 'fr') return card.nameFr ?? card.nameEn ?? card.name;
+  return card.nameEn ?? card.name;
 }
 
 /** Meilleur prix connu, converti dans la devise choisie. */
@@ -71,9 +75,9 @@ export function useBestPrice(): (card: Card) => string | null {
 
 /** `list` : cartes affichées autour (extension, collection, recherche) pour passer de l'une à l'autre sur la fiche. */
 export function CardRow({ card, right, list }: { card: Card; right?: string; list?: Card[] }) {
-  const { settings } = useStore();
+  const { appLang } = useStore();
   const price = useBestPrice()(card);
-  const name = displayName(card, settings.appLang);
+  const name = displayName(card, appLang);
   return (
     <Link href={{ pathname: '/card/[game]/[id]', params: { game: card.game, id: card.id, lang: card.lang } }} asChild>
       <Pressable style={s.cardRow} onPressIn={() => setBrowseList(list ?? [card])}>
