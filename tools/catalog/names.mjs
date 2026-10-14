@@ -16,6 +16,8 @@ const TRAINERS = {
   'ミモザ': ['Miriam', 'Mimosa'], 'ハッサク': ['Hassel', 'Hassaku'], 'リップ': ['Tulip', 'Tulipe'], 'ライム': ['Ryme', 'Laïm'],
   'グルーシャ': ['Grusha', 'Grusha'], 'チリ': ['Rika', 'Chili'], 'ポピー': ['Poppy', 'Popi'], 'オモダカ': ['Geeta', 'Alisma'],
 };
+// Préfixes d'anciennes cartes (« ひかるセレビィ » → « Shining Celebi », « わるいバンギラス » → « Dark Tyranitar »).
+const PREFIXES = { 'ひかる': ['Shining', 'brillant'], 'わるい': ['Dark', 'obscur'] };
 const REGIONS = {
   'アローラ': ['Alolan', "d'Alola"], 'ガラル': ['Galarian', 'de Galar'], 'ヒスイ': ['Hisuian', 'de Hisui'], 'パルデア': ['Paldean', 'de Paldea'],
 };
@@ -44,14 +46,23 @@ export async function loadSpeciesNames() {
 /** Lettres et chiffres en pleine largeur, comme dans les noms PokeAPI (« ポリゴンZ » → « ポリゴンＺ »). */
 const fullWidth = (s) => s.replace(/[A-Za-z0-9]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0xfee0));
 
-function species(ja) {
+function species(raw) {
+  const ja = raw.trim();
   if (table.has(ja)) return table.get(ja);
   if (table.has(fullWidth(ja))) return table.get(fullWidth(ja));
   if (table.has(ja.normalize('NFKC'))) return table.get(ja.normalize('NFKC'));
   // Région (« アローラロコン » → « Alolan Vulpix », « Goupix d'Alola »)
   for (const [r, [en, fr]] of Object.entries(REGIONS)) {
-    if (ja.startsWith(r) && table.has(ja.slice(r.length))) {
-      const [sEn, sFr] = table.get(ja.slice(r.length));
+    const rest = ja.slice(r.length).trim();
+    if (ja.startsWith(r) && table.has(rest)) {
+      const [sEn, sFr] = table.get(rest);
+      return [`${en} ${sEn}`, `${sFr} ${fr}`];
+    }
+  }
+  for (const [p, [en, fr]] of Object.entries(PREFIXES)) {
+    const rest = ja.slice(p.length).trim();
+    if (ja.startsWith(p) && table.has(rest)) {
+      const [sEn, sFr] = table.get(rest);
       return [`${en} ${sEn}`, `${sFr} ${fr}`];
     }
   }
@@ -71,9 +82,32 @@ function species(ja) {
  */
 export function translateJa(name) {
   if (!table) throw new Error('loadSpeciesNames() d\'abord');
-  const m = name.trim().match(/^(.*?)\s*((?:ex|EX|GX|V|VMAX|VSTAR|V-UNION|BREAK|LV\.X|☆|◇|δ)?)$/);
-  const core = m[1];
+  const full = name.trim().normalize('NFKC');
+  // Moitiés de cartes LEGEND : « ダークライ&クレセリアLEGEND (上) » → « Darkrai & Cresselia LEGEND (Top) ».
+  const half = full.match(/^(.*?)\s*\((上|下)\)$/);
+  if (half) {
+    const t = translateJa(half[1]);
+    return t && [`${t[0]} (${half[2] === '上' ? 'Top' : 'Bottom'})`, `${t[1]} (${half[2] === '上' ? 'Haut' : 'Bas'})`];
+  }
+  // Dresseur seul (« カスミ » → « Misty », « Ondine »).
+  if (TRAINERS[full]) return TRAINERS[full];
+  const m = full.match(/^(.*?)\s*((?:ex|EX|GX|V|VMAX|VSTAR|V-UNION|BREAK|LV\.X|LEGEND|G|☆|◇|δ)?)$/);
+  let core = m[1];
   const suffix = m[2];
+  // Méga-Évolution de l'époque XY : « MサーナイトEX » → « M Gardevoir EX ».
+  const mega = suffix === 'EX' && core.match(/^M(.+)$/);
+  if (mega && species(mega[1])) {
+    const [sEn, sFr] = species(mega[1]);
+    return [`M ${sEn} EX`, `M-${sFr}-EX`];
+  }
+  // Duos (« ピカチュウ&ゼクロムGX » → « Pikachu & Zekrom GX »).
+  if (/[&＆]/.test(core)) {
+    const parts = core.split(/\s*[&＆]\s*/).map((x) => species(x));
+    if (parts.some((x) => !x)) return null;
+    const en = parts.map((x) => x[0]).join(' & ');
+    const fr = parts.map((x) => x[1]).join(' & ');
+    return suffix ? [`${en} ${suffix}`, `${fr}-${suffix}`] : [en, fr];
+  }
   let en, fr;
   const pos = core.indexOf('の');
   if (pos > 0 && TRAINERS[core.slice(0, pos)]) {

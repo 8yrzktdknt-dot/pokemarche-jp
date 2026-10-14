@@ -16,7 +16,8 @@ const PRICES = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/pr
  */
 export const JA_EXPANSIONS = { M6a: 6602 };
 
-const base = (name) => name.split(' [')[0].trim().toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+/** Nom comparable : sans les attaques (« Exeggcute [Hypnosis] »), sans « (Top) / (Bottom) » des cartes LEGEND. */
+const base = (name) => name.split(' [')[0].replace(/\((top|bottom)\)/gi, '').trim().toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
 
 export async function loadCardmarketFiles() {
   const [p, g] = await Promise.all([getJson(PRODUCTS), getJson(PRICES)]);
