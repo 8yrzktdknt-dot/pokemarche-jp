@@ -3,16 +3,19 @@
 // Polices : @fontsource/dela-gothic-one et @fontsource/m-plus-rounded-1c (npm pack) dans <dossier du script>/fonts.
 // Les logos produits sont enregistrés dans catalog/logos/pokemon-ja ; le robot du catalogue garde les fichiers existants.
 const { chromium } = require(process.env.PW);
+const CHROMIUM = process.env.CHROMIUM;
 const fs = require('fs');
 const sharp = require(process.env.SHARP);
 const path = require('path');
 
-const FONTS = path.join(__dirname, 'fonts');
+const FONTS = process.env.FONTS_DIR || path.join(__dirname, 'fonts');
 const catalog = process.argv[2];
 const only = (process.argv[3] || '').split(',').filter(Boolean);
 // SETS=pokemon-fr pour les extensions françaises (par défaut : japonaises).
 const SETS = process.env.SETS || 'pokemon-ja';
 const outDir = process.argv[4] || path.join(catalog, 'logos', SETS);
+// Chinois : polices Noto Sans TC / SC (les polices japonaises n'ont pas tous les caractères simplifiés), tous les logos refaits (ALL=1).
+const CJK = SETS.endsWith('zh-tw') ? 'TC' : SETS.endsWith('zh-cn') ? 'SC' : null;
 
 // Couleurs par génération : dégradé du nom, contour, ruban du type de produit.
 const ERA = {
@@ -32,7 +35,10 @@ const ERA = {
 };
 // Blocs internationaux (identifiants TCGdex) → couleurs ; les kits du dresseur suivent leur génération (« tk-xy-… »).
 const INTL_ERA = { me: 'mega', sv: 'scarlet-violet', swsh: 'sword-shield', sm: 'sun-moon', xy: 'xy', bw: 'black-white', hgss: 'hs', hs: 'hs', dp: 'dp', pl: 'dp', ex: 'ex', base: 'classic', ecard: 'classic', neo: 'classic', mc: 'mc', misc: 'classic' };
+// Blocs chinois : codes de mik.moe (sv, swsh…) et séries du site officiel taïwanais (« tw-超級進化 »).
+const ZH_ERA = { sv: 'scarlet-violet', swsh: 'sword-shield', sm: 'sun-moon', '30th': 'classic', 'tw-超級進化': 'mega', 'tw-朱＆紫': 'scarlet-violet', 'tw-劍＆盾': 'sword-shield', 'tw-太陽＆月亮': 'sun-moon' };
 const eraOf = (bloc, id) => {
+  if (ZH_ERA[bloc]) return ZH_ERA[bloc];
   if (SETS.startsWith('onepiece')) return 'onepiece';
   if (SETS.startsWith('riftbound')) return 'riftbound';
   if (ERA[bloc]) return bloc;
@@ -80,6 +86,8 @@ const PREFIXES = [
   'バトルマスターデッキ', 'メガバトルデッキ60', 'XY BREAKコンボデッキ60', 'XY BREAK進化パック', 'MマスターデッキビルドBOX', '対戦スタートセット30',
   'スーパーレジェンドセット60', 'ハイパーメタルチェーンデッキ60', 'バトルギフトセット', 'バトルテーマデッキ', 'ジャンボパックセット', 'ムービースペシャルパック',
   'トレーナーバトルデッキ：', 'BW コレクションシート', 'スターターセット',
+  // Chinois
+  '擴充包', '強化擴充包', '高級擴充包', '起始牌組', '起始組合', '頂級牌組組合', '牌組構築BOX', '對戰大師牌組', '特別組合',
 ];
 
 /** « スターターセットex イーブイex » → { type: 'スターターセットex', main: 'イーブイex' }. */
@@ -94,7 +102,8 @@ function split(local) {
     if (s.startsWith(p) && s.length > p.length) return { type: p.replace(/：$/, ''), main: s.slice(p.length).trim() };
   }
   const sp = s.indexOf(' ');
-  if (sp > 0) return { type: s.slice(0, sp), main: s.slice(sp + 1) };
+  // « 横空出世 赫 » : la fin d'un seul caractère distingue les versions d'une même extension, le nom reste entier.
+  if (sp > 0 && [...s.slice(sp + 1)].length > 2) return { type: s.slice(0, sp), main: s.slice(sp + 1) };
   return { type: null, main: s };
 }
 
@@ -116,13 +125,14 @@ function html({ type, main }, era) {
   return `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="file://${FONTS}/fontsource-dela-gothic-one-5.3.0/400.css">
 <link rel="stylesheet" href="file://${FONTS}/fontsource-m-plus-rounded-1c-5.3.0/800.css">
+${CJK ? `<link rel="stylesheet" href="file://${FONTS}/fontsource-noto-sans-${CJK.toLowerCase()}-5.2.5/900.css">` : ''}
 <style>
   html,body{margin:0;background:transparent}
   #logo{width:800px;height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
-  .type{font-family:'M PLUS Rounded 1c';font-weight:800;font-size:40px;color:${c.ribbonText};
+  .type{font-family:${CJK ? `'Noto Sans ${CJK}'` : `'M PLUS Rounded 1c'`};font-weight:800;font-size:40px;color:${c.ribbonText};
     padding:4px 26px 8px;border-radius:999px;background:linear-gradient(90deg,${c.ribbon[0]},${c.ribbon[1]});
     border:4px solid #fff;box-shadow:0 4px 0 ${c.stroke};white-space:nowrap;letter-spacing:1px}
-  .main{position:relative;font-family:'Dela Gothic One';font-size:120px;line-height:1.12;white-space:nowrap;letter-spacing:2px;word-spacing:0.3em;text-align:center}
+  .main{position:relative;font-family:${CJK ? `'Noto Sans ${CJK}'` : `'Dela Gothic One'`};${CJK ? 'font-weight:900;' : ''}font-size:120px;line-height:1.12;white-space:nowrap;letter-spacing:2px;word-spacing:0.3em;text-align:center}
   .main span{display:block}
   .main .back{position:absolute;inset:0;-webkit-text-stroke:26px #ffffff;color:#fff;filter:drop-shadow(0 7px 0 ${c.stroke})}
   .main .mid{position:absolute;inset:0;-webkit-text-stroke:14px ${c.stroke};color:${c.stroke}}
@@ -152,11 +162,11 @@ function html({ type, main }, era) {
   for (const b of sets.blocs) {
     for (const s of b.sets) {
       const hasLogo = s.logo && (/^https?:/.test(s.logo) || fs.existsSync(path.join(catalog, s.logo)));
-      if ((only.length ? only.includes(s.id) : !hasLogo) && (s.nameLocal || s.name)) todo.push({ s, era: eraOf(b.id, s.id) });
+      if ((only.length ? only.includes(s.id) : process.env.ALL === '1' || !hasLogo) && (s.nameLocal || s.name)) todo.push({ s, era: eraOf(b.id, s.id) });
     }
   }
   fs.mkdirSync(outDir, { recursive: true });
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(CHROMIUM ? { executablePath: CHROMIUM } : {});
   const page = await browser.newPage({ viewport: { width: 800, height: 380 }, deviceScaleFactor: 1 });
   const tmp = path.join(__dirname, 'logo.html');
   for (const { s, era } of todo) {
