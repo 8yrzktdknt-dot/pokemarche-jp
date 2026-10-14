@@ -19,6 +19,9 @@ import { useStore } from '../../../lib/store';
 import { collectionKey, needsSheen, withVariant } from '../../../lib/variants';
 import type { AttributeKey, Card, CardAttribute, CardLang, GameId, Price } from '../../../lib/types';
 
+/** Côté d'où arrive la prochaine fiche après un glissement (1 : depuis la droite, -1 : depuis la gauche, 0 : sans effet). */
+let enterFrom: 0 | 1 | -1 = 0;
+
 const SOURCE_LABEL = { cardmarket: 'Cardmarket', tcgplayer: 'TCGplayer', cardtrader: 'CardTrader', ebay: 'eBay' };
 /** Petit logo de chaque site (icône officielle, hébergée avec le catalogue). */
 const siteLogo = (id: MarketplaceId) => assetUrl(`sites/${id}.png`);
@@ -100,8 +103,11 @@ export default function CardScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const nav = neighbors({ game, id, lang });
-  const go = (c?: Card) => {
-    if (c) router.replace({ pathname: '/card/[game]/[id]', params: { game: c.game, id: c.id, lang: c.lang } });
+  const go = (c?: Card, from: 1 | -1 = 1) => {
+    if (!c) return;
+    // La carte suivante arrive en glissant du côté opposé au geste (voir l'effet d'entrée plus bas).
+    enterFrom = from;
+    router.replace({ pathname: '/card/[game]/[id]', params: { game: c.game, id: c.id, lang: c.lang } });
   };
 
   // Glisser le doigt vers la gauche / la droite : carte suivante / précédente.
@@ -115,11 +121,20 @@ export default function CardScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const navRef = useRef(nav);
   navRef.current = nav;
+  const native = Platform.OS !== 'web';
+  // Entrée de la carte : glisse depuis le côté d'où vient le geste (carte suivante : depuis la droite).
+  useEffect(() => {
+    if (!enterFrom) return;
+    shift.setValue(enterFrom * Math.min(width, 700) * 0.5);
+    enterFrom = 0;
+    Animated.spring(shift, { toValue: 0, speed: 28, bounciness: 0, useNativeDriver: native }).start();
+  }, [id]);
   const swipe = useRef(
     PanResponder.create({
+      // Seuils bas : le geste est pris dès qu'il est nettement horizontal (ou vers le bas, fiche tout en haut).
       onMoveShouldSetPanResponderCapture: (_, g) =>
-        (Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2) ||
-        (scrollY.current <= 0 && g.dy > 18 && g.dy > Math.abs(g.dx) * 2),
+        (Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5) ||
+        (scrollY.current <= 0 && g.dy > 10 && g.dy > Math.abs(g.dx) * 1.5),
       onPanResponderMove: (_, g) => {
         if (Math.abs(g.dy) > Math.abs(g.dx)) {
           drop.setValue(Math.max(0, g.dy));
@@ -131,27 +146,30 @@ export default function CardScreen() {
       },
       onPanResponderRelease: (_, g) => {
         if (Math.abs(g.dy) > Math.abs(g.dx)) {
-          if (g.dy > 120 || g.vy > 0.8) {
-            Animated.timing(drop, { toValue: 900, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start(close);
+          if (g.dy > 90 || g.vy > 0.5) {
+            // Vitesse du doigt conservée : la fiche part d'autant plus vite que le geste était rapide.
+            const rest = Math.max(0, height - g.dy);
+            Animated.timing(drop, { toValue: height, duration: Math.max(90, Math.min(220, rest / Math.max(g.vy, 1.5))), useNativeDriver: native }).start(close);
           } else {
-            Animated.spring(drop, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+            Animated.spring(drop, { toValue: 0, speed: 24, bounciness: 4, useNativeDriver: native }).start();
           }
           return;
         }
         const { prev, next } = navRef.current;
-        const target = g.dx < -70 || g.vx < -0.5 ? next : g.dx > 70 || g.vx > 0.5 ? prev : undefined;
+        const target = g.dx < -60 || g.vx < -0.35 ? next : g.dx > 60 || g.vx > 0.35 ? prev : undefined;
         if (!target) {
-          Animated.spring(shift, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+          Animated.spring(shift, { toValue: 0, speed: 24, bounciness: 4, useNativeDriver: native }).start();
           return;
         }
-        Animated.timing(shift, { toValue: target === next ? -width : width, duration: 160, useNativeDriver: Platform.OS !== 'web' }).start(() => {
-          go(target);
-          shift.setValue(0);
+        const out = target === next ? -width : width;
+        const rest = Math.abs(out - g.dx);
+        Animated.timing(shift, { toValue: out, duration: Math.max(80, Math.min(160, rest / Math.max(Math.abs(g.vx), 2))), useNativeDriver: native }).start(() => {
+          go(target, target === next ? 1 : -1);
         });
       },
       onPanResponderTerminate: () => {
-        Animated.spring(shift, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
-        Animated.spring(drop, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+        Animated.spring(shift, { toValue: 0, useNativeDriver: native }).start();
+        Animated.spring(drop, { toValue: 0, useNativeDriver: native }).start();
       },
     }),
   ).current;
@@ -162,7 +180,11 @@ export default function CardScreen() {
     setCard(browseCard({ game, id, lang }) ?? null);
     setVariantKey(variant);
     setError(null);
-    GAMES[game].getCard(id, lang).then((c) => alive && setCard(c), (e) => alive && setError(String(e)));
+    // Fiche complète : le visuel déjà affiché est gardé (pas de second chargement d'image en plein geste).
+    GAMES[game].getCard(id, lang).then(
+      (c) => alive && setCard((prev) => (prev && c ? { ...c, imageSmall: prev.imageSmall ?? c.imageSmall, imageLarge: prev.imageLarge ?? c.imageLarge } : c)),
+      (e) => alive && setError(String(e)),
+    );
     return () => { alive = false; };
   }, [game, id, lang, variant]);
 
@@ -170,7 +192,7 @@ export default function CardScreen() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') go(nav.prev);
+      if (e.key === 'ArrowLeft') go(nav.prev, -1);
       if (e.key === 'ArrowRight') go(nav.next);
     };
     window.addEventListener('keydown', onKey);
@@ -181,8 +203,7 @@ export default function CardScreen() {
   if (!card) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
   // Images des cartes voisines préchargées : le passage d'une carte à l'autre est instantané.
   for (const c of [nav.prev, nav.next]) {
-    const u = c?.imageLarge ?? c?.imageSmall;
-    if (u) Image.prefetch(u).catch(() => {});
+    for (const u of [c?.imageLarge, c?.imageSmall]) if (u) Image.prefetch(u).catch(() => {});
   }
 
   // La carte dans la variante choisie : prix (moyenne Cardmarket 7 jours) et fiche Cardmarket de la variante.
@@ -207,12 +228,12 @@ export default function CardScreen() {
       <Stack.Screen options={{ title: displayName(card, appLang) }} />
       {/* Visuel de la variante choisie (photo à part pour Poké Ball, Master Ball…, reflet pour le reverse). */}
       <View style={{ width: (imgH * 63) / 88, height: imgH, alignSelf: 'center' }}>
-        <Image source={view.imageLarge ?? view.imageSmall} placeholder={view.imageSmall} style={{ width: '100%', height: '100%', borderRadius: 12 }} contentFit="contain" />
+        <Image source={view.imageLarge ?? view.imageSmall} style={{ width: '100%', height: '100%', borderRadius: 12 }} contentFit="contain" transition={0} cachePolicy="memory-disk" />
         {needsSheen(view) && <ReverseSheen radius={12} />}
       </View>
       {nav.total > 1 && (
         <View style={st.nav}>
-          <Pressable style={[st.navBtn, !nav.prev && st.navOff]} disabled={!nav.prev} onPress={() => go(nav.prev)} accessibilityLabel={t('card.prev')}>
+          <Pressable style={[st.navBtn, !nav.prev && st.navOff]} disabled={!nav.prev} onPress={() => go(nav.prev, -1)} accessibilityLabel={t('card.prev')}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </Pressable>
           <Text style={st.navCount}>{nav.index + 1} / {nav.total}</Text>
