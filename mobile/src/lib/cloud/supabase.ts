@@ -22,18 +22,18 @@ export function supabase(): SupabaseClient | null {
   return client;
 }
 
-/** Adresse de retour après Google : la page Compte de l'app, à la même adresse que l'app. */
-function returnUrl(): string | undefined {
+/** Adresse de retour (Google, liens des e-mails) : une page de l'app, à la même adresse que l'app. */
+function returnUrl(page = 'account'): string | undefined {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined;
   const i = window.location.pathname.indexOf('/app');
-  return `${window.location.origin}${i >= 0 ? window.location.pathname.slice(0, i) : ''}/app/account`;
+  return `${window.location.origin}${i >= 0 ? window.location.pathname.slice(0, i) : ''}/app/${page}`;
 }
 
 /** Création de compte par e-mail et mot de passe ; true si un e-mail de confirmation doit d'abord être validé. */
 export async function signUpWithPassword(email: string, password: string): Promise<boolean> {
   const sb = supabase();
   if (!sb) throw new Error('cloud');
-  const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl() } });
+  const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl('confirm') } });
   if (error) throw error;
   return !data.session;
 }

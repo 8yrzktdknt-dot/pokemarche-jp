@@ -34,6 +34,7 @@ function AppStack() {
         <Stack.Screen name="scan" options={{ title: t('tab.scan'), headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="set/[game]/[id]" options={{ title: t('title.set') }} />
         <Stack.Screen name="set-stats/[game]/[id]" options={{ title: t('setStats.title') }} />
+        <Stack.Screen name="confirm" options={{ title: t('confirm.title'), headerShown: false }} />
         <Stack.Screen name="collection" options={{ title: t('title.collection') }} />
         <Stack.Screen name="card/[game]/[id]" options={{ title: t('title.card') }} />
       </Stack>
