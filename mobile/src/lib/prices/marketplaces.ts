@@ -69,10 +69,10 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
   const langWord = card.lang !== 'en' ? LANG_WORD[card.lang] : undefined;
   const ebayQuery = [EBAY_GAME[card.game], terms, langWord].filter(Boolean).join(' ');
 
-  // Cartes japonaises : Cardmarket a des fiches à part (« 30th-Celebration-JP/Exeggcute-m6a001 ») que nos sources
-  // ne donnent pas ; les liens connus mènent à la version internationale. On cherche donc par nom anglais.
+  // Cartes japonaises : Cardmarket a des fiches à part (« 30th-Celebration-JP/Exeggcute-m6a001 »). Leur n° produit
+  // (TCGdex japonais, fichiers Cardmarket) y mène directement ; le chemin Limitless, lui, mène à la version internationale.
   const japanese = card.game === 'pokemon' && card.lang === 'ja';
-  const cmId = japanese ? undefined : card.marketIds?.cardmarket;
+  const cmId = card.marketIds?.cardmarket;
   const cmPath = japanese ? undefined : card.marketIds?.cardmarketPath;
   // Recherche « nom anglais (ou français) + code japonais + numéro » : « Exeggcute m6a 001 ».
   const num = card.number.split('/')[0];

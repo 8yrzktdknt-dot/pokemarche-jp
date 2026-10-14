@@ -6,6 +6,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cardmarketPaths } from './cardmarket-links.mjs';
+import { completeJapanesePrices, loadCardmarketFiles } from './cardmarket-japanese.mjs';
 import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
 import { matchWizardSet, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
 import { CATALOG, getJson, pool, writeJson } from './lib.mjs';
@@ -121,6 +122,25 @@ async function japaneseWizard() {
   return out;
 }
 
+/** Cartes japonaises sans prix TCGdex : n° produit et moyennes depuis les fichiers publics de Cardmarket. */
+async function completeJapaneseCardmarket(dir, files) {
+  const cmf = await loadCardmarketFiles().catch(() => null);
+  if (!cmf?.products.length) { console.warn('Fichiers Cardmarket indisponibles'); return; }
+  const expOf = new Map(cmf.products.map((p) => [p.idProduct, p.idExpansion]));
+  // Extensions déjà occupées : anglaises (prix des cartes internationales) et japonaises reliées par TCGdex.
+  const known = new Set();
+  for (const l of ['en', 'fr']) {
+    const d = join(CATALOG, 'cards', `pokemon-${l}`);
+    if (!existsSync(d)) continue;
+    for (const f of readdirSync(d)) for (const c of JSON.parse(readFileSync(join(d, f), 'utf8'))) if (c.cm?.id && expOf.has(c.cm.id)) known.add(expOf.get(c.cm.id));
+  }
+  const decks = files.map((f) => ({ f, setId: f.replace(/\.json$/, ''), cards: JSON.parse(readFileSync(join(dir, f), 'utf8')) }));
+  for (const { cards } of decks) for (const c of cards) if (c.cm?.id && !c.cm.f && expOf.has(c.cm.id)) known.add(expOf.get(c.cm.id));
+  const before = decks.map(({ cards }) => JSON.stringify(cards));
+  completeJapanesePrices(decks, cmf, known);
+  decks.forEach(({ f, cards }, i) => { if (JSON.stringify(cards) !== before[i]) writeJson(`cards/pokemon-ja/${f}`, cards); });
+}
+
 /** Cartes japonaises sans attributs TCGdex : attributs lus sur leur page Limitless. */
 async function completeJapaneseFromLimitless(dir, files) {
   const decks = files.map((f) => ({ f, cards: JSON.parse(readFileSync(join(dir, f), 'utf8')) }));
@@ -211,7 +231,10 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       });
       writeJson(`cards/pokemon-${lang}/${f}`, cards);
     });
-    if (lang === 'ja') await completeJapaneseFromLimitless(dir, files);
+    if (lang === 'ja') {
+      await completeJapaneseFromLimitless(dir, files);
+      await completeJapaneseCardmarket(dir, files);
+    }
     console.log(`Détails Pokémon ${lang} : ${stat.found}/${stat.cards} fiches TCGdex, ${stat.priced} avec prix Cardmarket, ${stat.attrs} avec attributs, ${stat.links} avec lien Cardmarket exact`);
   }
 }
