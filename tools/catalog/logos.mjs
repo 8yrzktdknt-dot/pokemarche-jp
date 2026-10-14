@@ -63,9 +63,13 @@ const ALIASES = {
   violetex: ['violet'],
   forbiddenlight: ['forbiddenlightjp'],
 };
+/** Mêmes mots dans un autre ordre (« ex Starter Set Eevee ex » = « Starter Set ex Eevee ex ») : clé triée. */
+export const sortedKey = (name) =>
+  '~' + name.toLowerCase().normalize('NFKD').replace(/&/g, ' and ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).sort().join('');
+
 export const keysFor = (name) => {
   const k = setKey(name);
-  return [k, ...(ALIASES[k] ?? []), k.replace(/ex$/, ''), `${k}ex`];
+  return [k, ...(ALIASES[k] ?? []), k.replace(/ex$/, ''), `${k}ex`, sortedKey(name)];
 };
 
 // Les sites de logos refusent souvent les robots : on se présente comme un navigateur.
@@ -104,8 +108,10 @@ async function placeholderHashes() {
 export function parsePokellectorLogos(html) {
   const out = new Map();
   for (const m of html.matchAll(/https:\/\/den-media\.pokellector\.com\/logos\/([^"'\s]+?)\.logo\.\d+\.png/g)) {
-    const k = setKey(decodeURIComponent(m[1]).replace(/-/g, ' '));
+    const name = decodeURIComponent(m[1]).replace(/-/g, ' ');
+    const k = setKey(name);
     if (k && !out.has(k)) out.set(k, m[0]);
+    if (!out.has(sortedKey(name))) out.set(sortedKey(name), m[0]);
   }
   return out;
 }
@@ -120,8 +126,10 @@ export async function pokellectorLogos(site) {
 export function parseSerebiiLogos(html) {
   const out = new Map();
   for (const m of html.matchAll(/<img src="(\/card\/logo\/[^"]+\.png)"[^>]*alt="([^"]+?) Set Icon"/g)) {
-    const k = setKey(unescapeHtml(m[2]));
+    const name = unescapeHtml(m[2]);
+    const k = setKey(name);
     if (k && !out.has(k)) out.set(k, `https://www.serebii.net${m[1]}`);
+    if (!out.has(sortedKey(name))) out.set(sortedKey(name), `https://www.serebii.net${m[1]}`);
   }
   return out;
 }
