@@ -1,9 +1,9 @@
 // Cache de l'app (service worker) : ce qui a déjà été vu s'affiche tout de suite, même sans réseau.
 //  - images (cartes, logos, sprites) : gardées sur le téléphone, réseau seulement la première fois ;
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
-//  - catalogue : affiché depuis le cache puis mis à jour en arrière-plan ;
+//  - catalogue : réseau d'abord (toujours à jour), copie locale sans réseau ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
-const VERSION = '1791967011248';
+const VERSION = '1791969316174';
 const BASE = '/pokemarche-jp/app';
 const APP = `app-${VERSION}`;
 const IMAGES = 'images-v1';
@@ -52,20 +52,6 @@ async function cacheFirst(req, name, onStore) {
   return res;
 }
 
-async function staleWhileRevalidate(req, name, event) {
-  const c = await caches.open(name);
-  const hit = await c.match(req);
-  const update = fetch(req).then((res) => {
-    if (res.ok) c.put(req, res.clone()).catch(() => {});
-    return res;
-  });
-  if (hit) {
-    event.waitUntil(update.catch(() => {}));
-    return hit;
-  }
-  return update;
-}
-
 async function networkFirst(req, name, timeoutMs) {
   const c = await caches.open(name);
   const net = fetch(req).then((res) => {
@@ -100,8 +86,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(req, IMAGES, trimImages));
     return;
   }
+  // Catalogue (prix du jour, liens) : réseau d'abord pour être toujours à jour ; copie locale sans réseau.
   if (same && url.pathname.includes('/catalog/')) {
-    event.respondWith(staleWhileRevalidate(req, DATA, event));
+    event.respondWith(networkFirst(req, DATA, 4000));
     return;
   }
   if (LIVE_HOSTS.includes(url.hostname)) {
