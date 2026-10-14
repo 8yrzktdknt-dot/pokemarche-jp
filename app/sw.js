@@ -3,7 +3,7 @@
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
 //  - catalogue : affiché depuis le cache puis mis à jour en arrière-plan ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
-const VERSION = '1791953642702';
+const VERSION = '1791957087718';
 const BASE = '/pokemarche-jp/app';
 const APP = `app-${VERSION}`;
 const IMAGES = 'images-v1';
