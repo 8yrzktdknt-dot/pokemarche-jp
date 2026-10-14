@@ -123,6 +123,21 @@ async function japaneseWizard() {
   return out;
 }
 
+/**
+ * Raretés corrigées à la main (extension → plages de numéros sans rareté imprimée, affichées « None »).
+ * M6a 136–165 : cartes illustration, sans symbole de rareté sur la carte.
+ */
+export const NO_RARITY_RANGES = { M6a: [[136, 165]] };
+
+export function applyRarityOverrides(setId, cards) {
+  const ranges = NO_RARITY_RANGES[setId];
+  if (!ranges) return;
+  for (const c of cards) {
+    const n = Number(c.localId);
+    if (ranges.some(([a, b]) => n >= a && n <= b)) c.rarity = 'None';
+  }
+}
+
 /** Collection Classique (30th-c) : lien CC de chaque carte ; les deux moitiés LEGEND séparées (Haut/Bas) avec leur visuel. */
 export function applyClassicCollection(cards, pages, lang) {
   const left = [...pages];
@@ -283,6 +298,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
           if (w.market) c.price = { value: w.market, currency: 'USD', source: 'tcgplayer' };
         }
       }
+      applyRarityOverrides(setId, cards);
       const map = jaIds?.get(setId);
       if (jaIds && !map) {
         stat.cards += cards.length;
@@ -300,6 +316,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
         if (c.cm?.avg7 || c.cm?.avg30 || c.cm?.avg) stat.priced++;
         if (c.attrs?.illustrator || c.attrs?.hp) stat.attrs++;
       });
+      applyRarityOverrides(setId, cards);
       writeJson(`cards/pokemon-${lang}/${f}`, cards);
     });
     if (lang === 'ja') {

@@ -83,3 +83,10 @@ test('Collection Classique : LV.X et moitiés LEGEND', async () => {
   applyClassicCollection(gen, [{ key: classicKey('Genesect EX'), path: '30th-Celebration/Genesect-EX-30CPLB-97' }], 'fr');
   assert.equal(gen[0].image, 'https://images.scrydex.com/pokemon/me55c-97/large');
 });
+
+test('M6a 136–165 : rareté « None »', async () => {
+  const { applyRarityOverrides } = await import('./build-pokemon-details.mjs');
+  const cards = [{ localId: '135', rarity: 'FUR' }, { localId: '136', rarity: 'Illustration Rare' }, { localId: '165' }, { localId: '166', rarity: 'MUR' }];
+  applyRarityOverrides('M6a', cards);
+  assert.deepEqual(cards.map((c) => c.rarity), ['FUR', 'None', 'None', 'MUR']);
+});

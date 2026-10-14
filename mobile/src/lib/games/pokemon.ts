@@ -323,7 +323,8 @@ async function filterOptionsAll(lang: CardLang): Promise<FilterOptions> {
 
 /** Attributs TCGdex en direct, complétés par ceux du catalogue (clés absentes ou rareté « None »). */
 function mergeAttributes(live: CardAttribute[] = [], st: CardAttribute[] = []): CardAttribute[] {
-  const out = live.filter((a) => !(a.key === 'rarity' && a.value === NO_RARITY && st.some((b) => b.key === 'rarity' && b.value !== NO_RARITY)));
+  // Rareté du catalogue en priorité (corrigée à la main pour certaines extensions, ex. M6a 136–165 sans rareté).
+  const out = live.filter((a) => !(a.key === 'rarity' && st.some((b) => b.key === 'rarity')));
   for (const a of st) if (!out.some((b) => b.key === a.key)) out.push(a);
   return out;
 }
@@ -346,7 +347,7 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
   const card = !live ? st : !st ? live : {
     // Prix, rareté et attributs de TCGdex ; noms traduits et images du catalogue quand TCGdex n'en a pas.
     ...live,
-    nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName,
+    nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName, rarity: st.rarity ?? live.rarity,
     imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
     // Prix et fiches Cardmarket du catalogue (vérifiés, mis à jour chaque jour) en priorité : TCGdex en direct
     // peut relier une carte japonaise à la fiche d'une autre langue (chinois simplifié pour M6a).
