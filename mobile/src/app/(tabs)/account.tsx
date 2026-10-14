@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { AccountSection } from '../../components/AccountPanel';
 import { Dropdown } from '../../components/Dropdown';
 import { Panel } from '../../components/Stats';
 import { colors, fonts, s } from '../../components/ui';
@@ -23,7 +24,7 @@ function confirm(message: string, onYes: () => void) {
 }
 
 export default function Account() {
-  const { settings, setSettings, collection, clear, t, langLabel } = useStore();
+  const { settings, setSettings, collection, clear, t, langLabel, user } = useStore();
   const [name, setName] = useState(settings.profileName ?? '');
   const count = collection.reduce((n, e) => n + e.quantity, 0);
   const saveName = () => setSettings({ profileName: name.trim() || undefined });
@@ -36,6 +37,7 @@ export default function Account() {
         </View>
         <Text style={s.h2}>{settings.profileName || t('acc.trainer')}</Text>
         <Text style={s.muted}>{t('acc.inCollection', { n: count })}</Text>
+        {user?.email ? <Text style={[s.muted, { fontSize: 12 }]}>{user.email}</Text> : null}
       </View>
 
       <Panel title={t('acc.profile')}>
@@ -49,8 +51,9 @@ export default function Account() {
           onSubmitEditing={saveName}
           returnKeyType="done"
         />
-        <Text style={[s.muted, { fontSize: 12 }]}>{t('acc.soon')}</Text>
       </Panel>
+
+      <AccountSection />
 
       <Panel title={t('acc.prefs')}>
         <Dropdown
