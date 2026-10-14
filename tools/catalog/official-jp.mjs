@@ -191,7 +191,9 @@ export function parseOfficialAttrs(html) {
   if (hp) {
     out.category = 'Pokémon';
     out.hp = hp;
-    const typeZone = right.slice(right.indexOf('hp-type'), right.indexOf('hp-type') + 300);
+    // Type : icônes juste après « タイプ », jusqu'à la fin du bloc (pas celles des attaques).
+    const from = right.indexOf('hp-type');
+    const typeZone = right.slice(from, right.indexOf('</div>', from));
     const types = [...typeZone.matchAll(/icon-([a-z]+) icon/g)].map((m) => OFFICIAL_TYPES[m[1]]).filter(Boolean);
     if (types.length) out.type = [...new Set(types)].join(' / ');
     const stage = cleanName(right.match(/class="type">([^<]+)</)?.[1] ?? '');
