@@ -98,7 +98,7 @@ test('attributs d\'une fiche officielle', async () => {
   const { parseOfficialAttrs, officialCardId } = await import('./official-jp.mjs');
   const html = `<div class="LeftBox"><h4>イラストレーター</h4><a href="/card-search/index.php?regulation_illust=1">Ken Sugimori</a></div>
     <div class="RightBox"> <div class="RightBox-inner"> <div class="TopInfo Text-fjalla"> <div class="tr"> <div class="td-l"> <span class="type">伝説</span> </div>
-    <div class="td-r"> <span class="hp">HP</span> <span class="hp-num">150</span> <span class="hp-type">タイプ</span> <span class="icon-dark icon"></span><span class="icon-psychic icon"></span> </div></div></div>
+    <div class="td-r"> <span class="hp">HP</span> <span class="hp-num">150</span> <span class="hp-type">タイプ</span> <span class="icon-dark icon"></span><span class="icon-psychic icon"></span> </div></div></div> <h4><span class="icon-none icon"></span>かじる</h4>
     <h2 class="mt20">ワザ</h2> <h4><span class="icon-dark icon"></span>ロストクライシス</h4>`;
   assert.deepEqual(parseOfficialAttrs(html), { category: 'Pokémon', hp: '150', type: 'Obscurité / Psy', stage: 'LÉGENDE', illustrator: 'Ken Sugimori' });
   assert.equal(officialCardId('https://www.pokemon-card.com/assets/images/card_images/large/M6a/050713_P_PIKACHIXYUU.jpg'), 50713);

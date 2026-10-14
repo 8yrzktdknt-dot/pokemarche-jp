@@ -160,7 +160,7 @@ async function completeJapaneseFromOfficial(dir, decks) {
     for (const c of cards.filter(empty)) {
       const o = official.get(c.officialId ?? officialCardId(c.image));
       if (o && Object.keys(o).length) { c.attrs = { ...o, ...(c.attrs ?? {}) }; fromOfficial++; changed = true; continue; }
-      const same = (n) => n?.replace(/ \((Top|Bottom)\)$/, '');
+      const same = (n) => n?.replace(/ \((Top|Bottom)\)$/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const twin = c.nameEn && cards.find((x) => x !== c && same(x.nameEn) === same(c.nameEn) && !empty(x));
       if (twin) {
         const { illustrator, ...same } = twin.attrs;
