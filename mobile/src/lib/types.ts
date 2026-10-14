@@ -38,6 +38,19 @@ export interface Card {
   /** Identifiants des fiches produit sur les places de marché (liens directs). */
   /** Fiches produit : n° Cardmarket, chemin exact de la fiche Cardmarket (« Extension/Carte-V1-CODE001 »), n° TCGplayer. */
   marketIds?: { cardmarket?: number; cardmarketPath?: string; tcgplayer?: number };
+  /** Variantes imprimées (normale, holo, reverse, Poké Ball…), la première est la carte de base. */
+  variants?: CardVariant[];
+  /** Variante choisie (cartes de la collection) ; absente = la première. */
+  variant?: string;
+}
+
+/** Variante d'une carte : clé (« normal », « reverse », « pokeball », « holo|shadowless|1st-edition »…), fiche et prix Cardmarket. */
+export interface CardVariant {
+  key: string;
+  /** N° produit Cardmarket de la variante (souvent celui de la carte ; à part pour Poké Ball, Master Ball…). */
+  cardmarket?: number;
+  /** Moyenne des ventes Cardmarket sur 7 jours (EUR). */
+  price?: number;
 }
 
 export type AttributeKey =

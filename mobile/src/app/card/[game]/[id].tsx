@@ -5,6 +5,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
+import { VariantPicker } from '../../../components/VariantPicker';
 import { browseCard, neighbors } from '../../../lib/browse';
 import { rarityAbbr, rarityName } from '../../../lib/catalog/pokemonNames';
 import { localizeAttr, typeConcept } from '../../../lib/attrValues';
@@ -13,6 +14,7 @@ import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
 import { marketLinks, type MarketplaceId } from '../../../lib/prices/marketplaces';
 import { useStore } from '../../../lib/store';
+import { collectionKey, withVariant } from '../../../lib/variants';
 import type { AttributeKey, Card, CardAttribute, CardLang, GameId, Price } from '../../../lib/types';
 
 const SOURCE_LABEL = { cardmarket: 'Cardmarket', tcgplayer: 'TCGplayer', cardtrader: 'CardTrader', ebay: 'eBay' };
@@ -91,6 +93,8 @@ export default function CardScreen() {
   const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
   const { add, remove, collection, settings, t, langLabel, money, appLang, locale } = useStore();
   const [card, setCard] = useState<Card | null>(null);
+  // Variante affichée (prix, fiche Cardmarket, ajout à la collection) ; remise à zéro à chaque carte.
+  const [variantKey, setVariantKey] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
 
   const nav = neighbors({ game, id, lang });
@@ -152,6 +156,7 @@ export default function CardScreen() {
     let alive = true;
     // Affichage immédiat avec les infos de la liste, puis la fiche complète (prix, attributs).
     setCard(browseCard({ game, id, lang }) ?? null);
+    setVariantKey(undefined);
     setError(null);
     GAMES[game].getCard(id, lang).then((c) => alive && setCard(c), (e) => alive && setError(String(e)));
     return () => { alive = false; };
@@ -176,14 +181,17 @@ export default function CardScreen() {
     if (u) Image.prefetch(u).catch(() => {});
   }
 
-  const owned = collection.find((e) => e.card.game === card.game && e.card.id === card.id && e.card.lang === card.lang)?.quantity ?? 0;
+  // La carte dans la variante choisie : prix (moyenne Cardmarket 7 jours) et fiche Cardmarket de la variante.
+  const view = withVariant(card, variantKey);
+  const ownedOf = (key?: string) => collection.find((e) => collectionKey(e.card) === collectionKey(withVariant(card, key)))?.quantity ?? 0;
+  const owned = ownedOf(view.variant);
   const priceLabel = (p: Price) => {
     const k = `price.${p.label}` as TKey;
     const tr = t(k);
     return tr === k ? p.label : tr;
   };
-  const [main, ...others] = card.prices;
-  const hasCmSales = card.prices.some((p) => p.label.startsWith('cm.avg'));
+  const [main, ...others] = view.prices;
+  const hasCmSales = view.prices.some((p) => p.label.startsWith('cm.avg'));
 
   return (
     <Animated.View style={[s.screen, SWIPE_STYLE, { transform: [{ translateX: shift }, { translateY: drop }], opacity: drop.interpolate({ inputRange: [0, 400], outputRange: [1, 0.4], extrapolate: 'clamp' }) }]} {...swipe.panHandlers}>
@@ -211,12 +219,16 @@ export default function CardScreen() {
         {[GAMES[card.game].label, card.setName, card.number, langLabel(card.lang)].filter(Boolean).join(' · ')}
       </Text>
 
+      {!!card.variants?.length && (
+        <VariantPicker variants={card.variants} value={view.variant} onChange={setVariantKey} owned={ownedOf} />
+      )}
+
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Pressable style={[s.button, { flex: 1 }]} onPress={() => add(card)}>
+        <Pressable style={[s.button, { flex: 1 }]} onPress={() => add(view)}>
           <Text style={s.buttonText}>＋ {t('card.add')}{owned ? ` (${owned})` : ''}</Text>
         </Pressable>
         {owned > 0 && (
-          <Pressable style={[s.ghost, { paddingHorizontal: 18 }]} onPress={() => remove(card)}>
+          <Pressable style={[s.ghost, { paddingHorizontal: 18 }]} onPress={() => remove(view)}>
             <Text style={s.ghostText}>−</Text>
           </Pressable>
         )}
@@ -239,7 +251,7 @@ export default function CardScreen() {
       {hasCmSales && <Text style={[s.muted, { fontSize: 12 }]}>{t('card.salesNote')}</Text>}
 
       <Text style={s.h2}>{t('card.seeOn')}</Text>
-      {marketLinks(card, appLang).map((l) => (
+      {marketLinks(view, appLang).map((l) => (
         <Pressable key={l.id} style={st.link} onPress={() => Linking.openURL(l.url)}>
           <Image source={siteLogo(l.id)} style={st.linkLogo} contentFit="contain" />
           <Text style={[s.ghostText, { flex: 1 }]}>{l.label}</Text>

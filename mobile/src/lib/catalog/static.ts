@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { getJson } from '../http';
 import { cardmarketPrice } from '../prices/cardmarket';
 import { distinct, normalize, sortCards } from '../search';
-import type { AttributeKey, Bloc, Card, CardAttribute, CardLang, FilterOptions, GameId, Price, SearchFilters, SetInfo } from '../types';
+import type { AttributeKey, Bloc, Card, CardAttribute, CardVariant, CardLang, FilterOptions, GameId, Price, SearchFilters, SetInfo } from '../types';
 
 /**
  * Catalogue publié avec le site (construit chaque semaine par GitHub Actions, dossier catalog/ du dépôt) :
@@ -77,6 +77,8 @@ export interface StaticCard {
   tcgplayer?: number;
   /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
   cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; avg?: number; trend?: number; low?: number };
+  /** Variantes : clé, n° produit Cardmarket, moyenne 7 jours (tools/catalog/variants.mjs). */
+  v?: { k: string; id?: number; p?: number }[];
   /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
   cmPath?: string;
 }
@@ -137,6 +139,8 @@ export interface StaticRow {
   eur?: number;
   /** Période du prix : 7 ou 30 jours, 0 = toutes les ventes (absente des anciens fichiers : 7). */
   eurDays?: number;
+  /** Variantes [clé, n° produit Cardmarket, moyenne 7 jours]. */
+  variants?: [string, number, number][];
   cardmarket?: number;
   cmPath?: string;
 }
@@ -145,10 +149,10 @@ export interface StaticRow {
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket, cmPath, eurDays]) => ({
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket, cmPath, eurDays, variants]) => ({
     id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd,
     facets: facets || undefined, attrs: attrs || undefined, tcgplayer: tcgplayer || undefined,
-    eur: eur || undefined, eurDays: eurDays ?? 7, cardmarket: cardmarket || undefined, cmPath: cmPath || undefined,
+    eur: eur || undefined, eurDays: eurDays ?? 7, variants: variants || undefined, cardmarket: cardmarket || undefined, cmPath: cmPath || undefined,
   }) as StaticRow);
 }
 
@@ -178,6 +182,12 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
 function staticPrices(c: StaticCard | StaticRow): Price[] {
   const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ [c.eurDays === 30 ? 'avg30' : c.eurDays === 0 ? 'avg' : 'avg7']: c.eur }) : undefined;
   return main ? [main] : [];
+}
+
+/** Variantes du catalogue (fiche d'extension ou ligne de recherche) au format de l'app. */
+function variantsOf(c: StaticCard | StaticRow): CardVariant[] | undefined {
+  const list = 'v' in c && c.v ? c.v.map((v) => [v.k, v.id ?? 0, v.p ?? 0] as const) : 'variants' in c && c.variants ? c.variants : undefined;
+  return list?.length ? list.map(([key, id, p]) => ({ key, ...(id ? { cardmarket: id } : {}), ...(p ? { price: p } : {}) })) : undefined;
 }
 
 /** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */
@@ -210,6 +220,7 @@ export function staticToCard(
     prices: staticPrices(c),
     facets: (c as { facets?: Record<string, string[]> }).facets,
     attributes: staticAttributes(c, set?.releaseDate),
+    variants: variantsOf(c),
     marketIds: cmId || tpId || cmPath ? { cardmarket: cmId || undefined, cardmarketPath: cmPath || undefined, tcgplayer: tpId || undefined } : undefined,
   };
 }

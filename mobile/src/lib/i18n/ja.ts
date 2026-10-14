@@ -215,4 +215,9 @@ export const ja: Partial<Record<Key, string>> = {
   "report.back": "カードに戻る",
   "report.error": "現在送信できません。",
   "report.mail": "{email} にメールする",
+  "variant.title": "バリエーション",
+  "variant.count": "{n}種類のバリエーション",
+  "variant.all": "すべてのバリエーション",
+  "variant.noPrice": "価格なし",
+  "variant.owned": "{n}枚所持",
 };

@@ -7,6 +7,7 @@ import { GAMES } from './games';
 import { APP_LOCALE, deviceLang, langLabel, translate, type AppLang, type T } from './i18n';
 import { refreshCollectionPrices } from './refreshPrices';
 import type { Card, CardLang, GameId } from './types';
+import { collectionKey } from './variants';
 
 export interface CollectionEntry {
   card: Card;
@@ -58,7 +59,7 @@ interface Store {
 
 const KEY_COLLECTION = 'collection.v1';
 const KEY_SETTINGS = 'settings.v1';
-const keyOf = (c: Card) => `${c.game}:${c.lang}:${c.id}`;
+const keyOf = collectionKey;
 
 const Ctx = createContext<Store | null>(null);
 
@@ -103,7 +104,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           // Fusion avec l'état le plus récent (des cartes ont pu être ajoutées pendant le chargement).
           setCollection((now) => now.map((e) => {
             const f = fresh.get(keyOf(e.card));
-            return f && f !== e.card ? { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds } } : e;
+            return f && f !== e.card ? { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds, variants: f.variants } } : e;
           }));
         });
         return current;

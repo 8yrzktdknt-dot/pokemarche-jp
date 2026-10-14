@@ -82,15 +82,17 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
   const cmLanguage = CARDMARKET_LANGUAGE[card.lang];
   const tpId = card.marketIds?.tcgplayer;
 
+  // Variante reverse vendue sur la fiche de la carte : offres filtrées sur le reverse.
+  const reverse = card.variant === 'reverse' && (cmPath || cmId) ? '&isReverseHolo=Y' : '';
   return [
     {
       id: 'cardmarket',
       label: 'Cardmarket',
       // 1) fiche exacte (chemin relevé sur Limitless), 2) n° produit, 3) recherche ; offres filtrées sur la langue de la carte.
       url: cmPath
-        ? `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Singles/${cmPath.split('/').map(q).join('/')}${cmLanguage ? `?language=${cmLanguage}` : ''}`
+        ? `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Singles/${cmPath.split('/').map(q).join('/')}?${cmLanguage ? `language=${cmLanguage}` : ''}${reverse}`.replace('?&', '?').replace(/\?$/, '')
         : cmId
-          ? `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products?idProduct=${cmId}${cmLanguage ? `&language=${cmLanguage}` : ''}`
+          ? `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products?idProduct=${cmId}${cmLanguage ? `&language=${cmLanguage}` : ''}${reverse}`
           : `https://www.cardmarket.com/${siteLang}/${CARDMARKET_GAME[card.game]}/Products/Search?searchString=${q(cmSearch)}`,
     },
     {

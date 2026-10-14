@@ -215,4 +215,9 @@ export const zhCn: Partial<Record<Key, string>> = {
   "report.back": "返回卡牌",
   "report.error": "暂时无法发送。",
   "report.mail": "发邮件到 {email}",
+  "variant.title": "版本",
+  "variant.count": "{n} 种版本",
+  "variant.all": "所有版本",
+  "variant.noPrice": "暂无价格",
+  "variant.owned": "已拥有 {n} 张",
 };

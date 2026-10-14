@@ -193,6 +193,7 @@ async function completeFromWizard(set, list, officialCount) {
       if (w.tcgplayer) known.tcgplayer = w.tcgplayer;
       continue;
     }
+    if (!w.nameEn) continue; // motif seul (variante Poké Ball…) d'une carte absente de la liste
     const twin = list.find((c) => c.nameEn && c.nameEn.toLowerCase() === w.nameEn.toLowerCase());
     const localId = /^\d+$/.test(w.n) ? pad3(w.n) : w.n;
     const total = officialCount ?? w.total;

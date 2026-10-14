@@ -1,4 +1,5 @@
 import type { Card, CardLang, GameId } from './types.ts';
+import { withVariant } from './variants.ts';
 
 interface Entry { card: Card; quantity: number; addedAt: number }
 
@@ -21,13 +22,16 @@ export async function refreshCollectionPrices<E extends Entry>(entries: E[], loa
   }));
   let changed = false;
   const next = entries.map((e) => {
-    const f = fresh.get(`${e.card.game}|${e.card.lang}|${e.card.setId}|${e.card.id}`);
-    if (!f) return e;
+    const base = fresh.get(`${e.card.game}|${e.card.lang}|${e.card.setId}|${e.card.id}`);
+    if (!base) return e;
+    // Prix de la variante possédée (Reverse, Poké Ball…), pas celui de la carte de base.
+    const f = withVariant(base, e.card.variant);
     const same = JSON.stringify(f.prices) === JSON.stringify(e.card.prices)
-      && JSON.stringify(f.marketIds ?? null) === JSON.stringify(e.card.marketIds ?? null);
+      && JSON.stringify(f.marketIds ?? null) === JSON.stringify(e.card.marketIds ?? null)
+      && JSON.stringify(f.variants ?? null) === JSON.stringify(e.card.variants ?? null);
     if (same) return e;
     changed = true;
-    return { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds ?? e.card.marketIds } };
+    return { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds ?? e.card.marketIds, variants: f.variants, variant: f.variant } };
   });
   return changed ? next : null;
 }
