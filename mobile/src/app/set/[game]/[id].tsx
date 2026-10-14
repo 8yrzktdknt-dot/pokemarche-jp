@@ -4,6 +4,7 @@ import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { setBrowseList } from '../../../lib/browse';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ReverseSheen } from '../../../components/ReverseSheen';
 import { SetOverview } from '../../../components/SetOverview';
 import { Sheet, SheetLabel, SheetOption } from '../../../components/Sheet';
 import { colors, displayName, fonts, s } from '../../../components/ui';
@@ -14,7 +15,7 @@ import { DEFAULT_SET_VIEW, setView, type SetSort, type SetState, type SetViewOpt
 import { useStore } from '../../../lib/store';
 import type { TKey } from '../../../lib/i18n';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
-import { collectionKey, variantLabel } from '../../../lib/variants';
+import { collectionKey, needsSheen, variantLabel } from '../../../lib/variants';
 
 /** Affichage choisi (empiler, tri, état), gardé d'une extension à l'autre pendant la session. */
 let lastView: SetViewOptions = DEFAULT_SET_VIEW;
@@ -80,6 +81,7 @@ export default function SetScreen() {
         contentContainerStyle={{ padding: 16, gap: 8, maxWidth: 900, width: '100%', alignSelf: 'center' }}
         columnWrapperStyle={{ gap: 8 }}
         keyboardShouldPersistTaps="handled"
+        extraData={view}
         ListHeaderComponent={
           <View style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {set?.logo && <Image source={set.logo} style={{ width: '70%', height: 90 }} contentFit="contain" />}
@@ -111,14 +113,15 @@ export default function SetScreen() {
           </View>
         }
         ListEmptyComponent={<Text style={[s.muted, { textAlign: 'center', marginTop: 24 }]}>{t('set.empty')}</Text>}
-        renderItem={({ item: { card: item, quantity } }) => (
+        renderItem={({ item: { card: item, quantity, variantKey } }) => (
           <Link href={{ pathname: '/card/[game]/[id]', params: { game: item.game, id: item.id, lang: item.lang, ...(view.split && item.variant ? { variant: item.variant } : {}) } }} asChild>
             <Pressable style={{ width: w }} accessibilityLabel={`${item.name} ${item.number}`} onPressIn={() => setBrowseList(cards)}>
               <View>
                 <Image source={item.imageSmall} style={[st.img, { width: w, height: w * 88 / 63 }]} contentFit="cover" transition={150} />
+                {view.split && needsSheen(item, variantKey) && <ReverseSheen />}
                 {quantity > 0 && <View style={st.badge}><Text style={st.badgeText}>{quantity > 1 ? `×${quantity}` : '✓'}</Text></View>}
-                {view.split && item.variant && (
-                  <View style={st.pill}><Text style={st.pillText} numberOfLines={1}>{variantLabel(item.variant, appLang)}</Text></View>
+                {view.split && !!variantKey && (
+                  <View style={st.pill}><Text style={st.pillText} numberOfLines={1}>{variantLabel(variantKey, appLang)}</Text></View>
                 )}
               </View>
               <Text style={st.num} numberOfLines={1}>{item.number}</Text>

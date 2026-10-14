@@ -27,9 +27,22 @@ export function variantsOf(d) {
     k = [k, sub, ...stamps].filter(Boolean).join('|');
     if (out.some((x) => x.k === k)) continue;
     const id = Number(v.thirdParty?.cardmarket) || undefined;
-    out.push(id ? { k, id } : { k });
+    const tp = Number(v.thirdParty?.tcgplayer) || undefined;
+    out.push({ k, ...(id ? { id } : {}), ...(tp ? { tp } : {}) });
   }
-  return out;
+  return ownImages(out);
+}
+
+/**
+ * Photo à part (fiche TCGplayer) seulement pour les variantes vendues sur une autre fiche que la carte de base
+ * (Poké Ball, Master Ball…) ; le reverse vendu sur la même fiche garde le visuel de la carte.
+ */
+export function ownImages(list) {
+  const baseTp = list[0]?.tp;
+  return list.map((v, i) => {
+    const { tp, ...rest } = v;
+    return i > 0 && tp && tp !== baseTp ? { ...rest, tp } : rest;
+  });
 }
 
 /** Motif d'un produit PokemonWizard japonais (« (Poke Ball Pattern) ») → clé ; undefined pour la carte de base. */
@@ -41,11 +54,29 @@ export function wizardVariantKey(name) {
   return slug === 'energysymbol' || slug === 'energy' ? 'reverse-energy' : slug;
 }
 
-/** Variantes de TCGdex complétées par celles d'une autre source (PokemonWizard), sans doublon. */
+/** Variantes de TCGdex complétées par celles d'une autre source (PokemonWizard), sans doublon ; photo de l'autre source si besoin. */
 export function mergeVariants(a = [], b = []) {
-  const out = [...a];
-  for (const v of b) if (!out.some((x) => x.k === v.k)) out.push(v);
+  const out = a.map((v) => ({ ...v }));
+  for (const v of b) {
+    const same = out.find((x) => x.k === v.k);
+    if (!same) out.push({ ...v });
+    else if (v.tp && !same.tp && same !== out[0]) same.tp = v.tp;
+  }
   return out;
+}
+
+const BALL = /ball$/;
+/**
+ * Cartes japonaises : TCGdex note « reverse » (sans motif) la version à motif de Poké Ball (les cartes japonaises
+ * récentes n'ont pas de reverse simple, seulement les motifs Énergie et Ball). Quand PokemonWizard donne un seul
+ * motif Ball, ce « reverse » devient ce motif (avec la fiche Cardmarket de TCGdex et la photo de PokemonWizard).
+ */
+export function fixJapaneseBall(list) {
+  const plain = list.find((v) => v.k === 'reverse');
+  const balls = list.filter((v) => BALL.test(v.k));
+  if (!plain || balls.length !== 1 || !list.some((v) => v.k === 'reverse-energy')) return list;
+  const ball = balls[0];
+  return list.filter((v) => v !== plain).map((v) => (v === ball ? { ...v, ...(plain.id ? { id: plain.id } : {}) } : v));
 }
 
 /** Carte japonaise de base : holo à partir de « R » (les communes et peu communes ne le sont pas). */

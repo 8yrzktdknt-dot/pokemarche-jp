@@ -20,6 +20,15 @@ export interface SetTile {
   key: string;
   /** Exemplaires possédés (toutes variantes confondues quand elles sont empilées). */
   quantity: number;
+  /** Variante affichée sous l'aperçu (variantes séparées uniquement), déduite de la rareté si la carte n'en a pas. */
+  variantKey?: string;
+}
+
+/** Variante d'une carte sans liste de variantes : normale pour les communes et peu communes, holo sinon. */
+export function baseVariant(rarity?: string): string {
+  return !rarity || /^(c|u|common|uncommon|commune|peu commune|comune|non comune|común|poco común|comum|incomum|häufig|nicht so häufig)$/i.test(rarity.trim())
+    ? 'normal'
+    : 'holo';
 }
 
 export const DEFAULT_SET_VIEW: SetViewOptions = { query: '', split: false, sort: 'number', desc: false, state: 'all' };
@@ -42,8 +51,10 @@ export function setView(
     if (o.split && variants) {
       for (const v of variants) {
         const card = withVariant(c, v.key);
-        tiles.push({ card, key: `${c.id}#${v.key}`, quantity: quantityOf(card), index });
+        tiles.push({ card, key: `${c.id}#${v.key}`, quantity: quantityOf(card), index, variantKey: v.key });
       }
+    } else if (o.split) {
+      tiles.push({ card: c, key: c.id, quantity: quantityOf(c), index, variantKey: baseVariant(c.rarity) });
     } else {
       const card = variants ? withVariant(c) : c;
       const quantity = variants ? variants.reduce((n, v) => n + quantityOf(withVariant(c, v.key)), 0) : quantityOf(c);

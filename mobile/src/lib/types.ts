@@ -51,6 +51,8 @@ export interface CardVariant {
   cardmarket?: number;
   /** Moyenne des ventes Cardmarket sur 7 jours (EUR). */
   price?: number;
+  /** N° produit TCGplayer de la variante quand elle a sa propre photo (Poké Ball, Master Ball, motifs japonais). */
+  tcgplayer?: number;
 }
 
 export type AttributeKey =

@@ -41,3 +41,9 @@ test('tri, ordre, état et recherche', () => {
   assert.deepEqual(ids({ query: 'HERBI' }), ['002']);
   assert.deepEqual(ids({ query: '003' }), ['003']);
 });
+
+test('séparé : une carte sans liste de variantes a quand même son étiquette (selon la rareté)', () => {
+  const plain: Card[] = [{ game: 'pokemon', id: 'a', lang: 'fr', name: 'A', number: '1', prices: [], rarity: 'Commune' }, { game: 'pokemon', id: 'b', lang: 'fr', name: 'B', number: '2', prices: [], rarity: 'Rare Holo' }];
+  assert.deepEqual(setView(plain, { ...DEFAULT_SET_VIEW, split: true }, () => 0, (c) => c.name).map((t) => t.variantKey), ['normal', 'holo']);
+  assert.deepEqual(setView(plain, DEFAULT_SET_VIEW, () => 0, (c) => c.name).map((t) => t.variantKey), [undefined, undefined]);
+});
