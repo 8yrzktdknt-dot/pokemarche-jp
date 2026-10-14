@@ -12,6 +12,7 @@ export const ja: Partial<Record<Key, string>> = {
   "common.all": "すべて",
   "common.loading": "読み込み中…",
   "common.close": "閉じる",
+  "common.cancel": "キャンセル",
   "common.filterList": "リストを絞り込む",
   "common.cards": "{n}枚",
   "common.noResult": "カードが見つかりません",

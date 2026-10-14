@@ -99,7 +99,7 @@ function GameSearch({ game, picker }: { game: GameId; picker: React.ReactNode })
   }, [options, filters.blocId, appLang]);
   const rarityValues = options?.facets.find((f) => f.key === 'rarity')?.values ?? [];
   const rarityOpts: Option[] =
-    game === 'pokemon' ? rarityOptions(rarityValues, appLang === 'fr' ? 'fr' : 'en') : rarityValues.map((v) => ({ value: v, label: v }));
+    game === 'pokemon' ? rarityOptions(rarityValues, appLang) : rarityValues.map((v) => ({ value: v, label: v }));
   // Pokémon : Blocs / Extensions / Raretés. Les autres jeux gardent leurs filtres propres.
   const extraFacets = game === 'pokemon' ? [] : (options?.facets ?? []).filter((f) => f.key !== 'rarity' && f.values.length);
   const setFacet = (key: string, v?: string) => setFilters({ ...filters, facets: { ...filters.facets, [key]: v ?? '' } });

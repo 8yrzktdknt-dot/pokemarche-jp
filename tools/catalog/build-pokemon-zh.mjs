@@ -168,6 +168,9 @@ export function twCard(code, id, d, jp) {
   return card;
 }
 
+/** Séries du site taïwanais → blocs japonais. */
+const TW_SERIES = { 超級進化: 'mega', '朱＆紫': 'scarlet-violet', '朱&紫': 'scarlet-violet', '劍＆盾': 'sword-shield', '劍&盾': 'sword-shield', '太陽＆月亮': 'sun-moon', '太陽&月亮': 'sun-moon' };
+
 function buildTraditional({ sets, details }) {
   const ja = readJson('sets/pokemon-ja.json', { blocs: [] });
   const jaSets = new Map(ja.blocs.flatMap((b) => b.sets.map((s) => [s.id.toLowerCase(), { ...s, bloc: b }])));
@@ -197,8 +200,9 @@ function buildTraditional({ sets, details }) {
       // Logo au nom chinois (tools/logos/make-deck-logos.cjs, SETS=pokemon-zh-tw ALL=1), sinon celui du japonais.
       releaseDate: e.date ?? js?.releaseDate, logo: ownLogo('pokemon-zh-tw', id) ?? js?.logo, symbol: js?.symbol, count: cards.length,
     };
-    const blocId = js?.bloc.id ?? `tw-${e.series || 'autres'}`;
-    if (!blocs.has(blocId)) blocs.set(blocId, { id: blocId, name: e.series || 'Autres', sets: [] });
+    // Extensions propres au site taïwanais : rangées dans le bloc japonais de la même série.
+    const blocId = js?.bloc.id ?? TW_SERIES[e.series] ?? `tw-${e.series || 'autres'}`;
+    if (!blocs.has(blocId)) blocs.set(blocId, { id: blocId, name: { 'sun-moon': 'Sun & Moon' }[blocId] ?? e.series ?? 'Autres', sets: [] });
     blocs.get(blocId).sets.push(set);
   }
   const list = [...blocs.values()];
@@ -381,6 +385,8 @@ async function buildSimplified({ sets, details }) {
   writeJson('sets/pokemon-zh-cn.json', { built: new Date().toISOString(), blocs: list });
   console.log(`zh-cn : ${total} cartes ; fiches Cardmarket chinoises : ${own}, internationales : ${intlLinked} ; ${report.join(' ')}`);
 }
+
+export { buildTraditional };
 
 export async function buildPokemonZh() {
   const [tw, cn] = await Promise.all([twSources().catch((e) => { console.warn('zh-tw :', e); return null; }), cnSources().catch((e) => { console.warn('zh-cn :', e); return null; })]);

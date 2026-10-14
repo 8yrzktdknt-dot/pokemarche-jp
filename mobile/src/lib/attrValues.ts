@@ -1,0 +1,103 @@
+import type { AttributeKey } from './types.ts';
+
+/**
+ * Valeurs d'attributs Pokémon (type, stade, catégorie) dans la langue de l'app.
+ * Les sources mélangent les langues (catalogue en français, Limitless et TCGdex en anglais, TCGdex dans la langue
+ * des cartes) : chaque valeur connue est ramenée à une notion, puis affichée dans la langue choisie.
+ * Une valeur inconnue est affichée telle quelle.
+ */
+type Lang = 'fr' | 'en' | 'ja' | 'zh-tw' | 'zh-cn' | 'es' | 'it' | 'de' | 'nl' | 'pt' | 'ru' | 'th' | 'ko';
+type Labels = Record<Lang, string>;
+const L = (fr: string, en: string, ja: string, zhTw: string, zhCn: string, es: string, it: string, de: string, nl: string, pt: string, ru: string, th: string, ko: string): Labels =>
+  ({ fr, en, ja, 'zh-tw': zhTw, 'zh-cn': zhCn, es, it, de, nl, pt, ru, th, ko });
+
+const TYPES: Record<string, Labels> = {
+  grass: L('Plante', 'Grass', '草', '草', '草', 'Planta', 'Erba', 'Pflanze', 'Gras', 'Planta', 'Трава', 'หญ้า', '풀'),
+  fire: L('Feu', 'Fire', '炎', '火', '火', 'Fuego', 'Fuoco', 'Feuer', 'Vuur', 'Fogo', 'Огонь', 'ไฟ', '불꽃'),
+  water: L('Eau', 'Water', '水', '水', '水', 'Agua', 'Acqua', 'Wasser', 'Water', 'Água', 'Вода', 'น้ำ', '물'),
+  lightning: L('Électrique', 'Lightning', '雷', '雷', '雷', 'Rayo', 'Lampo', 'Elektro', 'Bliksem', 'Elétrico', 'Молния', 'สายฟ้า', '번개'),
+  psychic: L('Psy', 'Psychic', '超', '超', '超', 'Psíquico', 'Psico', 'Psycho', 'Psychisch', 'Psíquico', 'Психика', 'พลังจิต', '초'),
+  fighting: L('Combat', 'Fighting', '闘', '鬥', '斗', 'Lucha', 'Lotta', 'Kampf', 'Vechten', 'Luta', 'Борьба', 'ต่อสู้', '격투'),
+  darkness: L('Obscurité', 'Darkness', '悪', '惡', '恶', 'Oscura', 'Oscurità', 'Finsternis', 'Duisternis', 'Escuridão', 'Тьма', 'ความมืด', '악'),
+  metal: L('Métal', 'Metal', '鋼', '鋼', '钢', 'Metálica', 'Metallo', 'Metall', 'Metaal', 'Metal', 'Металл', 'โลหะ', '강철'),
+  dragon: L('Dragon', 'Dragon', 'ドラゴン', '龍', '龙', 'Dragón', 'Drago', 'Drache', 'Draak', 'Dragão', 'Дракон', 'มังกร', '드래곤'),
+  colorless: L('Incolore', 'Colorless', '無色', '無色', '无色', 'Incolora', 'Incolore', 'Farblos', 'Kleurloos', 'Incolor', 'Бесцветный', 'ไร้สี', '무색'),
+  fairy: L('Fée', 'Fairy', 'フェアリー', '妖精', '妖精', 'Hada', 'Folletto', 'Fee', 'Fee', 'Fada', 'Фея', 'แฟรี่', '페어리'),
+  // Énergies : « Normal » (de base) et « Special » côté anglais.
+  basicEnergy: L('De base', 'Basic', '基本', '基本', '基本', 'Básica', 'Base', 'Basis', 'Basis', 'Básica', 'Базовая', 'พื้นฐาน', '기본'),
+  specialEnergy: L('Spéciale', 'Special', '特殊', '特殊', '特殊', 'Especial', 'Speciale', 'Spezial', 'Speciaal', 'Especial', 'Особая', 'พิเศษ', '특수'),
+};
+
+const STAGES: Record<string, Labels> = {
+  basic: L('De base', 'Basic', 'たね', '基礎', '基础', 'Básico', 'Base', 'Basis', 'Basis', 'Básico', 'Базовый', 'พื้นฐาน', '기본'),
+  stage1: L('Niveau 1', 'Stage 1', '1進化', '1階進化', '1阶进化', 'Fase 1', 'Fase 1', 'Phase 1', 'Fase 1', 'Estágio 1', 'Стадия 1', 'ระดับ 1', '1진화'),
+  stage2: L('Niveau 2', 'Stage 2', '2進化', '2階進化', '2阶进化', 'Fase 2', 'Fase 2', 'Phase 2', 'Fase 2', 'Estágio 2', 'Стадия 2', 'ระดับ 2', '2진화'),
+  mega: L('Méga', 'Mega Evolution', 'メガシンカ', '超級進化', '超级进化', 'Megaevolución', 'Megaevoluzione', 'Mega-Entwicklung', 'Mega-evolutie', 'Megaevolução', 'Мегаэволюция', 'เมกะวิวัฒนาการ', '메가진화'),
+  levelx: L('Niveau X', 'Level-Up', 'レベルアップ', '等級提升', '等级提升', 'Nivel X', 'Livello X', 'Level X', 'Level X', 'Nível X', 'Уровень X', 'เลเวล X', '레벨업'),
+  legend: L('LÉGENDE', 'LEGEND', 'レジェンド', '傳說', '传说', 'LEYENDA', 'LEGGENDA', 'LEGENDE', 'LEGENDE', 'LENDA', 'ЛЕГЕНДА', 'ตำนาน', '레전드'),
+  break: L('TURBO', 'BREAK', 'BREAK進化', 'BREAK進化', 'BREAK进化', 'TURBO', 'TURBO', 'TURBO', 'BREAK', 'TURBO', 'BREAK', 'BREAK', 'BREAK'),
+  restored: L('Restauré', 'Restored', '復元', '復原', '复原', 'Restaurado', 'Ripristinato', 'Wiederbelebt', 'Hersteld', 'Restaurado', 'Восстановленный', 'ฟื้นคืน', '복원'),
+  baby: L('Bébé', 'Baby', 'ベイビィ', '寶寶', '宝宝', 'Bebé', 'Baby', 'Baby', 'Baby', 'Bebê', 'Малыш', 'เบบี้', '베이비'),
+};
+
+const CATEGORIES: Record<string, Labels> = {
+  pokemon: L('Pokémon', 'Pokémon', 'ポケモン', '寶可夢', '宝可梦', 'Pokémon', 'Pokémon', 'Pokémon', 'Pokémon', 'Pokémon', 'Покемон', 'โปเกมอน', '포켓몬'),
+  trainer: L('Dresseur', 'Trainer', 'トレーナーズ', '訓練家', '训练家', 'Entrenador', 'Allenatore', 'Trainer', 'Trainer', 'Treinador', 'Тренер', 'เทรนเนอร์', '트레이너스'),
+  energy: L('Énergie', 'Energy', 'エネルギー', '能量', '能量', 'Energía', 'Energia', 'Energie', 'Energie', 'Energia', 'Энергия', 'พลังงาน', '에너지'),
+  item: L('Objet', 'Item', 'グッズ', '物品', '物品', 'Objeto', 'Strumento', 'Item', 'Voorwerp', 'Item', 'Предмет', 'ไอเท็ม', '아이템'),
+  supporter: L('Supporter', 'Supporter', 'サポート', '支援者', '支援者', 'Partidario', 'Aiuto', 'Unterstützer', 'Supporter', 'Apoiador', 'Помощник', 'ซัพพอร์ต', '서포트'),
+  stadium: L('Stade', 'Stadium', 'スタジアム', '競技場', '竞技场', 'Estadio', 'Stadio', 'Stadion', 'Stadion', 'Estádio', 'Стадион', 'สเตเดียม', '스타디움'),
+  tool: L('Outil Pokémon', 'Pokémon Tool', 'ポケモンのどうぐ', '寶可夢道具', '宝可梦道具', 'Herramienta Pokémon', 'Oggetto Pokémon', 'Pokémon-Ausrüstung', 'Pokémon-uitrusting', 'Ferramenta Pokémon', 'Инструмент покемона', 'เครื่องมือโปเกมอน', '포켓몬의 도구'),
+  tm: L('Machine Technique', 'Technical Machine', 'わざマシン', '招式學習器', '招式学习器', 'Máquina Técnica', 'Macchina Tecnica', 'Technische Maschine', 'Technische Machine', 'Máquina Técnica', 'Технический диск', 'เครื่องสอนท่า', '기술머신'),
+  basicEnergy: L('Énergie de base', 'Basic Energy', '基本エネルギー', '基本能量', '基本能量', 'Energía Básica', 'Energia base', 'Basis-Energie', 'Basisenergie', 'Energia Básica', 'Базовая энергия', 'พลังงานพื้นฐาน', '기본 에너지'),
+  specialEnergy: L('Énergie spéciale', 'Special Energy', '特殊エネルギー', '特殊能量', '特殊能量', 'Energía Especial', 'Energia speciale', 'Spezial-Energie', 'Speciale energie', 'Energia Especial', 'Особая энергия', 'พลังงานพิเศษ', '특수 에너지'),
+};
+
+/** Variantes des sources qui ne sont le libellé d'aucune langue. */
+const EXTRA: Record<'type' | 'stage' | 'category', Record<string, string>> = {
+  type: { normal: 'basicEnergy', 'spécial': 'specialEnergy', special: 'specialEnergy', 'électrique': 'lightning' },
+  stage: {
+    base: 'basic', stage1: 'stage1', stage2: 'stage2', 'mega evolution': 'mega', 'méga': 'mega', mega: 'mega', 'niveau sup': 'levelx', 'level up': 'levelx',
+    'level-up': 'levelx', 'break evolution': 'break', 'v-union': 'vunion', vmax: 'vmax', vstar: 'vstar', 'bébé': 'baby',
+  },
+  category: {
+    pokemon: 'pokemon', outil: 'tool', tool: 'tool', 'machine technique': 'tm', 'technical machine': 'tm',
+    'basic energy': 'basicEnergy', 'special energy': 'specialEnergy', 'énergie de base': 'basicEnergy', 'énergie spéciale': 'specialEnergy',
+  },
+};
+
+const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+
+function index(table: Record<string, Labels>, extra: Record<string, string>) {
+  const out = new Map<string, string>();
+  for (const [concept, labels] of Object.entries(table)) for (const v of Object.values(labels)) if (!out.has(norm(v))) out.set(norm(v), concept);
+  for (const [v, concept] of Object.entries(extra)) out.set(norm(v), concept);
+  return out;
+}
+const IDX = { type: index(TYPES, EXTRA.type), stage: index(STAGES, EXTRA.stage), category: index(CATEGORIES, EXTRA.category) };
+const TABLE = { type: TYPES, stage: STAGES, category: CATEGORIES };
+
+/** Mots gardés tels quels (VMAX, VSTAR, V-UNION…). */
+const KEEP: Record<string, string> = { vmax: 'VMAX', vstar: 'VSTAR', vunion: 'V-UNION' };
+
+function one(kind: 'type' | 'stage' | 'category', v: string, lang: string): string {
+  const concept = IDX[kind].get(norm(v));
+  if (!concept) return v;
+  if (KEEP[concept]) return KEEP[concept];
+  return TABLE[kind][concept]?.[lang as Lang] ?? v;
+}
+
+/** Valeur d'un attribut dans la langue de l'app (types « A / B », catégories « Dresseur · Objet »). */
+export function localizeAttr(key: AttributeKey, value: string, lang: string): string {
+  if (key === 'type') return value.split(' / ').map((v) => one('type', v, lang)).join(' / ');
+  if (key === 'stage') return one('stage', value, lang);
+  if (key === 'category') {
+    const parts = value.split(' · ').map((v) => one('category', v, lang));
+    // « Énergie · Énergie de base » → « Énergie de base » (pas de répétition).
+    return parts.filter((p, i) => !(parts[i + 1] && parts[i + 1].toLowerCase().includes(p.toLowerCase()))).join(' · ');
+  }
+  return value;
+}
+
+/** Notion d'un type (pour sa couleur) : « Plante », « Grass », « 草 »… → « grass ». */
+export const typeConcept = (value: string) => IDX.type.get(norm(value.split(' / ')[0]));

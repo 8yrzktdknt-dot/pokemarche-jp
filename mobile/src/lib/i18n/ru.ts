@@ -12,6 +12,7 @@ export const ru: Partial<Record<Key, string>> = {
   "common.all": "Все",
   "common.loading": "Загрузка…",
   "common.close": "Закрыть",
+  "common.cancel": "Отмена",
   "common.filterList": "Фильтр списка",
   "common.cards": "Карт: {n}",
   "common.noResult": "Карты не найдены",

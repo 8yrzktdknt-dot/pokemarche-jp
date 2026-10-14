@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
 import { browseCard, neighbors } from '../../../lib/browse';
-import { rarityAbbr } from '../../../lib/catalog/pokemonNames';
+import { rarityAbbr, rarityName } from '../../../lib/catalog/pokemonNames';
+import { localizeAttr, typeConcept } from '../../../lib/attrValues';
 import { assetUrl } from '../../../lib/catalog/static';
 import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
@@ -27,13 +28,11 @@ const ICON: Record<AttributeKey, keyof typeof Ionicons.glyphMap> = {
 };
 
 /** Couleurs des types d'énergie Pokémon (français, anglais, japonais). */
-const TYPE_COLOR: [RegExp, string][] = [
-  [/feu|fire|炎/i, '#E8603C'], [/eau|water|水/i, '#3D8BE0'], [/plante|grass|草/i, '#4CAF50'],
-  [/électrique|electrique|lightning|雷/i, '#F5C542'], [/psy|psychic|超/i, '#A65EC9'], [/combat|fighting|闘/i, '#C0703A'],
-  [/obscurité|obscurite|darkness|悪/i, '#3A4A5C'], [/métal|metal|鋼/i, '#9AA7B4'], [/dragon|竜/i, '#B8962E'],
-  [/fée|fee|fairy|フェアリー/i, '#E57BB0'], [/incolore|colorless|無/i, '#D9D9D9'],
-];
-const typeColor = (v: string) => TYPE_COLOR.find(([re]) => re.test(v))?.[1];
+const TYPE_COLOR: Record<string, string> = {
+  fire: '#E8603C', water: '#3D8BE0', grass: '#4CAF50', lightning: '#F5C542', psychic: '#A65EC9', fighting: '#C0703A',
+  darkness: '#3A4A5C', metal: '#9AA7B4', dragon: '#B8962E', fairy: '#E57BB0', colorless: '#D9D9D9',
+};
+const typeColor = (v: string) => TYPE_COLOR[typeConcept(v) ?? ''];
 
 /** Date de sortie dans la langue de l'app (`locale` : « fr-FR », « ja-JP »…). */
 function formatDate(iso: string, locale: string) {
@@ -67,13 +66,16 @@ function AttrIcon({ a }: { a: CardAttribute }) {
   return <Ionicons name={ICON[a.key]} size={24} color={colors.text} />;
 }
 
-function AttributeRow({ a, game, appLang, label }: { a: CardAttribute; game: GameId; appLang: string; label: string }) {
+function AttributeRow({ a, game, appLang, locale, label }: { a: CardAttribute; game: GameId; appLang: string; locale: string; label: string }) {
   let value = a.value;
-  if (a.key === 'release') value = formatDate(a.value, appLang);
+  if (a.key === 'release') value = formatDate(a.value, locale);
   if (a.key === 'rarity' && game === 'pokemon') {
     const abbr = rarityAbbr(a.value);
-    value = abbr !== a.value ? `${abbr} · ${a.value}` : a.value;
+    // Nom de la rareté dans la langue de l'app quand il est connu, sinon celui de la source.
+    const name = rarityName(abbr, appLang) ?? a.value;
+    value = abbr !== name ? `${abbr} · ${name}` : name;
   }
+  if (game === 'pokemon') value = localizeAttr(a.key, value, appLang);
   return (
     <View style={st.attr}>
       <View style={st.attrIcon}><AttrIcon a={a} /></View>
@@ -249,7 +251,7 @@ export default function CardScreen() {
         <>
           <Text style={s.h2}>{t('card.attributes')}</Text>
           {card.attributes.map((a) => (
-            <AttributeRow key={a.key} a={a} game={card.game} appLang={locale} label={t(`attr.${a.key}` as TKey)} />
+            <AttributeRow key={a.key} a={a} game={card.game} appLang={appLang} locale={locale} label={t(`attr.${a.key}` as TKey)} />
           ))}
         </>
       )}

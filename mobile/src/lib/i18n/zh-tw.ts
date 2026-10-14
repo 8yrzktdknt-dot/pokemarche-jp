@@ -12,6 +12,7 @@ export const zhTw: Partial<Record<Key, string>> = {
   "common.all": "全部",
   "common.loading": "載入中…",
   "common.close": "關閉",
+  "common.cancel": "取消",
   "common.filterList": "篩選清單",
   "common.cards": "{n} 張卡牌",
   "common.noResult": "找不到卡牌",

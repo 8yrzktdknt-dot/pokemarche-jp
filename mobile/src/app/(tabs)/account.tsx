@@ -15,12 +15,12 @@ import type { CardLang, GameId } from '../../lib/types';
 const CARD_LANGS: CardLang[] = VISIBLE_LANGS;
 const CURRENCY_LABEL: Record<Currency, string> = { EUR: 'Euro (€)', USD: 'US Dollar ($)', JPY: 'Yen (¥)' };
 
-function confirm(message: string, onYes: () => void) {
+function confirm(message: string, onYes: () => void, cancel = 'Cancel') {
   if (Platform.OS === 'web') {
     if (window.confirm(message)) onYes();
     return;
   }
-  Alert.alert('', message, [{ text: 'Annuler / Cancel', style: 'cancel' }, { text: 'OK', style: 'destructive', onPress: onYes }]);
+  Alert.alert('', message, [{ text: cancel, style: 'cancel' }, { text: 'OK', style: 'destructive', onPress: onYes }]);
 }
 
 export default function Account() {
@@ -91,7 +91,7 @@ export default function Account() {
         </Pressable>
         <Pressable
           style={[s.ghost, { borderColor: colors.danger }]}
-          onPress={() => confirm(t('acc.clearConfirm'), clear)}
+          onPress={() => confirm(t('acc.clearConfirm'), clear, t('common.cancel'))}
           disabled={!collection.length}
         >
           <Text style={[s.ghostText, { color: colors.danger, fontFamily: fonts.bold }]}>{t('acc.clear')}</Text>

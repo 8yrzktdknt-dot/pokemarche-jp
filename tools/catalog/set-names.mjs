@@ -14,6 +14,21 @@ const INTL = ['en', 'fr', 'de', 'es', 'it', 'pt'];
 const EXTRA = ['nl', 'ru'];
 const API = 'https://api.tcgdex.net/v2';
 
+/** Noms des grandes séries dans les 13 langues de l'app (les noms officiels des catalogues passent devant). */
+const SERIES = {
+  mega: ['Méga-Évolution', 'Mega Evolution', 'メガシンカ', '超級進化', '超级进化', 'Megaevolución', 'Megaevoluzione', 'Mega-Entwicklung', 'Mega-evolutie', 'Megaevolução', 'Мегаэволюция', 'เมกะวิวัฒนาการ', '메가진화'],
+  sv: ['Écarlate et Violet', 'Scarlet & Violet', 'スカーレット&バイオレット', '朱&紫', '朱&紫', 'Escarlata y Púrpura', 'Scarlatto e Violetto', 'Karmesin & Purpur', 'Scharlaken & Violet', 'Escarlate e Violeta', 'Алый и Фиолетовый', 'สการ์เล็ต & ไวโอเล็ต', '스칼렛&바이올렛'],
+  swsh: ['Épée et Bouclier', 'Sword & Shield', 'ソード&シールド', '劍&盾', '剑&盾', 'Espada y Escudo', 'Spada e Scudo', 'Schwert & Schild', 'Zwaard & Schild', 'Espada e Escudo', 'Меч и Щит', 'ซอร์ด & ชีลด์', '소드&실드'],
+  sm: ['Soleil et Lune', 'Sun & Moon', 'サン&ムーン', '太陽&月亮', '太阳&月亮', 'Sol y Luna', 'Sole e Luna', 'Sonne & Mond', 'Zon & Maan', 'Sol e Lua', 'Солнце и Луна', 'ซัน & มูน', '썬&문'],
+  xy: ['XY', 'XY', 'XY', 'XY', 'XY', 'XY', 'XY', 'XY', 'XY', 'XY', 'XY', 'XY', 'XY'],
+  bw: ['Noir et Blanc', 'Black & White', 'ブラック&ホワイト', '黑&白', '黑&白', 'Negro y Blanco', 'Nero e Bianco', 'Schwarz & Weiß', 'Zwart & Wit', 'Preto e Branco', 'Чёрное и Белое', 'แบล็ก & ไวท์', '블랙&화이트'],
+  '30th': ['30e anniversaire', '30th Celebration', '30周年', '30週年', '30周年', '30.º aniversario', '30° anniversario', '30. Jubiläum', '30-jarig jubileum', '30.º aniversário', '30-летие', 'ครบรอบ 30 ปี', '30주년'],
+};
+const SERIES_LANGS = ['fr', 'en', 'ja', 'zh-tw', 'zh-cn', 'es', 'it', 'de', 'nl', 'pt', 'ru', 'th', 'ko'];
+/** Identifiants de blocs (international, japonais, chinois) → série. */
+const SERIES_OF = { me: 'mega', mega: 'mega', sv: 'sv', 'scarlet-violet': 'sv', swsh: 'swsh', 'sword-shield': 'swsh', sm: 'sm', 'sun-moon': 'sm', xy: 'xy', bw: 'bw', 'black-white': 'bw', '30th': '30th' };
+const seriesNames = (id) => (SERIES[SERIES_OF[id]] ? Object.fromEntries(SERIES_LANGS.map((l, i) => [l, SERIES[SERIES_OF[id]][i]])) : undefined);
+
 const read = (lang) => {
   const f = join(CATALOG, 'sets', `pokemon-${lang}.json`);
   return existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : null;
@@ -70,6 +85,14 @@ export async function buildSetNames({ online = true } = {}) {
     for (const s of b.sets) s.names = asian(s.id, s.name);
   }
   for (const b of files['zh-cn']?.blocs ?? []) for (const s of b.sets) s.names = clean({ 'zh-cn': s.name, 'zh-tw': s2t(s.name) });
+
+  // Blocs : noms de série dans toutes les langues, complétés par les noms officiels déjà relevés.
+  for (const data of Object.values(files)) {
+    for (const b of data?.blocs ?? []) {
+      const series = seriesNames(b.id);
+      if (series) b.names = { ...series, ...(b.names ?? {}) };
+    }
+  }
 
   let n = 0;
   for (const [l, data] of Object.entries(files)) {
