@@ -39,7 +39,8 @@ export async function buildPokemonIntl(langs = ['en', 'fr', 'de', 'es', 'it', 'p
     // Langues affichées dans l'app : logos TCGdex enregistrés avec le catalogue (un lien mort est remplacé par une autre source).
     if (LOCAL_LOGOS.has(lang)) {
       await pool(blocs.flatMap((b) => b.sets).filter((x) => /^https?:/.test(x.logo ?? '')), 6, async (x) => {
-        x.logo = await saveLogo(x.logo, `pokemon-${lang}`, x.id);
+        // Certains logos n'existent qu'en PNG chez TCGdex (ex. Nuit Noire en français).
+        x.logo = (await saveLogo(x.logo, `pokemon-${lang}`, x.id)) ?? (await saveLogo(x.logo.replace(/\.webp$/, '.png'), `pokemon-${lang}`, x.id));
         if (lang === 'en' && x.logo) fallback.set(x.id, { ...fallback.get(x.id), logo: x.logo });
       });
     }
