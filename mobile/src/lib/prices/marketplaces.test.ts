@@ -51,6 +51,8 @@ test('fiche Cardmarket exacte quand son chemin est connu, offres dans la langue 
 });
 
 test('carte japonaise : recherche Cardmarket par nom anglais (pas la version internationale)', () => {
-  const card: Card = { game: 'pokemon', id: 'M6a-001', lang: 'ja', name: 'タマタマ', nameEn: 'Exeggcute', number: '001', setId: 'M6a', prices: [], marketIds: { cardmarket: 1, cardmarketPath: '30th-Celebration/Exeggcute-30C001' } };
+  const card: Card = { game: 'pokemon', id: 'M6a-001', lang: 'ja', name: 'タマタマ', nameEn: 'Exeggcute', number: '001', setId: 'M6a', prices: [], marketIds: { cardmarketPath: '30th-Celebration/Exeggcute-30C001' } };
   assert.equal(marketLinks(card, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=Exeggcute%20m6a%20001');
+  // Avec son n° produit (fiche japonaise) : lien direct.
+  assert.equal(marketLinks({ ...card, marketIds: { ...card.marketIds, cardmarket: 907765 } }, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products?idProduct=907765&language=7');
 });
