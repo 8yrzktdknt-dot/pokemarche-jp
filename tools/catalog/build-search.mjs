@@ -4,7 +4,10 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CATALOG, writeJson } from './lib.mjs';
 
-/** Colonnes : id, setId, localId, number, name, nameEn, nameFr, rarity, image, prix USD, facettes, attributs, n° produit TCGplayer. */
+/**
+ * Colonnes : id, setId, localId, number, name, nameEn, nameFr, rarity, image, prix USD, facettes, attributs, n° produit TCGplayer,
+ * prix Cardmarket (EUR, moyenne des ventes sur 7 jours ou tendance), n° produit Cardmarket.
+ */
 export function buildSearch() {
   const dir = join(CATALOG, 'sets');
   if (!existsSync(dir)) return;
@@ -17,12 +20,12 @@ export function buildSearch() {
         const file = join(CATALOG, 'cards', key, `${s.id}.json`);
         if (!existsSync(file)) continue;
         for (const c of JSON.parse(readFileSync(file, 'utf8'))) {
-          rows.push([c.id, s.id, c.localId, c.number, c.name, c.nameEn ?? '', c.nameFr ?? '', c.rarity ?? '', c.image ?? '', c.price?.value ?? 0, c.facets ?? 0, c.attrs ?? 0, c.tcgplayer ?? 0]);
+          rows.push([c.id, s.id, c.localId, c.number, c.name, c.nameEn ?? '', c.nameFr ?? '', c.rarity ?? '', c.image ?? '', c.price?.value ?? 0, c.facets ?? 0, c.attrs ?? 0, c.tcgplayer ?? 0, c.cm?.avg7 ?? c.cm?.trend ?? 0, c.cm?.id ?? 0]);
         }
       }
     }
     if (!rows.length) continue;
-    writeJson(`search/${key}.json`, { columns: ['id', 'setId', 'localId', 'number', 'name', 'nameEn', 'nameFr', 'rarity', 'image', 'priceUsd', 'facets', 'attrs', 'tcgplayer'], rows });
+    writeJson(`search/${key}.json`, { columns: ['id', 'setId', 'localId', 'number', 'name', 'nameEn', 'nameFr', 'rarity', 'image', 'priceUsd', 'facets', 'attrs', 'tcgplayer', 'eur', 'cardmarket'], rows });
     console.log(`search/${key}.json : ${rows.length} cartes`);
   }
 }

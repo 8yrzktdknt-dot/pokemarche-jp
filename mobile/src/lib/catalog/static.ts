@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { getJson } from '../http';
 import { distinct, normalize, sortCards } from '../search';
-import type { AttributeKey, Bloc, Card, CardAttribute, CardLang, FilterOptions, GameId, SearchFilters, SetInfo } from '../types';
+import type { AttributeKey, Bloc, Card, CardAttribute, CardLang, FilterOptions, GameId, Price, SearchFilters, SetInfo } from '../types';
 
 /**
  * Catalogue publié avec le site (construit chaque semaine par GitHub Actions, dossier catalog/ du dépôt) :
@@ -69,6 +69,8 @@ export interface StaticCard {
   facets?: Record<string, string[]>;
   attrs?: Partial<Record<AttributeKey, string>>;
   tcgplayer?: number;
+  /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
+  cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; trend?: number; low?: number };
 }
 
 export async function staticBlocs(game: GameId, lang: CardLang): Promise<StaticBloc[] | null> {
@@ -112,15 +114,19 @@ export interface StaticRow {
   facets?: Record<string, string[]>;
   attrs?: Partial<Record<AttributeKey, string>>;
   tcgplayer?: number;
+  /** Prix Cardmarket de référence (EUR) et n° produit. */
+  eur?: number;
+  cardmarket?: number;
 }
 
 /** Toutes les cartes d'un jeu et d'une langue (fichier compact), pour chercher par nom traduit. */
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer]) => ({
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket]) => ({
     id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd,
     facets: facets || undefined, attrs: attrs || undefined, tcgplayer: tcgplayer || undefined,
+    eur: eur || undefined, cardmarket: cardmarket || undefined,
   }) as StaticRow);
 }
 
@@ -146,6 +152,26 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
   return out;
 }
 
+/** Prix du catalogue : Cardmarket (EUR, moyenne des ventes sur 7 jours en premier) puis TCGplayer (USD). */
+function staticPrices(c: StaticCard | StaticRow, usd?: number): Price[] {
+  const out: Price[] = [];
+  const add = (label: string, value?: number) => {
+    if (value) out.push({ source: 'cardmarket', label, value, currency: 'EUR' });
+  };
+  const cm = 'cm' in c ? c.cm : undefined;
+  if (cm) {
+    add('cm.avg7', cm.avg7);
+    add('cm.avg1', cm.avg1);
+    add('cm.avg30', cm.avg30);
+    add('cm.trend', cm.trend);
+    add('cm.low', cm.low);
+  } else if ('eur' in c) {
+    add('cm.avg7', c.eur);
+  }
+  if (usd) out.push({ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' });
+  return out;
+}
+
 /** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */
 export function staticToCard(
   game: GameId,
@@ -156,6 +182,9 @@ export function staticToCard(
   const image = c.image || undefined;
   const price = 'price' in c ? (c as { price?: { value: number; currency: string; source: string } }).price : undefined;
   const usd = 'priceUsd' in c && c.priceUsd ? c.priceUsd : price?.value;
+  const cm = 'cm' in c ? c.cm : undefined;
+  const cmId = cm?.id ?? ('cardmarket' in c ? c.cardmarket : undefined);
+  const tpId = c.tcgplayer;
   return {
     game,
     id: c.id,
@@ -169,10 +198,10 @@ export function staticToCard(
     rarity: rarityOf(c.rarity),
     imageSmall: image,
     imageLarge: largeImage(image),
-    prices: usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [],
+    prices: staticPrices(c, usd),
     facets: (c as { facets?: Record<string, string[]> }).facets,
     attributes: staticAttributes(c, set?.releaseDate),
-    marketIds: c.tcgplayer ? { tcgplayer: c.tcgplayer } : undefined,
+    marketIds: cmId || tpId ? { cardmarket: cmId || undefined, tcgplayer: tpId || undefined } : undefined,
   };
 }
 

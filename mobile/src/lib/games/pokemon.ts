@@ -335,13 +335,20 @@ async function filterOptionsAll(lang: CardLang): Promise<FilterOptions> {
   return st ? { ...live, blocs: toBlocs(st) } : live;
 }
 
+/** Attributs TCGdex en direct, complétés par ceux du catalogue (clés absentes ou rareté « None »). */
+function mergeAttributes(live: CardAttribute[] = [], st: CardAttribute[] = []): CardAttribute[] {
+  const out = live.filter((a) => !(a.key === 'rarity' && a.value === NO_RARITY && st.some((b) => b.key === 'rarity' && b.value !== NO_RARITY)));
+  for (const a of st) if (!out.some((b) => b.key === a.key)) out.push(a);
+  return out;
+}
+
 /** Date de sortie de l'extension (catalogue publié), ajoutée aux attributs après l'illustrateur. */
 async function withRelease(card: Card, lang: CardLang): Promise<Card> {
   const sets = (await staticBlocs('pokemon', lang).catch(() => null))?.flatMap((b) => b.sets) ?? [];
   const date = sets.find((x) => x.id === card.setId)?.releaseDate;
   const attrs = [...(card.attributes ?? [])];
   if (!attrs.some((a) => a.key === 'rarity') && card.rarity) attrs.push({ key: 'rarity', value: card.rarity });
-  if (date) attrs.splice(attrs[0]?.key === 'illustrator' ? 1 : 0, 0, { key: 'release', value: date });
+  if (date && !attrs.some((a) => a.key === 'release')) attrs.splice(attrs[0]?.key === 'illustrator' ? 1 : 0, 0, { key: 'release', value: date });
   return { ...card, attributes: attrs };
 }
 
@@ -355,6 +362,9 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
     ...live,
     nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName,
     imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
+    // Prix du jour publiés avec le catalogue quand TCGdex n'en donne pas en direct.
+    prices: live.prices.length ? live.prices : st.prices,
+    attributes: mergeAttributes(live.attributes, st.attributes),
     marketIds: { ...st.marketIds, ...live.marketIds },
   };
   return card ? withRelease(card, lang) : null;
