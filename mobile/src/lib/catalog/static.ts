@@ -135,6 +135,8 @@ export interface StaticRow {
   tcgplayer?: number;
   /** Prix Cardmarket de référence (EUR) et n° produit. */
   eur?: number;
+  /** Période du prix : 7 ou 30 jours, 0 = toutes les ventes (absente des anciens fichiers : 7). */
+  eurDays?: number;
   cardmarket?: number;
   cmPath?: string;
 }
@@ -143,10 +145,10 @@ export interface StaticRow {
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket, cmPath]) => ({
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket, cmPath, eurDays]) => ({
     id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd,
     facets: facets || undefined, attrs: attrs || undefined, tcgplayer: tcgplayer || undefined,
-    eur: eur || undefined, cardmarket: cardmarket || undefined, cmPath: cmPath || undefined,
+    eur: eur || undefined, eurDays: eurDays ?? 7, cardmarket: cardmarket || undefined, cmPath: cmPath || undefined,
   }) as StaticRow);
 }
 
@@ -174,7 +176,7 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
 
 /** Prix du catalogue, toujours Cardmarket : moyenne des ventes sur 7 jours, sinon 30 jours, sinon toutes les ventes. */
 function staticPrices(c: StaticCard | StaticRow): Price[] {
-  const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ avg7: c.eur }) : undefined;
+  const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ [c.eurDays === 30 ? 'avg30' : c.eurDays === 0 ? 'avg' : 'avg7']: c.eur }) : undefined;
   return main ? [main] : [];
 }
 

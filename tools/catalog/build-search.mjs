@@ -6,7 +6,8 @@ import { CATALOG, writeJson } from './lib.mjs';
 
 /**
  * Colonnes : id, setId, localId, number, name, nameEn, nameFr, rarity, image, prix USD, facettes, attributs, n° produit TCGplayer,
- * prix Cardmarket (EUR, moyenne des ventes sur 7 jours, sinon 30 jours, sinon toutes les ventes), n° produit Cardmarket, chemin de la fiche Cardmarket.
+ * prix Cardmarket (EUR, moyenne des ventes sur 7 jours, sinon 30 jours, sinon toutes les ventes), n° produit Cardmarket, chemin de la fiche Cardmarket,
+ * période de ce prix (7 ou 30 jours, 0 = toutes les ventes).
  */
 export function buildSearch() {
   const dir = join(CATALOG, 'sets');
@@ -20,7 +21,7 @@ export function buildSearch() {
         const file = join(CATALOG, 'cards', key, `${s.id}.json`);
         if (!existsSync(file)) continue;
         for (const c of JSON.parse(readFileSync(file, 'utf8'))) {
-          rows.push([c.id, s.id, c.localId, c.number, c.name, c.nameEn ?? '', c.nameFr ?? '', c.rarity ?? '', c.image ?? '', c.price?.value ?? 0, c.facets ?? 0, c.attrs ?? 0, c.tcgplayer ?? 0, c.cm?.avg7 ?? c.cm?.avg30 ?? c.cm?.avg ?? 0, c.cm?.id ?? 0, c.cmPath ?? 0]);
+          rows.push([c.id, s.id, c.localId, c.number, c.name, c.nameEn ?? '', c.nameFr ?? '', c.rarity ?? '', c.image ?? '', c.price?.value ?? 0, c.facets ?? 0, c.attrs ?? 0, c.tcgplayer ?? 0, c.cm?.avg7 ?? c.cm?.avg30 ?? c.cm?.avg ?? 0, c.cm?.id ?? 0, c.cmPath ?? 0, c.cm?.avg7 ? 7 : c.cm?.avg30 ? 30 : 0]);
         }
       }
     }

@@ -171,6 +171,32 @@ export function applyClassicCollection(cards, pages, lang) {
 let cmFiles;
 const cardmarketFiles = () => (cmFiles ??= loadCardmarketFiles().catch(() => null));
 
+/**
+ * Cartes absentes de TCGdex : les trois Mew secrets « RGB » de 30th Celebration (YOSHIROTTEN, d'après les jaquettes
+ * Rouge, Vert et Bleu). Visuels anglais Limitless (30C/R, G, B), fiches Cardmarket Mew V1 à V3.
+ */
+const RGB_ATTRS = {
+  en: { type: 'Psychic', hp: '60', stage: 'Basic', category: 'Pokemon' },
+  fr: { type: 'Psy', hp: '60', stage: 'Base', category: 'Pokémon' },
+};
+export function addExtraCards(setId, cards, lang) {
+  if (setId !== '30th' || !RGB_ATTRS[lang]) return 0;
+  let n = 0;
+  ['R', 'G', 'B'].forEach((v, i) => {
+    const id = `30th-${v}`;
+    const card = {
+      id, localId: v, number: `${v}/RGB`, name: 'Mew', nameEn: 'Mew', nameFr: 'Mew', rarity: 'RGB',
+      image: `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/30C/30C_${v}_R_EN_SM.png`,
+      cmPath: `30th-Celebration/Mew-V${i + 1}-30C${v}RGB`,
+      attrs: { illustrator: 'YOSHIROTTEN', ...RGB_ATTRS[lang] },
+    };
+    const at = cards.findIndex((c) => c.id === id);
+    if (at >= 0) cards[at] = { ...card, ...(cards[at].cm ? { cm: cards[at].cm } : {}) };
+    else { cards.push(card); n++; }
+  });
+  return n;
+}
+
 /** Extensions internationales sans prix TCGdex (30th Celebration et sa Collection Classique) : fichiers Cardmarket. */
 async function completeIntlCardmarket(dir, files) {
   const ids = Object.keys(INTL_EXPANSIONS).filter((id) => files.includes(`${id}.json`));
@@ -180,6 +206,16 @@ async function completeIntlCardmarket(dir, files) {
   const decks = ids.map((setId) => ({ setId, cards: JSON.parse(readFileSync(join(dir, `${setId}.json`), 'utf8')) }));
   completeIntlPrices(decks, cmf);
   for (const { setId, cards } of decks) writeJson(`cards/${basename(dir)}/${setId}.json`, cards);
+  // Nombre de cartes affiché : celles ajoutées hors TCGdex comprises (Mew RGB).
+  const setsFile = join(CATALOG, 'sets', `${basename(dir)}.json`);
+  if (!existsSync(setsFile)) return;
+  const sets = JSON.parse(readFileSync(setsFile, 'utf8'));
+  let changed = false;
+  for (const b of sets.blocs) for (const x of b.sets) {
+    const d = decks.find((y) => y.setId === x.id);
+    if (d && x.count !== d.cards.length) { x.count = d.cards.length; changed = true; }
+  }
+  if (changed) writeJson(`sets/${basename(dir)}.json`, sets);
 }
 
 async function completeJapaneseCardmarket(dir, files) {
@@ -296,8 +332,9 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       const cards = JSON.parse(readFileSync(join(dir, f), 'utf8'));
       // Collection Classique : liens à part (le code « 30C » est partagé avec l'extension principale).
       if (setId === '30th-c') stat.links += applyClassicCollection(cards, classic, lang);
+      addExtraCards(setId, cards, lang);
       for (const c of cards) {
-        if (setId === '30th-c') continue;
+        if (setId === '30th-c' || c.id === `30th-${c.localId}` && /^[RGB]$/.test(c.localId)) continue;
         const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
         const p = r && paths.get(r.key);
         if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
