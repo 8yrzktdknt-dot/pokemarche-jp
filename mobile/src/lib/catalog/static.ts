@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { getJson } from '../http';
+import { cardmarketPrice } from '../prices/cardmarket';
 import { distinct, normalize, sortCards } from '../search';
 import type { AttributeKey, Bloc, Card, CardAttribute, CardLang, FilterOptions, GameId, Price, SearchFilters, SetInfo } from '../types';
 
@@ -70,7 +71,7 @@ export interface StaticCard {
   attrs?: Partial<Record<AttributeKey, string>>;
   tcgplayer?: number;
   /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
-  cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; trend?: number; low?: number };
+  cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; avg?: number; trend?: number; low?: number };
   /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
   cmPath?: string;
 }
@@ -155,24 +156,14 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
   return out;
 }
 
-/** Prix du catalogue : Cardmarket (EUR, moyenne des ventes sur 7 jours en premier) puis TCGplayer (USD). */
+/**
+ * Prix du catalogue : moyenne des ventes Cardmarket sur 7 jours (sinon 30 jours, sinon toutes les ventes),
+ * ou à défaut le prix TCGplayer (USD).
+ */
 function staticPrices(c: StaticCard | StaticRow, usd?: number): Price[] {
-  const out: Price[] = [];
-  const add = (label: string, value?: number) => {
-    if (value) out.push({ source: 'cardmarket', label, value, currency: 'EUR' });
-  };
-  const cm = 'cm' in c ? c.cm : undefined;
-  if (cm) {
-    add('cm.avg7', cm.avg7);
-    add('cm.avg1', cm.avg1);
-    add('cm.avg30', cm.avg30);
-    add('cm.trend', cm.trend);
-    add('cm.low', cm.low);
-  } else if ('eur' in c) {
-    add('cm.avg7', c.eur);
-  }
-  if (usd) out.push({ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' });
-  return out;
+  const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ avg7: c.eur }) : undefined;
+  if (main) return [main];
+  return usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [];
 }
 
 /** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */

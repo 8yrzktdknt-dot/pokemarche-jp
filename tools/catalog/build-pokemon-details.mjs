@@ -15,7 +15,7 @@ const enc = encodeURIComponent;
 export function cardmarketOf(cm) {
   if (!cm) return undefined;
   const pick = (k) => cm[k] || cm[`${k}-holo`] || undefined;
-  const out = { id: cm.idProduct || undefined, avg7: pick('avg7'), avg1: pick('avg1'), avg30: pick('avg30'), trend: pick('trend'), low: pick('low') };
+  const out = { id: cm.idProduct || undefined, avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg') };
   for (const k of Object.keys(out)) if (out[k] === undefined) delete out[k];
   return Object.keys(out).length ? out : undefined;
 }
@@ -146,7 +146,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
         if (!d) return;
         stat.found++;
         applyDetails(c, d, lang);
-        if (c.cm?.avg7 || c.cm?.trend) stat.priced++;
+        if (c.cm?.avg7 || c.cm?.avg30 || c.cm?.avg) stat.priced++;
         if (c.attrs?.illustrator || c.attrs?.hp) stat.attrs++;
       });
       writeJson(`cards/pokemon-${lang}/${f}`, cards);

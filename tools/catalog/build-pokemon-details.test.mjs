@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import { applyDetails, attrsOf, cardmarketOf, tcgplayerOf } from './build-pokemon-details.mjs';
 
 test('prix Cardmarket : champs normaux, sinon holo', () => {
-  assert.deepEqual(cardmarketOf({ idProduct: 1, avg7: 2, avg1: 1, avg30: 3, trend: 2.5, low: 0.5 }), { id: 1, avg7: 2, avg1: 1, avg30: 3, trend: 2.5, low: 0.5 });
-  assert.deepEqual(cardmarketOf({ idProduct: 9, avg7: null, 'avg7-holo': 4, trend: 0, 'trend-holo': 5 }), { id: 9, avg7: 4, trend: 5 });
+  assert.deepEqual(cardmarketOf({ idProduct: 1, avg7: 2, avg1: 1, avg30: 3, avg: 2.8, trend: 2.5, low: 0.5 }), { id: 1, avg7: 2, avg30: 3, avg: 2.8 });
+  assert.deepEqual(cardmarketOf({ idProduct: 9, avg7: null, 'avg7-holo': 4, avg30: 0, 'avg30-holo': 5 }), { id: 9, avg7: 4, avg30: 5 });
   assert.equal(cardmarketOf(null), undefined);
 });
 

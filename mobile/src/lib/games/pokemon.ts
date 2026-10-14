@@ -2,6 +2,7 @@ import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
 import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityAbbr, rarityValuesFor } from '../catalog/pokemonNames.ts';
+import { cardmarketPrice } from '../prices/cardmarket.ts';
 import { NO_RARITY, assetUrl, staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
 import type { Bloc, Card, CardAttribute, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
@@ -40,20 +41,15 @@ interface TcgdexCard extends TcgdexBrief {
 }
 
 /**
- * Prix Cardmarket : moyennes des ventes réalisées (1, 7 et 30 jours), tendance et prix le plus bas ;
- * TCGplayer : prix « Market » par variante. La moyenne des ventes sur 7 jours sert de prix de référence.
+ * Prix affiché : moyenne des ventes Cardmarket sur 7 jours (sinon 30 jours, sinon toutes les ventes ;
+ * champs « -holo » pour les cartes uniquement holo). Prix TCGplayer « Market » seulement sans prix Cardmarket.
  */
 function prices(c: TcgdexCard): Price[] {
+  const cm = c.pricing?.cardmarket as Record<string, number | null | undefined> | null | undefined;
+  const pick = (k: string) => cm?.[k] || cm?.[`${k}-holo`] || undefined;
+  const main = cardmarketPrice(cm ? { avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg') } : null);
+  if (main) return [main];
   const out: Price[] = [];
-  const cm = c.pricing?.cardmarket;
-  const push = (label: string, value?: number) => {
-    if (value) out.push({ source: 'cardmarket', label, value, currency: 'EUR' });
-  };
-  push('cm.avg7', cm?.avg7);
-  push('cm.avg1', cm?.avg1);
-  push('cm.avg30', cm?.avg30);
-  push('cm.trend', cm?.trend);
-  push('cm.low', cm?.low);
   const tp = c.pricing?.tcgplayer;
   if (tp) {
     for (const [variant, v] of Object.entries(tp)) {
