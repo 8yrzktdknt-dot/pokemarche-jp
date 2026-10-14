@@ -255,6 +255,14 @@ export default function CardScreen() {
           ))}
         </>
       )}
+      <Pressable
+        style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 14 }}
+        onPress={() => router.push({ pathname: '/report', params: { game: card.game, id: card.id, lang: card.lang, name: card.name, number: card.number, set: card.setName ?? card.setId ?? '' } })}
+        accessibilityRole="link"
+      >
+        <Ionicons name="flag-outline" size={14} color={colors.muted} />
+        <Text style={[s.muted, { fontSize: 13, textDecorationLine: 'underline' }]}>{t('report.link')}</Text>
+      </Pressable>
     </ScrollView>
     </Animated.View>
   );

@@ -35,6 +35,7 @@ function AppStack() {
         <Stack.Screen name="set/[game]/[id]" options={{ title: t('title.set') }} />
         <Stack.Screen name="set-stats/[game]/[id]" options={{ title: t('setStats.title') }} />
         <Stack.Screen name="confirm" options={{ title: t('confirm.title'), headerShown: false }} />
+        <Stack.Screen name="report" options={{ title: t('report.title') }} />
         <Stack.Screen name="collection" options={{ title: t('title.collection') }} />
         <Stack.Screen name="card/[game]/[id]" options={{ title: t('title.card') }} />
       </Stack>
