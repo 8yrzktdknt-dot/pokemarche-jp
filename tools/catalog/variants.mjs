@@ -6,6 +6,12 @@
 
 /** Motifs TCGdex → clé de variante (les autres motifs gardent leur nom : « reverse-cosmos »). */
 const FOILS = { pokeball: 'pokeball', masterball: 'masterball' };
+/** Motifs traduits par TCGdex (fiches françaises…) → nom anglais. */
+const FOIL_NAMES = { energie: 'energy', energia: 'energy', ligue: 'league', liga: 'league', lega: 'league' };
+const foilName = (f) => {
+  const n = String(f).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  return FOIL_NAMES[n] ?? n;
+};
 
 /** Variantes d'une fiche TCGdex, dans l'ordre de la fiche, sans doublon (formats jumbo exclus). */
 export function variantsOf(d) {
@@ -14,7 +20,7 @@ export function variantsOf(d) {
     if (v.size && v.size.toLowerCase() !== 'standard') continue;
     const type = String(v.type ?? '').toLowerCase();
     if (!type) continue;
-    const foil = v.foil ? String(v.foil).toLowerCase() : '';
+    const foil = v.foil ? foilName(v.foil) : '';
     let k = type === 'reverse' && foil ? FOILS[foil] ?? `reverse-${foil}` : type;
     const sub = v.subtype && v.subtype !== 'unlimited' ? String(v.subtype).toLowerCase() : '';
     const stamps = (v.stamp ?? []).map((s) => String(s).toLowerCase());
@@ -31,8 +37,15 @@ export function wizardVariantKey(name) {
   const m = name.match(/\(([^)]*(?:Pattern|Ball)[^)]*)\)\s*$/i);
   if (!m) return undefined;
   const slug = m[1].toLowerCase().replace(/pattern/g, '').replace(/[^a-z0-9]/g, '');
-  // Motif « symbole d'énergie » : le reverse des cartes japonaises.
-  return slug === 'energysymbol' || slug === 'energy' ? 'reverse' : slug;
+  // Motif « symbole d'énergie » : même clé que TCGdex (« reverse-energy »).
+  return slug === 'energysymbol' || slug === 'energy' ? 'reverse-energy' : slug;
+}
+
+/** Variantes de TCGdex complétées par celles d'une autre source (PokemonWizard), sans doublon. */
+export function mergeVariants(a = [], b = []) {
+  const out = [...a];
+  for (const v of b) if (!out.some((x) => x.k === v.k)) out.push(v);
+  return out;
 }
 
 /** Carte japonaise de base : holo à partir de « R » (les communes et peu communes ne le sont pas). */

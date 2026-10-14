@@ -10,7 +10,7 @@ import { INTL_EXPANSIONS, completeIntlPrices, completeJapanesePrices, loadCardma
 import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
 import { matchWizardSet, officialCardId, parseOfficialAttrs, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
 import { CATALOG, getJson, getText, pool, writeJson } from './lib.mjs';
-import { applyCardmarketPrices, japaneseBase, variantsOf } from './variants.mjs';
+import { applyCardmarketPrices, japaneseBase, mergeVariants, variantsOf } from './variants.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
 const enc = encodeURIComponent;
@@ -65,7 +65,8 @@ export function applyDetails(c, d, lang) {
   const attrs = { ...(c.attrs ?? {}), ...attrsOf(d, lang) };
   if (Object.keys(attrs).length) c.attrs = attrs;
   // N° produit Cardmarket seulement : les prix viennent des fichiers Cardmarket (applyCardmarketPrices).
-  const v = variantsOf(d);
+  // Variantes TCGdex, complétées par celles déjà relevées (motifs PokemonWizard des cartes japonaises).
+  const v = mergeVariants(variantsOf(d), c.v);
   if (v.length) c.v = v; else delete c.v;
   const id = d.pricing?.cardmarket?.idProduct || v[0]?.id;
   if (id) c.cm = { id }; else delete c.cm;
@@ -363,6 +364,8 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
         const p = r && paths.get(r.key);
         if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
       }
+      // Variantes relevées à neuf à chaque passage (PokemonWizard puis TCGdex).
+      for (const c of cards) delete c.v;
       // TCGplayer (PokemonWizard) : n° produit, et prix du marché quand Cardmarket n'en a pas.
       const wiz = wizard.get(setId);
       if (wiz) {

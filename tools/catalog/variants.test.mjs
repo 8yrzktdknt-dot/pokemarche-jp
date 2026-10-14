@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { applyCardmarketPrices, japaneseBase, variantsOf, wizardVariantKey } from './variants.mjs';
+import { applyCardmarketPrices, japaneseBase, mergeVariants, variantsOf, wizardVariantKey } from './variants.mjs';
 
 test('variantsOf : normale, reverse, Poké Ball, Master Ball, tampon, sous-type', () => {
   const d = { variants_detailed: [
@@ -21,7 +21,7 @@ test('variantsOf : normale, reverse, Poké Ball, Master Ball, tampon, sous-type'
 
 test('wizardVariantKey et carte japonaise de base', () => {
   assert.equal(wizardVariantKey("Cynthia's Roserade (Poke Ball Pattern)"), 'pokeball');
-  assert.equal(wizardVariantKey("Cynthia's Roserade (Energy Symbol Pattern)"), 'reverse');
+  assert.equal(wizardVariantKey("Cynthia's Roserade (Energy Symbol Pattern)"), 'reverse-energy');
   assert.equal(wizardVariantKey('Yanmega (Quick Ball Pattern)'), 'quickball');
   assert.equal(wizardVariantKey("Cynthia's Roserade"), undefined);
   assert.equal(japaneseBase('C'), 'normal');
@@ -44,4 +44,15 @@ test('applyCardmarketPrices : moyenne 7 jours de chaque variante, depuis les fic
   assert.equal(jp.cm.avg7, undefined);
   assert.equal(jp.cm.f, 1);
   assert.deepEqual(jp.v.map((v) => v.p), [undefined, 0.5, undefined]);
+});
+
+test('variantsOf : motifs traduits (fiches françaises) ; fusion avec PokemonWizard', () => {
+  const d = { variants_detailed: [
+    { type: 'Normal', size: 'Standard', thirdParty: { cardmarket: 1 } },
+    { type: 'Reverse', size: 'Standard', foil: 'Pokéball', thirdParty: { cardmarket: 2 } },
+    { type: 'Reverse', size: 'Standard', foil: 'Énergie', thirdParty: { cardmarket: 3 } },
+  ] };
+  const v = variantsOf(d);
+  assert.deepEqual(v.map((x) => x.k), ['normal', 'pokeball', 'reverse-energy']);
+  assert.deepEqual(mergeVariants(v, [{ k: 'normal' }, { k: 'masterball' }]).map((x) => x.k), ['normal', 'pokeball', 'reverse-energy', 'masterball']);
 });
