@@ -35,10 +35,11 @@ const TYPE_COLOR: [RegExp, string][] = [
 ];
 const typeColor = (v: string) => TYPE_COLOR.find(([re]) => re.test(v))?.[1];
 
-function formatDate(iso: string, appLang: string) {
+/** Date de sortie dans la langue de l'app (`locale` : « fr-FR », « ja-JP »…). */
+function formatDate(iso: string, locale: string) {
   const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(appLang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function AttrIcon({ a }: { a: CardAttribute }) {
@@ -86,7 +87,7 @@ function AttributeRow({ a, game, appLang, label }: { a: CardAttribute; game: Gam
 
 export default function CardScreen() {
   const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
-  const { add, remove, collection, settings, t, langLabel, money } = useStore();
+  const { add, remove, collection, settings, t, langLabel, money, appLang, locale } = useStore();
   const [card, setCard] = useState<Card | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -189,7 +190,7 @@ export default function CardScreen() {
       onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
       scrollEventThrottle={16}
       contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
-      <Stack.Screen options={{ title: displayName(card, settings.appLang) }} />
+      <Stack.Screen options={{ title: displayName(card, appLang) }} />
       <Image source={card.imageLarge ?? card.imageSmall} style={{ width: '100%', aspectRatio: 63 / 88, borderRadius: 12 }} contentFit="contain" />
       {nav.total > 1 && (
         <View style={st.nav}>
@@ -202,8 +203,8 @@ export default function CardScreen() {
           </Pressable>
         </View>
       )}
-      <Text style={s.h2}>{displayName(card, settings.appLang)}</Text>
-      {displayName(card, settings.appLang) !== card.name && <Text style={s.muted}>{card.name}</Text>}
+      <Text style={s.h2}>{displayName(card, appLang)}</Text>
+      {displayName(card, appLang) !== card.name && <Text style={s.muted}>{card.name}</Text>}
       <Text style={s.muted}>
         {[GAMES[card.game].label, card.setName, card.number, langLabel(card.lang)].filter(Boolean).join(' · ')}
       </Text>
@@ -236,7 +237,7 @@ export default function CardScreen() {
       {hasCmSales && <Text style={[s.muted, { fontSize: 12 }]}>{t('card.salesNote')}</Text>}
 
       <Text style={s.h2}>{t('card.seeOn')}</Text>
-      {marketLinks(card, settings.appLang).map((l) => (
+      {marketLinks(card, appLang).map((l) => (
         <Pressable key={l.id} style={st.link} onPress={() => Linking.openURL(l.url)}>
           <Image source={siteLogo(l.id)} style={st.linkLogo} contentFit="contain" />
           <Text style={[s.ghostText, { flex: 1 }]}>{l.label}</Text>
@@ -248,7 +249,7 @@ export default function CardScreen() {
         <>
           <Text style={s.h2}>{t('card.attributes')}</Text>
           {card.attributes.map((a) => (
-            <AttributeRow key={a.key} a={a} game={card.game} appLang={settings.appLang} label={t(`attr.${a.key}` as TKey)} />
+            <AttributeRow key={a.key} a={a} game={card.game} appLang={locale} label={t(`attr.${a.key}` as TKey)} />
           ))}
         </>
       )}

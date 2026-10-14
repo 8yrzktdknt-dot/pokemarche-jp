@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Dropdown } from '../../components/Dropdown';
 import { GamePicker, colors, fonts, s } from '../../components/ui';
+import { localName } from '../../lib/catalog/static';
 import { GAMES, langFor } from '../../lib/games';
 import { useStore } from '../../lib/store';
 import type { Bloc, GameId } from '../../lib/types';
 
 export default function Extensions() {
-  const { settings, setSettings, t, langLabel } = useStore();
+  const { settings, setSettings, t, langLabel, appLang } = useStore();
   const game: GameId = settings.game === 'auto' ? 'pokemon' : settings.game;
   const lang = langFor(game, settings.lang);
   const [blocs, setBlocs] = useState<Bloc[] | null>(null);
@@ -42,11 +43,11 @@ export default function Extensions() {
 
       {blocs?.map((b) => (
         <View key={b.id} style={{ gap: 10, marginTop: 8 }}>
-          <Text style={s.h2}>{b.name}</Text>
+          <Text style={s.h2}>{localName(b, appLang)}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {b.sets.map((x) => (
               <Link key={x.id} href={{ pathname: '/set/[game]/[id]', params: { game, id: x.id, lang } }} asChild>
-                <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${x.name} (${x.code})`}>
+                <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${localName(x, appLang)} (${x.code})`}>
                   <View style={[st.logoBox, { height: tile * 0.62 }]}>
                     {x.logo ? (
                       <Image source={x.logo} style={st.logo} contentFit="contain" />
@@ -55,7 +56,7 @@ export default function Extensions() {
                     )}
                     {x.symbol && x.symbol !== x.logo && <Image source={x.symbol} style={st.symbol} contentFit="contain" />}
                   </View>
-                  <Text style={st.name} numberOfLines={2}>{x.name}</Text>
+                  <Text style={st.name} numberOfLines={2}>{localName(x, appLang)}</Text>
                   <Text style={st.meta}>{x.code}{x.count ? ` · ${x.count}` : ''}</Text>
                 </Pressable>
               </Link>

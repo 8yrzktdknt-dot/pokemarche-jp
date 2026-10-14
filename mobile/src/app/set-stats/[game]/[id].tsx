@@ -7,6 +7,7 @@ import { BarList, Panel } from '../../../components/Stats';
 import { CardRow, colors, fonts, s } from '../../../components/ui';
 import { formatMoney } from '../../../lib/currency';
 import { GAMES } from '../../../lib/games';
+import { localName } from '../../../lib/catalog/static';
 import { percent, setStats } from '../../../lib/setStats';
 import { useStore } from '../../../lib/store';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
@@ -14,7 +15,7 @@ import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
 /** Statistiques d'une extension : avancement, valeur, raretés, tranches de prix, cartes chères et manquantes. */
 export default function SetStatsScreen() {
   const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
-  const { collection, t, settings, toCurrency } = useStore();
+  const { collection, t, settings, toCurrency, locale, appLang } = useStore();
   const [set, setSet] = useState<SetInfo | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,6 @@ export default function SetStatsScreen() {
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!cards || !stats) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
 
-  const locale = settings.appLang === 'en' ? 'en-US' : 'fr-FR';
   const money = (v: number) => formatMoney(v, settings.currency, locale);
   const bucketLabel = (b: { min: number; max?: number }) =>
     b.max === undefined ? `${money(b.min)} +` : `${money(b.min)} – ${money(b.max)}`;
@@ -47,7 +47,7 @@ export default function SetStatsScreen() {
       <View style={st.head}>
         {set?.logo ? <Image source={set.logo} style={{ width: 140, height: 56 }} contentFit="contain" /> : null}
         <View style={{ flex: 1 }}>
-          <Text style={s.h2} numberOfLines={2}>{set?.name ?? id}</Text>
+          <Text style={s.h2} numberOfLines={2}>{set ? localName(set, appLang) : id}</Text>
           <Text style={s.muted}>{set?.code ?? id} · {t('setStats.cards', { n: cards.length })}</Text>
         </View>
       </View>

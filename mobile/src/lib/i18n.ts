@@ -1,6 +1,30 @@
 import type { CardLang } from './types.ts';
 
-export type AppLang = 'fr' | 'en';
+/** Langues de l'interface (et des noms de cartes et d'extensions quand ils sont traduits). */
+export type AppLang = 'fr' | 'en' | 'ja' | 'zh-tw' | 'zh-cn' | 'es' | 'it' | 'de' | 'nl' | 'pt' | 'ru' | 'th' | 'ko';
+export const APP_LANGS: AppLang[] = ['fr', 'en', 'ja', 'zh-tw', 'zh-cn', 'es', 'it', 'de', 'nl', 'pt', 'ru', 'th', 'ko'];
+/** Nom de chaque langue dans sa propre langue (liste de choix). */
+export const APP_LANG_NAMES: Record<AppLang, string> = {
+  fr: 'Français', en: 'English', ja: '日本語', 'zh-tw': '繁體中文', 'zh-cn': '简体中文', es: 'Español', it: 'Italiano',
+  de: 'Deutsch', nl: 'Nederlands', pt: 'Português', ru: 'Русский', th: 'ไทย', ko: '한국어',
+};
+/** Code de langue pour les dates, nombres et noms de langues (Intl). */
+export const APP_LOCALE: Record<AppLang, string> = {
+  fr: 'fr-FR', en: 'en-US', ja: 'ja-JP', 'zh-tw': 'zh-TW', 'zh-cn': 'zh-CN', es: 'es-ES', it: 'it-IT',
+  de: 'de-DE', nl: 'nl-NL', pt: 'pt-PT', ru: 'ru-RU', th: 'th-TH', ko: 'ko-KR',
+};
+
+/** Langue de l'appareil (réglage « automatique ») : la première langue préférée prise en charge, sinon l'anglais. */
+export function deviceLang(prefs: readonly string[] = typeof navigator !== 'undefined' ? navigator.languages ?? [navigator.language] : []): AppLang {
+  for (const raw of prefs) {
+    const l = (raw ?? '').toLowerCase();
+    if (/^zh-(tw|hk|mo)|^zh-hant/.test(l)) return 'zh-tw';
+    if (/^zh/.test(l)) return 'zh-cn';
+    const base = l.split('-')[0] as AppLang;
+    if (APP_LANGS.includes(base)) return base;
+  }
+  return 'en';
+}
 
 const fr = {
   'tab.extensions': 'Extensions',
@@ -24,6 +48,7 @@ const fr = {
   'lang.cards': 'Langue des cartes',
   'lang.sets': 'Langue des extensions',
   'lang.app': "Langue de l'app",
+  'lang.auto': 'Automatique',
 
   'search.placeholder.pokemon': 'Nom ou code (ex. Pikachu, M6 110)',
   'search.placeholder.onepiece': 'Nom ou code (ex. OP05-119)',
@@ -206,7 +231,7 @@ const fr = {
   'coll.empty': 'Scanne ta première carte !',
 };
 
-type Key = keyof typeof fr;
+export type Key = keyof typeof fr;
 
 const en: Record<Key, string> = {
   'tab.extensions': 'Sets',
@@ -230,6 +255,7 @@ const en: Record<Key, string> = {
   'lang.cards': 'Card language',
   'lang.sets': 'Set language',
   'lang.app': 'App language',
+  'lang.auto': 'Automatic',
 
   'search.placeholder.pokemon': 'Name or code (e.g. Pikachu, M6 110)',
   'search.placeholder.onepiece': 'Name or code (e.g. OP05-119)',
@@ -412,14 +438,27 @@ const en: Record<Key, string> = {
   'coll.empty': 'Scan your first card!',
 };
 
-const DICT: Record<AppLang, Record<Key, string>> = { fr, en };
+import { de } from './i18n/de.ts';
+import { es } from './i18n/es.ts';
+import { it } from './i18n/it.ts';
+import { ja } from './i18n/ja.ts';
+import { ko } from './i18n/ko.ts';
+import { nl } from './i18n/nl.ts';
+import { pt } from './i18n/pt.ts';
+import { ru } from './i18n/ru.ts';
+import { th } from './i18n/th.ts';
+import { zhCn } from './i18n/zh-cn.ts';
+import { zhTw } from './i18n/zh-tw.ts';
+
+/** Langues complétées par l'anglais pour une clé encore non traduite. */
+const DICT: Record<AppLang, Partial<Record<Key, string>>> = { fr, en, ja, 'zh-tw': zhTw, 'zh-cn': zhCn, es, it, de, nl, pt, ru, th, ko };
 
 export type TKey = Key;
 export type T = (key: TKey, vars?: Record<string, string | number>) => string;
 
 /** Traduction ; « a|b » choisit le singulier ou le pluriel selon {n}. */
 export function translate(lang: AppLang, key: TKey, vars: Record<string, string | number> = {}): string {
-  let s = DICT[lang][key] ?? DICT.fr[key] ?? key;
+  let s = DICT[lang]?.[key] ?? DICT.en[key] ?? DICT.fr[key] ?? key;
   if (s.includes('|')) {
     const [one, many] = s.split('|');
     s = Number(vars.n) > 1 ? many : one;
@@ -427,13 +466,26 @@ export function translate(lang: AppLang, key: TKey, vars: Record<string, string 
   return s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 }
 
-export const LANG_LABELS: Record<AppLang, Record<CardLang, string>> = {
-  fr: {
-    fr: 'Français', en: 'Anglais', ja: 'Japonais', de: 'Allemand', es: 'Espagnol', it: 'Italien', pt: 'Portugais',
-    ko: 'Coréen', 'zh-tw': 'Chinois trad.', 'zh-cn': 'Chinois simpl.', id: 'Indonésien', th: 'Thaï',
-  },
-  en: {
-    fr: 'French', en: 'English', ja: 'Japanese', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese',
-    ko: 'Korean', 'zh-tw': 'Chinese (trad.)', 'zh-cn': 'Chinese (simpl.)', id: 'Indonesian', th: 'Thai',
-  },
+const LABELS_FR: Record<CardLang, string> = {
+  fr: 'Français', en: 'Anglais', ja: 'Japonais', de: 'Allemand', es: 'Espagnol', it: 'Italien', pt: 'Portugais',
+  ko: 'Coréen', 'zh-tw': 'Chinois trad.', 'zh-cn': 'Chinois simpl.', id: 'Indonésien', th: 'Thaï',
 };
+const LABELS_EN: Record<CardLang, string> = {
+  fr: 'French', en: 'English', ja: 'Japanese', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese',
+  ko: 'Korean', 'zh-tw': 'Chinese (trad.)', 'zh-cn': 'Chinese (simpl.)', id: 'Indonesian', th: 'Thai',
+};
+const INTL_CODE: Record<CardLang, string> = { fr: 'fr', en: 'en', ja: 'ja', de: 'de', es: 'es', it: 'it', pt: 'pt', ko: 'ko', 'zh-tw': 'zh-Hant', 'zh-cn': 'zh-Hans', id: 'id', th: 'th' };
+
+/** Nom d'une langue de cartes dans la langue de l'app (Intl.DisplayNames pour les langues autres que français et anglais). */
+export function langLabel(app: AppLang, l: CardLang): string {
+  if (app === 'fr') return LABELS_FR[l];
+  if (app === 'en') return LABELS_EN[l];
+  try {
+    const name = new Intl.DisplayNames([APP_LOCALE[app]], { type: 'language' }).of(INTL_CODE[l]);
+    return name ? name.charAt(0).toLocaleUpperCase(APP_LOCALE[app]) + name.slice(1) : LABELS_EN[l];
+  } catch {
+    return LABELS_EN[l];
+  }
+}
+
+export const LANG_LABELS = { fr: LABELS_FR, en: LABELS_EN };

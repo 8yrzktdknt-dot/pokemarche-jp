@@ -76,12 +76,16 @@ export interface SetInfo {
   symbol?: string;
   count?: number;
   blocId?: string;
+  /** Nom par langue de l'app (« fr », « ja », « zh-tw »…), quand il est connu. */
+  names?: Record<string, string>;
 }
 
 /** Un bloc (série) regroupant des extensions, les plus récentes d'abord. */
 export interface Bloc {
   id: string;
   name: string;
+  /** Nom par langue de l'app (« fr », « ja », « zh-tw »…), quand il est connu. */
+  names?: Record<string, string>;
   sets: SetInfo[];
 }
 

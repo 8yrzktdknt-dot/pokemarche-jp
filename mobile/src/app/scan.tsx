@@ -85,7 +85,7 @@ function ScanFrame({ scanning, found, width, height }: { scanning: boolean; foun
 
 export default function Scan() {
   const camera = useCameraAccess();
-  const { settings, setSettings, add, t, langLabel } = useStore();
+  const { settings, setSettings, add, t, langLabel, appLang } = useStore();
   const cam = useRef<ScanCameraHandle>(null);
   const stabilizer = useRef(new ScanStabilizer());
   const history = useRef<Match[][]>([]);
@@ -236,7 +236,7 @@ export default function Scan() {
     setAddedCount((n) => n + 1);
     setCandidates([]);
     history.current = [];
-    setStatus(t('scan.added', { name: displayName(card, settings.appLang) }));
+    setStatus(t('scan.added', { name: displayName(card, appLang) }));
   };
 
   if (camera.state !== 'granted') {
@@ -298,7 +298,7 @@ export default function Scan() {
               <View key={`${c.game}:${c.id}`} style={st.candidate}>
                 <Image source={c.imageSmall} style={s.thumb} contentFit="contain" />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.name} numberOfLines={2}>{displayName(c, settings.appLang)}</Text>
+                  <Text style={s.name} numberOfLines={2}>{displayName(c, appLang)}</Text>
                   <Text style={s.meta}>{[GAMES[c.game].label, c.number, c.setName].filter(Boolean).join(' · ')}</Text>
                   {bestPrice(c) && <Text style={s.price}>{bestPrice(c)}</Text>}
                 </View>

@@ -4,7 +4,7 @@ import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type R
 import { mergeCollections } from './cloud/merge';
 import { loadRemote, saveRemote, supabase } from './cloud/supabase';
 import { GAMES } from './games';
-import { LANG_LABELS, translate, type AppLang, type T } from './i18n';
+import { APP_LOCALE, deviceLang, langLabel, translate, type AppLang, type T } from './i18n';
 import { refreshCollectionPrices } from './refreshPrices';
 import type { Card, CardLang, GameId } from './types';
 
@@ -19,8 +19,8 @@ export interface Settings {
   lang: CardLang;
   /** Pseudo affiché sur la page Compte (en attendant les vrais comptes). */
   profileName?: string;
-  /** Langue de l'interface et des noms de cartes traduits. */
-  appLang: AppLang;
+  /** Langue de l'interface et des noms traduits ; « auto » : celle de l'appareil. */
+  appLang: AppLang | 'auto';
   currency: Currency;
   /** Langue des cartes à scanner (« auto » = toutes). */
   scanLang?: CardLang | 'auto';
@@ -37,6 +37,10 @@ interface Store {
   remove(card: Card): void;
   clear(): void;
   t: T;
+  /** Langue de l'interface effective (réglage « auto » résolu avec la langue de l'appareil). */
+  appLang: AppLang;
+  /** Code de langue pour les nombres et les dates (« fr-FR »…). */
+  locale: string;
   /** Libellé d'une langue de cartes dans la langue de l'app. */
   langLabel(l: CardLang): string;
   /** Prix converti dans la devise choisie, formaté. */
@@ -61,7 +65,7 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [collection, setCollection] = useState<CollectionEntry[]>([]);
-  const [settings, setSettingsState] = useState<Settings>({ game: 'auto', lang: 'fr', appLang: 'fr', currency: 'EUR' });
+  const [settings, setSettingsState] = useState<Settings>({ game: 'auto', lang: 'fr', appLang: 'auto', currency: 'EUR' });
   const [rates, setRates] = useState<Rates>(FALLBACK_RATES);
   const [user, setUser] = useState<Store['user']>(null);
   const [sync, setSync] = useState<Store['sync']>('off');
@@ -181,11 +185,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Fonctions stables tant que la langue / la devise ne changent pas (évite de relancer les effets des écrans).
   const helpers = useMemo(() => {
-    const locale = settings.appLang === 'en' ? 'en-US' : 'fr-FR';
+    const appLang: AppLang = settings.appLang === 'auto' || !settings.appLang ? deviceLang() : settings.appLang;
+    const locale = APP_LOCALE[appLang] ?? 'en-US';
     const toCurrency = (v: number, from: string) => convert(v, from, settings.currency, rates);
     return {
-      t: ((key, vars) => translate(settings.appLang, key, vars)) as T,
-      langLabel: (l: CardLang) => LANG_LABELS[settings.appLang][l],
+      appLang,
+      locale,
+      t: ((key, vars) => translate(appLang, key, vars)) as T,
+      langLabel: (l: CardLang) => langLabel(appLang, l),
       toCurrency,
       money: (v: number, from: string) => formatMoney(toCurrency(v, from), settings.currency, locale),
     };
