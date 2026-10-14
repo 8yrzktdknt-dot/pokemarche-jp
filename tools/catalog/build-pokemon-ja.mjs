@@ -1,7 +1,7 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
 import { failures, findLogos, pokellectorLogos, saveLogo, saveLogos, scrydexLogo, scrydexSymbol, serebiiLogoMap } from './logos.mjs';
-import { WIZARD_SETS, official30thImages, officialCard, officialRecentCards, samuraiCards, wizardCards } from './official-jp.mjs';
+import { WIZARD_SETS, official30thImages, officialCardId, officialCard, officialRecentCards, samuraiCards, wizardCards } from './official-jp.mjs';
 import { getBuffer, getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
 import { translateRemaining } from './translate-ja.mjs';
@@ -95,6 +95,7 @@ export async function buildPokemonJa() {
       added += await completeFromOfficial(set, list, recent.get(set.id.toUpperCase()), off);
       if (WIZARD_SETS[set.id]) added += await completeFromWizard(set, list, off);
       added += await completeFrom30th(set, list, off);
+      await splitLegendImages(set, list);
       set.count = list.length || set.count;
       total += list.length;
       writeJson(`cards/pokemon-ja/${set.id}.json`, list);
@@ -274,6 +275,23 @@ async function completeFrom30th(set, list, officialCount) {
   });
   console.log(`${set.id} : site des 30 ans ${official.size} images (${improved} remplacées), Scrydex ${hd} images HD, Samurai Sword ${samurai.size} cartes lues, ${added} ajoutées`);
   return added;
+}
+
+/**
+ * Cartes LEGEND (deux moitiés, « 上 » / « 下 ») : le site officiel n'a qu'une image des deux cartes réunies ;
+ * chaque moitié prend son propre visuel Scrydex quand il existe (réponse partielle 206 : vraie image,
+ * Scrydex renvoie une image générique entière pour une carte inconnue).
+ */
+async function splitLegendImages(set, list) {
+  let split = 0;
+  await pool(list.filter((c) => /\/card_images\/legend\//.test(c.image ?? '') && /^\d+$/.test(c.localId)), 4, async (c) => {
+    const url = scrydexImage(set.id, c.localId);
+    const r = await fetch(url, { headers: { Range: 'bytes=0-0' } }).catch(() => null);
+    await r?.arrayBuffer().catch(() => null);
+    // N° de la fiche officielle gardé (attributs lus dessus par l'étape des détails).
+    if (r?.status === 206) { c.officialId = officialCardId(c.image); c.image = url; split++; }
+  });
+  if (split) console.log(`${set.id} : ${split} moitiés de cartes LEGEND avec leur propre visuel`);
 }
 
 const numberKey = (n) => (/^\d+$/.test(n) ? String(Number(n)) : String(n).toUpperCase());

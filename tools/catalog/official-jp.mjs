@@ -177,3 +177,33 @@ export async function samuraiCards(setId) {
   const html = await getText('https://samuraiswordtokyo.com/pages/m6a-card-list');
   return html ? parseSamuraiList(html) : new Map();
 }
+
+// Fiche officielle → attributs de l'app (libellés en français).
+const OFFICIAL_TYPES = { grass: 'Plante', fire: 'Feu', water: 'Eau', electric: 'Électrique', psychic: 'Psy', fighting: 'Combat', dark: 'Obscurité', steel: 'Métal', dragon: 'Dragon', none: 'Incolore', colorless: 'Incolore', fairy: 'Fée' };
+const OFFICIAL_STAGES = { たね: 'De base', '1進化': 'Niveau 1', '2進化': 'Niveau 2', 伝説: 'LÉGENDE', BREAK進化: 'TURBO', V進化: 'VMAX', VMAX: 'VMAX', VSTAR: 'VSTAR', M進化: 'Méga', メガ進化: 'Méga', レベルアップ: 'Niveau X' };
+const OFFICIAL_TRAINERS = { サポート: 'Supporter', グッズ: 'Objet', スタジアム: 'Stade', ポケモンのどうぐ: 'Outil Pokémon' };
+
+/** Attributs d'une fiche officielle pokemon-card.com (PV, type, stade, catégorie, illustrateur). */
+export function parseOfficialAttrs(html) {
+  const out = {};
+  const right = html.slice(html.indexOf('RightBox'));
+  const hp = right.match(/class="hp-num">\s*(\d+)/)?.[1];
+  if (hp) {
+    out.category = 'Pokémon';
+    out.hp = hp;
+    const typeZone = right.slice(right.indexOf('hp-type'), right.indexOf('hp-type') + 300);
+    const types = [...typeZone.matchAll(/icon-([a-z]+) icon/g)].map((m) => OFFICIAL_TYPES[m[1]]).filter(Boolean);
+    if (types.length) out.type = [...new Set(types)].join(' / ');
+    const stage = cleanName(right.match(/class="type">([^<]+)</)?.[1] ?? '');
+    if (stage) out.stage = OFFICIAL_STAGES[stage] ?? stage;
+  } else {
+    const kind = Object.keys(OFFICIAL_TRAINERS).find((k) => new RegExp(`<h2[^>]*>\\s*${k}\\s*</h2>`).test(right));
+    if (kind) out.category = `Dresseur · ${OFFICIAL_TRAINERS[kind]}`;
+  }
+  const artist = html.match(/イラストレーター[\s\S]{0,300}?<a[^>]*>([^<]+)<\/a>/)?.[1];
+  if (artist) out.illustrator = cleanName(artist);
+  return out;
+}
+
+/** N° de fiche officielle d'après l'image (« …/card_images/large/M6a/050713_P_PIKACHIXYUU.jpg » → 50713). */
+export const officialCardId = (image) => Number(image?.match(/pokemon-card\.com\/assets\/images\/card_images\/[a-z]+\/[^/]+\/0*(\d+)_/)?.[1]) || undefined;

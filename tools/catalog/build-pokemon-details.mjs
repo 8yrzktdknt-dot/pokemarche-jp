@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { cardmarketPaths } from './cardmarket-links.mjs';
 import { completeJapanesePrices, loadCardmarketFiles } from './cardmarket-japanese.mjs';
 import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
-import { matchWizardSet, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
-import { CATALOG, getJson, pool, writeJson } from './lib.mjs';
+import { matchWizardSet, officialCardId, parseOfficialAttrs, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
+import { CATALOG, getJson, getText, pool, writeJson } from './lib.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
 const enc = encodeURIComponent;
@@ -141,6 +141,39 @@ async function completeJapaneseCardmarket(dir, files) {
   decks.forEach(({ f, cards }, i) => { if (JSON.stringify(cards) !== before[i]) writeJson(`cards/pokemon-ja/${f}`, cards); });
 }
 
+/**
+ * Cartes japonaises encore sans attributs (illustrations rares absentes de Limitless) :
+ * fiche officielle pokemon-card.com quand son n° est connu (image officielle), sinon la carte de même nom
+ * dans l'extension (même Pokémon : type, PV, stade, catégorie, régulation ; l'illustrateur diffère).
+ */
+async function completeJapaneseFromOfficial(dir, decks) {
+  const empty = (c) => !c.attrs?.hp && !c.attrs?.illustrator && !c.attrs?.category;
+  const official = new Map();
+  const ids = [...new Set(decks.flatMap(({ cards }) => cards.filter(empty).map((c) => c.officialId ?? officialCardId(c.image)).filter(Boolean)))];
+  await pool(ids, 4, async (id) => {
+    const html = await getText(`https://www.pokemon-card.com/card-search/details.php/card/${id}/regu/all`);
+    if (html) official.set(id, parseOfficialAttrs(html));
+  });
+  let fromOfficial = 0, fromTwin = 0;
+  for (const { f, cards } of decks) {
+    let changed = false;
+    for (const c of cards.filter(empty)) {
+      const o = official.get(c.officialId ?? officialCardId(c.image));
+      if (o && Object.keys(o).length) { c.attrs = { ...o, ...(c.attrs ?? {}) }; fromOfficial++; changed = true; continue; }
+      const same = (n) => n?.replace(/ \((Top|Bottom)\)$/, '');
+      const twin = c.nameEn && cards.find((x) => x !== c && same(x.nameEn) === same(c.nameEn) && !empty(x));
+      if (twin) {
+        const { illustrator, ...same } = twin.attrs;
+        c.attrs = { ...same, ...(c.attrs ?? {}) };
+        fromTwin++;
+        changed = true;
+      }
+    }
+    if (changed) writeJson(`cards/pokemon-ja/${f}`, cards);
+  }
+  console.log(`Attributs japonais : ${fromOfficial} cartes par la fiche officielle, ${fromTwin} par la carte de même nom`);
+}
+
 /** Cartes japonaises sans attributs TCGdex : attributs lus sur leur page Limitless. */
 async function completeJapaneseFromLimitless(dir, files) {
   const decks = files.map((f) => ({ f, cards: JSON.parse(readFileSync(join(dir, f), 'utf8')) }));
@@ -166,6 +199,7 @@ async function completeJapaneseFromLimitless(dir, files) {
     if (changed) writeJson(`cards/pokemon-ja/${f}`, cards);
   }
   console.log(`Attributs japonais complétés par Limitless : ${filled} cartes`);
+  await completeJapaneseFromOfficial(dir, decks);
 }
 
 export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 'en,fr,ja').split(',')) {
