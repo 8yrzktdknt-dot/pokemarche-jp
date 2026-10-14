@@ -1,10 +1,12 @@
 /**
  * Messages au support (support.tcgmarket@gmail.com) envoyés depuis l'app, sans logiciel de messagerie :
- * service FormSubmit (formsubmit.co), qui transmet le formulaire par e-mail. Le premier envoi déclenche un e-mail
- * d'activation à valider une fois depuis la boîte du support.
+ *  - enregistrés dans la base Supabase (table « reports », voir supabase/schema.sql) : rien n'est perdu ;
+ *  - transmis par e-mail par Web3Forms (web3forms.com) avec la clé d'accès reçue sur l'adresse du support.
  */
 export const SUPPORT_EMAIL = 'support.tcgmarket@gmail.com';
-const ENDPOINT = `https://formsubmit.co/ajax/${SUPPORT_EMAIL}`;
+/** Clé d'accès Web3Forms (publique par conception : elle ne permet que d'envoyer à l'adresse du support). */
+export const WEB3FORMS_KEY = '';
+const ENDPOINT = 'https://api.web3forms.com/submit';
 
 export interface Report {
   topic: string;
@@ -21,8 +23,6 @@ export function reportFields(r: Report): Record<string, string> {
   const c = r.card;
   const fields: Record<string, string> = {
     _subject: `[TCGMarket] ${r.topic}${c ? ` · ${c.name ?? c.id} (${c.lang})` : ''}`,
-    _template: 'table',
-    _captcha: 'false',
     Sujet: r.topic,
     Message: r.message.trim(),
   };
@@ -36,14 +36,18 @@ export function reportFields(r: Report): Record<string, string> {
   return fields;
 }
 
-export async function sendReport(r: Report): Promise<void> {
+/** Envoi par e-mail (Web3Forms) ; false si la clé n'est pas encore configurée. */
+export async function emailReport(r: Report): Promise<boolean> {
+  if (!WEB3FORMS_KEY) return false;
+  const { _subject, _replyto, ...rest } = reportFields(r);
   const res = await fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(reportFields(r)),
+    body: JSON.stringify({ access_key: WEB3FORMS_KEY, subject: _subject, from_name: 'TCGMarket', ...(_replyto ? { replyto: _replyto } : {}), ...rest }),
   });
-  const j = (await res.json().catch(() => null)) as { success?: string | boolean; message?: string } | null;
-  if (!res.ok || String(j?.success) !== 'true') throw new Error(j?.message || `HTTP ${res.status}`);
+  const j = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null;
+  if (!res.ok || !j?.success) throw new Error(j?.message || `HTTP ${res.status}`);
+  return true;
 }
 
 /** Lien de secours : le même message dans le logiciel de messagerie. */
