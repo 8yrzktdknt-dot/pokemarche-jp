@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       steps:
-        description: "Étapes (pokemon-ja, pokemon-intl, pokemon-cards, onepiece, riftbound, visual), séparées par des virgules ; vide = toutes"
+        description: "Étapes (pokemon-ja, pokemon-intl, pokemon-cards, onepiece, riftbound, visual, assets), séparées par des virgules ; vide = toutes"
         default: ""
         required: false
       visual:
