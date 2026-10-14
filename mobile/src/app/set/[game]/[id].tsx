@@ -32,7 +32,7 @@ export default function SetScreen() {
   const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
   const { collection, t, toCurrency, appLang, money } = useStore();
   const [view, setViewState] = useState<SetViewOptions>({ ...lastView, query: '' });
-  const [sheet, setSheet] = useState<'view' | 'sort' | 'state' | null>(null);
+  const [sheet, setSheet] = useState<'sort' | 'state' | null>(null);
   const update = (o: Partial<SetViewOptions>) => setViewState((v) => {
     const next = { ...v, ...o };
     lastView = { ...next, query: '' };
@@ -65,7 +65,6 @@ export default function SetScreen() {
     () => (cards ? setView(cards, view, (c) => quantities.get(collectionKey(c)) ?? 0, (c) => displayName(c, appLang)) : []),
     [cards, view, quantities, appLang],
   );
-  const hasVariants = !!cards?.some((c) => (c.variants?.length ?? 0) > 1);
 
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!cards) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
@@ -101,9 +100,11 @@ export default function SetScreen() {
               )}
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ alignSelf: 'stretch' }} contentContainerStyle={{ gap: 8 }}>
-              {hasVariants && (
-                <Chip icon={view.split ? 'grid-outline' : 'copy-outline'} label={t(view.split ? 'set.split' : 'set.stack')} onPress={() => setSheet('view')} />
-              )}
+              {/* Empiler / Séparer : un appui bascule le mode (pas de feuille de choix). */}
+              <Chip
+                icon={view.split ? 'grid-outline' : 'copy-outline'} label={t(view.split ? 'set.split' : 'set.stack')} on={view.split}
+                toggle onPress={() => update({ split: !view.split })}
+              />
               <Chip icon={view.desc ? 'arrow-down' : 'arrow-up'} label={`${t('set.sort')} · ${t(`set.sort.${view.sort}` as TKey)}`} onPress={() => setSheet('sort')} />
               <Chip
                 icon={STATES.find((x) => x.key === view.state)!.icon} label={view.state === 'all' ? t('set.state') : t(`set.state.${view.state}` as TKey)}
@@ -115,7 +116,7 @@ export default function SetScreen() {
         ListEmptyComponent={<Text style={[s.muted, { textAlign: 'center', marginTop: 24 }]}>{t('set.empty')}</Text>}
         renderItem={({ item: { card: item, quantity, variantKey } }) => (
           <Link href={{ pathname: '/card/[game]/[id]', params: { game: item.game, id: item.id, lang: item.lang, ...(view.split && item.variant ? { variant: item.variant } : {}) } }} asChild>
-            <Pressable style={{ width: w }} accessibilityLabel={`${item.name} ${item.number}`} onPressIn={() => setBrowseList(cards)}>
+            <Pressable style={{ width: w }} accessibilityLabel={`${item.name} ${item.number}`} onPressIn={() => setBrowseList(tiles.map((x) => x.browse))}>
               <View>
                 <Image source={item.imageSmall} style={[st.img, { width: w, height: w * 88 / 63 }]} contentFit="cover" transition={150} />
                 {view.split && needsSheen(item, variantKey) && <ReverseSheen />}
@@ -131,10 +132,6 @@ export default function SetScreen() {
           </Link>
         )}
       />
-      <Sheet title={t('set.view')} open={sheet === 'view'} onClose={() => setSheet(null)}>
-        <SheetOption icon="copy-outline" label={t('set.stack')} detail={t('set.stackHint')} on={!view.split} onPress={() => { update({ split: false }); setSheet(null); }} />
-        <SheetOption icon="grid-outline" label={t('set.split')} detail={t('set.splitHint')} on={view.split} onPress={() => { update({ split: true }); setSheet(null); }} />
-      </Sheet>
       <Sheet title={t('set.sort')} open={sheet === 'sort'} onClose={() => setSheet(null)}>
         <SheetLabel>{t('set.order')}</SheetLabel>
         <View style={st.segment}>
@@ -160,12 +157,14 @@ export default function SetScreen() {
 }
 
 /** Bouton de la barre de filtres (ouvre sa feuille de choix). */
-function Chip({ icon, label, on, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; on?: boolean; onPress(): void }) {
+function Chip({ icon, label, on, toggle, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; on?: boolean; toggle?: boolean; onPress(): void }) {
   return (
-    <Pressable style={[st.chip, on && st.chipOn]} onPress={onPress} accessibilityRole="button">
+    <Pressable
+      style={[st.chip, on && st.chipOn]} onPress={onPress} accessibilityRole={toggle ? 'switch' : 'button'}
+      accessibilityState={toggle ? { checked: !!on } : undefined}>
       <Ionicons name={icon} size={18} color={on ? colors.accent : colors.text} />
       <Text style={st.chipText}>{label}</Text>
-      <Ionicons name="chevron-down" size={16} color={colors.muted} />
+      {!toggle && <Ionicons name="chevron-down" size={16} color={colors.muted} />}
     </Pressable>
   );
 }

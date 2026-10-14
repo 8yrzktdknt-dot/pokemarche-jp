@@ -42,6 +42,8 @@ export interface Card {
   variants?: CardVariant[];
   /** Variante choisie (cartes de la collection) ; absente = la première. */
   variant?: string;
+  /** Visuel de la carte de base, gardé quand celui d'une variante (photo à part) le remplace. */
+  baseImage?: { small?: string; large?: string };
 }
 
 /** Variante d'une carte : clé (« normal », « reverse », « pokeball », « holo|shadowless|1st-edition »…), fiche et prix Cardmarket. */

@@ -77,14 +77,17 @@ export function withVariant(card: Card, key?: string): Card {
   const price = cardmarketPrice({ avg7: v.price });
   const base = card.variants?.[0];
   const own = v.cardmarket && v.cardmarket !== base?.cardmarket;
-  // Photo de la variante (fiche TCGplayer à part) ; sinon le visuel de la carte de base.
+  // Photo de la variante (fiche TCGplayer à part) ; sinon le visuel de la carte de base (gardé à part).
   const image = v.tcgplayer ? variantImage(v.tcgplayer) : undefined;
+  const baseImage = card.baseImage ?? { small: card.imageSmall, large: card.imageLarge };
   return {
     ...card,
     variant: v.key,
     prices: price ? [price] : [],
     marketIds: own ? { ...card.marketIds, cardmarket: v.cardmarket, cardmarketPath: undefined } : card.marketIds,
-    ...(image ? { imageSmall: image.small, imageLarge: image.large } : {}),
+    imageSmall: image?.small ?? baseImage.small,
+    imageLarge: image?.large ?? baseImage.large,
+    baseImage: image ? baseImage : undefined,
   };
 }
 

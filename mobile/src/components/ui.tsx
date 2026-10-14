@@ -81,7 +81,7 @@ export function CardRow({ card, right, list }: { card: Card; right?: string; lis
   const price = useBestPrice()(card);
   const name = displayName(card, appLang);
   return (
-    <Link href={{ pathname: '/card/[game]/[id]', params: { game: card.game, id: card.id, lang: card.lang } }} asChild>
+    <Link href={{ pathname: '/card/[game]/[id]', params: { game: card.game, id: card.id, lang: card.lang, ...(card.variant && (card.variants?.length ?? 0) > 1 ? { variant: card.variant } : {}) } }} asChild>
       <Pressable style={s.cardRow} onPressIn={() => setBrowseList(list ?? [card])}>
         <Image source={card.imageSmall} style={s.thumb} contentFit="contain" />
         <View style={{ flex: 1 }}>

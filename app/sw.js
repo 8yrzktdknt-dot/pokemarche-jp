@@ -3,7 +3,7 @@
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
 //  - catalogue : réseau d'abord (toujours à jour), copie locale sans réseau ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
-const VERSION = '1792005076352';
+const VERSION = '1792005913893';
 const BASE = '/tcgmarket/app';
 const APP = `app-${VERSION}`;
 const IMAGES = 'images-v1';
