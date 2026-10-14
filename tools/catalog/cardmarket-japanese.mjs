@@ -56,7 +56,7 @@ export function matchProducts(cards, products) {
   for (const [k, list] of groups) {
     const ids = byName.get(k) ?? [];
     if (!ids.length) continue;
-    const sorted = [...list].sort((a, b) => numberOrder(a.localId) - numberOrder(b.localId));
+    const sorted = [...list].sort((a, b) => cardOrder(a) - cardOrder(b));
     // Autant de produits que de cartes : un à un ; sinon seulement quand il n'y a qu'une carte et un produit.
     if (ids.length === sorted.length) sorted.forEach((c, i) => out.set(c.id, ids[i]));
     else if (sorted.length === 1 && ids.length === 1) out.set(sorted[0].id, ids[0]);
@@ -90,6 +90,11 @@ export function fillGaps(cards, products, out) {
 }
 
 const numberOrder = (n) => (/^\d+$/.test(n) ? Number(n) : 10000 + n.charCodeAt(0));
+/** Ordre des cartes de même nom : numéro ; cartes à lettres (« RRGB ») après, dans l'ordre V1, V2… de leur fiche Cardmarket. */
+const cardOrder = (c) => {
+  const v = /^\d+$/.test(c.localId) ? undefined : c.cmPath?.match(/-V(\d+)-/)?.[1];
+  return v ? 20000 + Number(v) : numberOrder(c.localId);
+};
 
 /** Moyennes des ventes d'un produit (champs « -holo » pour les cartes uniquement holo). */
 export function priceOf(g) {

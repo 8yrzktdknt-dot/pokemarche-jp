@@ -292,6 +292,33 @@ async function blocsAll(lang: CardLang): Promise<Bloc[]> {
   return st ? toBlocs(st) : blocs(lang);
 }
 
+/** Cartes absentes de TCGdex (Mew RGB de 30th Celebration), reprises du catalogue anglais dans les autres langues. */
+const INTL_EXTRA: Record<string, string[]> = { '30th': ['30th-R', '30th-G', '30th-B'] };
+const INTL_LANGS: CardLang[] = ['de', 'es', 'it', 'pt'];
+
+/**
+ * Langues internationales servies par TCGdex en direct : prix Cardmarket du catalogue anglais quand TCGdex n'en a pas
+ * (même fiche Cardmarket pour toutes ces langues, ex. 30th Celebration) et cartes ajoutées hors TCGdex.
+ */
+async function withIntlCatalog(setId: string, lang: CardLang, cards: Card[], setName?: string): Promise<Card[]> {
+  if (!INTL_LANGS.includes(lang)) return cards;
+  const en = await staticSetCardsAsApp('pokemon', 'en', setId).catch(() => null);
+  if (!en) return cards;
+  const byId = new Map(en.cards.map((c) => [c.id, c]));
+  const out = cards.map((c) => {
+    const e = byId.get(c.id);
+    return e && !c.prices.length && e.prices.length
+      ? { ...c, prices: e.prices, marketIds: { ...e.marketIds, ...Object.fromEntries(Object.entries(c.marketIds ?? {}).filter(([, v]) => v)) } }
+      : c;
+  });
+  const have = new Set(out.map((c) => c.id));
+  for (const id of INTL_EXTRA[setId] ?? []) {
+    const e = byId.get(id);
+    if (e && !have.has(id)) out.push({ ...e, lang, setName: setName ?? e.setName });
+  }
+  return out;
+}
+
 async function setCardsAll(setId: string, lang: CardLang) {
   if (STATIC_LANGS.includes(lang)) {
     const st = await staticSetCardsAsApp('pokemon', lang, setId);
@@ -300,7 +327,8 @@ async function setCardsAll(setId: string, lang: CardLang) {
   const live = await setCards(setId, lang);
   // Infos d'extension (logo, nom) du catalogue quand TCGdex ne les a pas.
   const info = (await staticBlocs('pokemon', lang))?.flatMap((b) => b.sets).find((x) => x.id === setId);
-  return info && live.set ? { ...live, set: { ...live.set, name: info.name, logo: assetUrl(info.logo) ?? live.set.logo } } : live;
+  const set = info && live.set ? { ...live.set, name: info.name, logo: assetUrl(info.logo) ?? live.set.logo } : live.set;
+  return { set, cards: await withIntlCatalog(setId, lang, live.cards, set?.name) };
 }
 
 async function searchAll(f: SearchFilters, lang: CardLang): Promise<Card[]> {
@@ -355,6 +383,17 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
     attributes: mergeAttributes(live.attributes, st.attributes),
     marketIds: { ...Object.fromEntries(Object.entries(live.marketIds ?? {}).filter(([, v]) => v)), ...Object.fromEntries(Object.entries(st.marketIds ?? {}).filter(([, v]) => v)) },
   };
+  if (card && INTL_LANGS.includes(lang) && card.setId) {
+    const [c] = await withIntlCatalog(card.setId, lang, [card]);
+    return withRelease(c, lang);
+  }
+  // Carte ajoutée hors TCGdex (Mew RGB) dans une langue servie en direct : celle du catalogue anglais.
+  const extra = !card && INTL_LANGS.includes(lang) ? Object.values(INTL_EXTRA).flat().includes(id) : false;
+  if (extra) {
+    const en = await staticGetCard('pokemon', 'en', id);
+    const name = (await staticBlocs('pokemon', lang))?.flatMap((b) => b.sets).find((x) => x.id === en?.setId)?.name;
+    return en ? withRelease({ ...en, lang, setName: name ?? en.setName }, lang) : null;
+  }
   return card ? withRelease(card, lang) : null;
 }
 

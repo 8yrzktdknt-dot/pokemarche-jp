@@ -188,6 +188,12 @@ function buildTraditional({ sets, details }) {
       if (jp) linked++;
       cards.push(twCard(js?.id ?? e.code, id, d, jp));
     }
+    // Cartes ajoutées au japonais hors sources officielles (Mew RGB de M6a), absentes du site taïwanais.
+    for (const jp of jpCards.filter((c) => c.extra)) {
+      if (cards.some((c) => c.localId === jp.localId)) continue;
+      const { extra, nameZh, cmPath, ...rest } = jp;
+      cards.push({ ...rest, name: nameZh ?? jp.name });
+    }
     if (!cards.length) continue;
     // Doublons de numéro (réimpressions dans le même produit) : le premier garde l'identifiant.
     const seen = new Set();

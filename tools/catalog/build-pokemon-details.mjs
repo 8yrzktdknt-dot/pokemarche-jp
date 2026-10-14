@@ -173,22 +173,29 @@ const cardmarketFiles = () => (cmFiles ??= loadCardmarketFiles().catch(() => nul
 
 /**
  * Cartes absentes de TCGdex : les trois Mew secrets « RGB » de 30th Celebration (YOSHIROTTEN, d'après les jaquettes
- * Rouge, Vert et Bleu). Visuels anglais Limitless (30C/R, G, B), fiches Cardmarket Mew V1 à V3.
+ * Rouge, Vert et Bleu). Visuels anglais Limitless (30C/R, G, B) : ni Limitless ni les sites officiels japonais et
+ * taïwanais n'ont les leurs (même illustration). Fiches Cardmarket Mew V1 à V3 (internationales, ou japonaises
+ * pour M6a, où les lettres R et G sont déjà prises par les énergies) ; le chinois traditionnel les reprend de M6a.
  */
 const RGB_ATTRS = {
   en: { type: 'Psychic', hp: '60', stage: 'Basic', category: 'Pokemon' },
   fr: { type: 'Psy', hp: '60', stage: 'Base', category: 'Pokémon' },
+  ja: { type: 'Psy', hp: '60', stage: 'De base', category: 'Pokémon', regulation: 'J' },
 };
+const RGB_SETS = { '30th': ['en', 'fr'], M6a: ['ja'] };
 export function addExtraCards(setId, cards, lang) {
-  if (setId !== '30th' || !RGB_ATTRS[lang]) return 0;
+  if (!RGB_SETS[setId]?.includes(lang)) return 0;
+  const jp = lang === 'ja';
   let n = 0;
   ['R', 'G', 'B'].forEach((v, i) => {
-    const id = `30th-${v}`;
+    const localId = jp ? `${v}RGB` : v;
+    const id = `${setId}-${localId}`;
     const card = {
-      id, localId: v, number: `${v}/RGB`, name: 'Mew', nameEn: 'Mew', nameFr: 'Mew', rarity: 'RGB',
+      id, localId, number: `${v}/RGB`, name: jp ? 'ミュウ' : 'Mew', nameEn: 'Mew', nameFr: 'Mew', rarity: 'RGB',
       image: `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/30C/30C_${v}_R_EN_SM.png`,
-      cmPath: `30th-Celebration/Mew-V${i + 1}-30C${v}RGB`,
+      cmPath: jp ? `30th-Celebration-JP/Mew-V${i + 1}-m6a${v}RGB` : `30th-Celebration/Mew-V${i + 1}-30C${v}RGB`,
       attrs: { illustrator: 'YOSHIROTTEN', ...RGB_ATTRS[lang] },
+      ...(jp ? { nameZh: '夢幻', extra: 1 } : {}),
     };
     const at = cards.findIndex((c) => c.id === id);
     if (at >= 0) cards[at] = { ...card, ...(cards[at].cm ? { cm: cards[at].cm } : {}) };
@@ -334,7 +341,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       if (setId === '30th-c') stat.links += applyClassicCollection(cards, classic, lang);
       addExtraCards(setId, cards, lang);
       for (const c of cards) {
-        if (setId === '30th-c' || c.id === `30th-${c.localId}` && /^[RGB]$/.test(c.localId)) continue;
+        if (setId === '30th-c' || c.rarity === 'RGB') continue;
         const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
         const p = r && paths.get(r.key);
         if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
