@@ -196,7 +196,7 @@ export function parseOfficialAttrs(html) {
     const typeZone = right.slice(from, right.indexOf('</div>', from));
     const types = [...typeZone.matchAll(/icon-([a-z]+) icon/g)].map((m) => OFFICIAL_TYPES[m[1]]).filter(Boolean);
     if (types.length) out.type = [...new Set(types)].join(' / ');
-    const stage = cleanName(right.match(/class="type">([^<]+)</)?.[1] ?? '');
+    const stage = cleanName(right.match(/class="type">([^<]+)</)?.[1] ?? '').replace(/&nbsp;|\s/g, '');
     if (stage) out.stage = OFFICIAL_STAGES[stage] ?? stage;
   } else {
     const kind = Object.keys(OFFICIAL_TRAINERS).find((k) => new RegExp(`<h2[^>]*>\\s*${k}\\s*</h2>`).test(right));

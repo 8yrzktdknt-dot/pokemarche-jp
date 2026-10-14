@@ -56,3 +56,9 @@ test('carte japonaise : recherche Cardmarket par nom anglais (pas la version int
   // Avec son n° produit (fiche japonaise) : lien direct.
   assert.equal(marketLinks({ ...card, marketIds: { ...card.marketIds, cardmarket: 907765 } }, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products?idProduct=907765&language=7');
 });
+
+test('chinois traditionnel : fiche japonaise, offres en chinois traditionnel', () => {
+  const card: Card = { game: 'pokemon', id: 'M6a-001', lang: 'zh-tw', name: '蛋蛋', nameEn: 'Exeggcute', number: '001/103', setId: 'M6a', prices: [], marketIds: { cardmarket: 907765 } };
+  assert.equal(marketLinks(card, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products?idProduct=907765&language=11');
+  assert.equal(marketLinks({ ...card, marketIds: undefined }, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=Exeggcute%20m6a%20001');
+});

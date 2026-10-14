@@ -285,7 +285,7 @@ async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
  * toutes les cartes Limitless avec noms traduits), puis TCGdex en direct pour le reste et pour les prix.
  */
 /** Langues dont toutes les cartes sont publiées avec le catalogue (images complétées, noms traduits). */
-const STATIC_LANGS: CardLang[] = ['ja', 'fr', 'en'];
+const STATIC_LANGS: CardLang[] = ['ja', 'fr', 'en', 'zh-tw', 'zh-cn'];
 
 async function blocsAll(lang: CardLang): Promise<Bloc[]> {
   const st = await staticBlocs('pokemon', lang);
