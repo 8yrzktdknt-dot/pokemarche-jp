@@ -348,10 +348,11 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
     ...live,
     nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName,
     imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
-    // Prix du jour publiés avec le catalogue quand TCGdex n'en donne pas en direct.
-    prices: live.prices.length ? live.prices : st.prices,
+    // Prix et fiches Cardmarket du catalogue (vérifiés, mis à jour chaque jour) en priorité : TCGdex en direct
+    // peut relier une carte japonaise à la fiche d'une autre langue (chinois simplifié pour M6a).
+    prices: st.prices.length ? st.prices : live.prices,
     attributes: mergeAttributes(live.attributes, st.attributes),
-    marketIds: { ...st.marketIds, ...Object.fromEntries(Object.entries(live.marketIds ?? {}).filter(([, v]) => v)) },
+    marketIds: { ...Object.fromEntries(Object.entries(live.marketIds ?? {}).filter(([, v]) => v)), ...Object.fromEntries(Object.entries(st.marketIds ?? {}).filter(([, v]) => v)) },
   };
   return card ? withRelease(card, lang) : null;
 }

@@ -120,8 +120,9 @@ export function completeJapanesePrices(decks, files, known) {
   const report = [];
   for (const { setId, cards } of decks) {
     // Cartes sans prix TCGdex (celles venues de ces fichiers, marquées « f », sont remises à jour chaque jour).
-    const missing = cards.filter((c) => !c.cm || c.cm.f);
-    if (!missing.length || missing.length < cards.length * 0.5) continue;
+    // Extension vérifiée à la main : toujours ses fiches, même si TCGdex en propose d'autres (autre langue).
+    const missing = JA_EXPANSIONS[setId] ? cards : cards.filter((c) => !c.cm || c.cm.f);
+    if (!JA_EXPANSIONS[setId] && (!missing.length || missing.length < cards.length * 0.5)) continue;
     const exp = JA_EXPANSIONS[setId] ?? pickExpansion(cards, expansions, used);
     if (!exp) { report.push(`${setId}:?`); continue; }
     used.add(exp);
