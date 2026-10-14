@@ -1,6 +1,6 @@
 {
-  "name": "PokéMarket",
-  "short_name": "PokéMarket",
+  "name": "TCGMarket",
+  "short_name": "TCGMarket",
   "lang": "fr",
   "start_url": "/pokemarche-jp/app/",
   "scope": "/pokemarche-jp/app/",

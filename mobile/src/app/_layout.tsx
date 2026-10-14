@@ -30,7 +30,7 @@ function AppStack() {
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'PokéMarket' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'TCGMarket' }} />
         <Stack.Screen name="scan" options={{ title: t('tab.scan'), headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="set/[game]/[id]" options={{ title: t('title.set') }} />
         <Stack.Screen name="set-stats/[game]/[id]" options={{ title: t('setStats.title') }} />

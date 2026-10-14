@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PokéMarket",
+    "name": "TCGMarket",
     "slug": "pokemarket",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,8 +29,8 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "output": "single",
-      "name": "PokéMarket",
-      "shortName": "PokéMarket",
+      "name": "TCGMarket",
+      "shortName": "TCGMarket",
       "themeColor": "#0A1F17",
       "backgroundColor": "#0A1F17",
       "lang": "fr"

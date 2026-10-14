@@ -6,7 +6,7 @@ import { GAME_LIST } from '../lib/games';
 import { useStore } from '../lib/store';
 import type { Card, GameId } from '../lib/types';
 
-/** Palette « Rayquaza » (voir la direction artistique PokéMarket). */
+/** Palette « Rayquaza » (voir la direction artistique TCGMarket). */
 export const colors = {
   bg: '#0A1F17',
   card: '#133325',
@@ -29,7 +29,7 @@ export const fonts = {
 export function Wordmark({ size = 20 }: { size?: number }) {
   return (
     <Text style={{ fontFamily: fonts.display, fontSize: size, color: colors.text }}>
-      Poké<Text style={{ color: colors.accent }}>Market</Text>
+      TCG<Text style={{ color: colors.accent }}>Market</Text>
     </Text>
   );
 }
