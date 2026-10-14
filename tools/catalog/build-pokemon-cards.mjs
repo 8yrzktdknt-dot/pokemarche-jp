@@ -67,10 +67,13 @@ async function ptcgImages(ptcgId) {
 // Scrydex : images anglaises « …/pokemon/mcd23-1/large » ; une image générique quand la carte est inconnue.
 const SCRYDEX = (pid, n) => `https://images.scrydex.com/pokemon/${pid}-${n}/large`;
 let scrydexBlank;
+/** Taille totale de l'image (« Content-Range: bytes 0-0/608467 ») sans la télécharger. */
 async function scrydexSize(url) {
   try {
-    const r = await fetch(url, { method: 'HEAD' });
-    return r.ok ? Number(r.headers.get('content-length') ?? 0) : 0;
+    const r = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+    await r.arrayBuffer();
+    if (!r.ok) return 0;
+    return Number(r.headers.get('content-range')?.split('/')[1] ?? r.headers.get('content-length') ?? 0);
   } catch {
     return 0;
   }
