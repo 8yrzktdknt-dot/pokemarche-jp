@@ -5,7 +5,7 @@
 // Les cartes japonaises sont retrouvées par extension et numéro dans le catalogue japonais de TCGdex.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cardmarketPaths, classicCollectionPaths } from './cardmarket-links.mjs';
+import { cardmarketPaths, classicCollectionPaths, classicKey } from './cardmarket-links.mjs';
 import { completeJapanesePrices, loadCardmarketFiles } from './cardmarket-japanese.mjs';
 import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
 import { matchWizardSet, officialCardId, parseOfficialAttrs, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
@@ -123,6 +123,30 @@ async function japaneseWizard() {
   return out;
 }
 
+/** Collection Classique (30th-c) : lien CC de chaque carte ; les deux moitiés LEGEND séparées (Haut/Bas) avec leur visuel. */
+export function applyClassicCollection(cards, pages, lang) {
+  const left = [...pages];
+  const sorted = [...cards].sort((a, b) => Number(a.localId) - Number(b.localId));
+  let n = 0;
+  for (const c of sorted) {
+    const k = classicKey((c.nameEn ?? c.name ?? '').replace(/ \((Top|Bottom|Haut|Bas)\)$/, ''));
+    const twins = pages.filter((p) => p.key === k);
+    const i = left.findIndex((p) => p.key === k);
+    if (i < 0) { delete c.cmPath; continue; }
+    const [p] = left.splice(i, 1);
+    c.cmPath = p.path; n++;
+    if (twins.length > 1) {
+      const top = twins.indexOf(p) === 0;
+      const base = (c.name ?? '').replace(/ \((Haut|Bas|Top|Bottom)\)$/, '');
+      c.name = `${base} (${lang === 'fr' ? (top ? 'Haut' : 'Bas') : top ? 'Top' : 'Bottom'})`;
+      if (c.nameEn) c.nameEn = `${c.nameEn.replace(/ \((Top|Bottom)\)$/, '')} (${top ? 'Top' : 'Bottom'})`;
+      if (c.nameFr) c.nameFr = `${c.nameFr.replace(/ \((Haut|Bas)\)$/, '')} (${top ? 'Haut' : 'Bas'})`;
+      if (p.image) c.image = p.image;
+    } else if (!c.image && p.image) c.image = p.image;
+  }
+  return n;
+}
+
 /** Cartes japonaises sans prix TCGdex : n° produit et moyennes depuis les fichiers publics de Cardmarket. */
 async function completeJapaneseCardmarket(dir, files) {
   const cmf = await loadCardmarketFiles().catch(() => null);
@@ -220,7 +244,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
     }
   }
   const paths = await cardmarketPaths([...refs.values()].filter((r) => !r.classic));
-  const classic = langs.some((l) => l !== 'ja') ? await classicCollectionPaths().catch(() => new Map()) : new Map();
+  const classic = langs.some((l) => l !== 'ja') ? await classicCollectionPaths().catch(() => []) : [];
 
   for (const lang of langs) {
     const codes = setCodes(lang);
@@ -233,13 +257,10 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
     await pool(files, 2, async (f) => {
       const setId = f.replace(/\.json$/, '');
       const cards = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+      // Collection Classique : liens à part (le code « 30C » est partagé avec l'extension principale).
+      if (setId === '30th-c') stat.links += applyClassicCollection(cards, classic, lang);
       for (const c of cards) {
-        // Collection Classique : liens à part (le code « 30C » est partagé avec l'extension principale).
-        if (setId === '30th-c') {
-          const p = classic.get(nameKey(c.nameEn ?? c.name));
-          if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
-          continue;
-        }
+        if (setId === '30th-c') continue;
         const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
         const p = r && paths.get(r.key);
         if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;

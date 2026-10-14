@@ -56,3 +56,26 @@ test('attributs d\'une page Limitless japonaise', async () => {
   const trainer = `<p class="card-text-title"> <span class="card-text-name"><a>ボスの指令</a></span> </p><p class="card-text-type"> Trainer - Supporter </p>`;
   assert.deepEqual(parseLimitlessDetails(trainer), { category: 'Dresseur · Supporter' });
 });
+
+test('Collection Classique : LV.X et moitiés LEGEND', async () => {
+  const { applyClassicCollection } = await import('./build-pokemon-details.mjs');
+  const { classicKey } = await import('./cardmarket-links.mjs');
+  const pages = [
+    { key: classicKey('Palkia LV.X'), path: '30th-Celebration/Palkia-LVX-30CGE-106', image: 'https://x/30C_CC12_R_EN_SM.png' },
+    { key: classicKey('Darkrai & Cresselia LEGEND'), path: '30th-Celebration/Darkrai-Cresselia-LEGEND-30CTM-99', image: 'https://x/30C_CC16_R_EN_SM.png' },
+    { key: classicKey('Darkrai & Cresselia LEGEND'), path: '30th-Celebration/Darkrai-Cresselia-LEGEND-30CTM-100', image: 'https://x/30C_CC17_R_EN_SM.png' },
+  ];
+  const cards = [
+    { localId: '019', name: 'Darkrai & Cresselia LÉGENDE', nameEn: 'Darkrai & Cresselia LEGEND', image: 'https://combined' },
+    { localId: '020', name: 'Darkrai & Cresselia LÉGENDE', nameEn: 'Darkrai & Cresselia LEGEND' },
+    { localId: '022', name: 'Palkia', nameEn: 'Palkia' },
+  ];
+  assert.equal(applyClassicCollection(cards, pages, 'fr'), 3);
+  assert.equal(cards[0].cmPath, '30th-Celebration/Darkrai-Cresselia-LEGEND-30CTM-99');
+  assert.equal(cards[0].name, 'Darkrai & Cresselia LÉGENDE (Haut)');
+  assert.equal(cards[0].image, 'https://x/30C_CC16_R_EN_SM.png');
+  assert.equal(cards[1].cmPath, '30th-Celebration/Darkrai-Cresselia-LEGEND-30CTM-100');
+  assert.equal(cards[1].nameEn, 'Darkrai & Cresselia LEGEND (Bottom)');
+  assert.equal(cards[2].cmPath, '30th-Celebration/Palkia-LVX-30CGE-106');
+  assert.equal(cards[2].image, 'https://x/30C_CC12_R_EN_SM.png');
+});
