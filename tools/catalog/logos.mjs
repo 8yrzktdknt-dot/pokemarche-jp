@@ -116,6 +116,10 @@ export async function serebiiLogoMap() {
   return html ? parseSerebiiLogos(html) : new Map();
 }
 
+/** Logo et symbole Scrydex d'une extension (« mbg_ja » pour le japonais, identifiant pokemontcg.io pour l'anglais). */
+export const scrydexLogo = (id) => `https://images.scrydex.com/pokemon/${id}-logo/logo`;
+export const scrydexSymbol = (id) => `https://images.scrydex.com/pokemon/${id}-symbol/symbol`;
+
 /** Premier logo trouvé pour ce nom dans les tables (dans l'ordre de préférence). */
 export function findLogo(name, tables) {
   return findLogos(name, tables)[0];
@@ -132,14 +136,14 @@ export function findLogos(name, tables) {
  * Télécharge un logo, le réduit (400 px de large au plus) et l'enregistre dans catalog/logos/<folder>/<id>.png.
  * Renvoie le chemin relatif au catalogue, ou undefined si l'image est introuvable.
  */
-export async function saveLogo(url, folder, id) {
+export async function saveLogo(url, folder, id, width = 400) {
   const rel = `logos/${folder}/${id.replace(/[^A-Za-z0-9._-]/g, '_')}.png`;
   const file = join(CATALOG, rel);
   if (existsSync(file)) return rel;
   const buf = await download(url);
   if (!buf || buf.length < 200) { failures.push(url); return undefined; }
   try {
-    const png = await sharp(buf).resize({ width: 400, withoutEnlargement: true }).png({ compressionLevel: 9, palette: true }).toBuffer();
+    const png = await sharp(buf).resize({ width, withoutEnlargement: true }).png({ compressionLevel: 9, palette: true }).toBuffer();
     mkdirSync(join(CATALOG, 'logos', folder), { recursive: true });
     writeFileSync(file, png);
     return rel;

@@ -44,6 +44,8 @@ export interface StaticSet {
   nameLocal?: string;
   releaseDate?: string;
   logo?: string;
+  /** Petit symbole d'extension (pastille du code). */
+  symbol?: string;
   count?: number;
 }
 
@@ -89,6 +91,7 @@ export function toBlocs(blocs: StaticBloc[], appLang: 'fr' | 'en' = 'fr'): Bloc[
       code: x.code,
       name: (appLang === 'fr' && x.nameFr) || x.name,
       logo: assetUrl(x.logo),
+      symbol: assetUrl(x.symbol),
       count: x.count,
       blocId: b.id,
     })),

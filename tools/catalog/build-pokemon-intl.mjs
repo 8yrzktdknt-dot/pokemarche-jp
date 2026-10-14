@@ -1,7 +1,7 @@
 // Pokémon (cartes internationales) : extensions TCGdex par langue, triées par date de sortie, avec logos.
 import { ptcgCandidates } from './build-pokemon-cards.mjs';
 import { getJson, pool, sortByRelease, writeJson } from './lib.mjs';
-import { findLogo, pokellectorLogos, saveLogo } from './logos.mjs';
+import { findLogo, pokellectorLogos, saveLogo, scrydexLogo } from './logos.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
 const asset = (u) => (u ? `${u}.webp` : undefined);
@@ -42,7 +42,8 @@ export async function buildPokemonIntl(langs = ['en', 'fr', 'de', 'es', 'it', 'p
       const missing = blocs.flatMap((b) => b.sets).filter((x) => !x.logo);
       await pool(missing, 6, async (x) => {
         for (const id of ptcgCandidates(x.id)) {
-          const rel = await saveLogo(`https://images.pokemontcg.io/${id}/logo.png`, 'pokemon-intl', x.id);
+          const rel = (await saveLogo(`https://images.pokemontcg.io/${id}/logo.png`, 'pokemon-intl', x.id))
+            ?? (await saveLogo(scrydexLogo(id), 'pokemon-intl', x.id));
           if (rel) { x.logo = rel; break; }
         }
         if (!x.logo) {

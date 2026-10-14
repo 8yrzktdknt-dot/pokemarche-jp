@@ -1,6 +1,6 @@
 // Pokémon japonais : extensions et cartes depuis Limitless TCG (noms anglais des extensions, dates, logos, images),
 // complétées par TCGdex (nombre officiel de cartes) et par la traduction des noms (names.mjs).
-import { failures, findLogos, pokellectorLogos, saveLogos, serebiiLogoMap } from './logos.mjs';
+import { failures, findLogos, pokellectorLogos, saveLogo, saveLogos, scrydexLogo, scrydexSymbol, serebiiLogoMap } from './logos.mjs';
 import { WIZARD_SETS, official30thImages, officialCard, officialRecentCards, samuraiCards, wizardCards } from './official-jp.mjs';
 import { getBuffer, getJson, getText, pad3, parseShortDate, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { loadSpeciesNames, translateJa } from './names.mjs';
@@ -106,11 +106,15 @@ export async function buildPokemonJa() {
     pokellectorLogos('https://jp.pokellector.com').catch(() => new Map()),
   ]);
   const allSets = blocs.flatMap((b) => b.sets);
-  const logos = await saveLogos(allSets, 'pokemon-ja', (s) => findLogos(s.name, tables));
+  // Scrydex d'abord (logos de tous les produits japonais, decks et coffrets compris), puis Serebii et Pokellector.
+  const logos = await saveLogos(allSets, 'pokemon-ja', (s) => [scrydexLogo(`${s.id.toLowerCase()}_ja`), ...findLogos(s.name, tables)]);
+  // Petit symbole d'extension (pastille « MBG », « M3 »…) affiché dans le coin des tuiles.
+  const symbols = await saveLogos(allSets, 'pokemon-ja-symbol', (s) => scrydexSymbol(`${s.id.toLowerCase()}_ja`));
   for (const s of allSets) {
-    if (logos.has(s.id)) { s.symbol = s.logo; s.logo = logos.get(s.id); }
+    if (logos.has(s.id)) s.logo = logos.get(s.id);
+    s.symbol = symbols.get(s.id) ?? (s.logo?.startsWith('https://s3.limitlesstcg') ? s.logo : s.symbol);
   }
-  console.log(`Logos JP : Serebii ${tables[0].size}, Pokellector ${tables[1].size} ; ${logos.size}/${allSets.length} extensions avec un vrai logo`);
+  console.log(`Logos JP : Scrydex + Serebii ${tables[0].size}, Pokellector ${tables[1].size} ; ${logos.size}/${allSets.length} extensions avec un vrai logo`);
   const left = allSets.filter((s) => !logos.has(s.id)).map((s) => `${s.id} (${s.name})`);
   if (left.length) console.log(`Sans vrai logo : ${left.join(', ')}`);
   if (failures.length) console.log(`Logos introuvables au téléchargement (${failures.length}) : ${failures.slice(0, 20).join(', ')}`);
