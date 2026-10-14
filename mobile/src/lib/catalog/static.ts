@@ -78,7 +78,7 @@ export interface StaticCard {
   /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
   cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; avg?: number; trend?: number; low?: number };
   /** Variantes : clé, n° produit Cardmarket, moyenne 7 jours (tools/catalog/variants.mjs). */
-  v?: { k: string; id?: number; p?: number }[];
+  v?: { k: string; id?: number; p?: number; tp?: number }[];
   /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
   cmPath?: string;
 }
@@ -140,7 +140,7 @@ export interface StaticRow {
   /** Période du prix : 7 ou 30 jours, 0 = toutes les ventes (absente des anciens fichiers : 7). */
   eurDays?: number;
   /** Variantes [clé, n° produit Cardmarket, moyenne 7 jours]. */
-  variants?: [string, number, number][];
+  variants?: [string, number, number, number?][];
   cardmarket?: number;
   cmPath?: string;
 }
@@ -186,8 +186,10 @@ function staticPrices(c: StaticCard | StaticRow): Price[] {
 
 /** Variantes du catalogue (fiche d'extension ou ligne de recherche) au format de l'app. */
 function variantsOf(c: StaticCard | StaticRow): CardVariant[] | undefined {
-  const list = 'v' in c && c.v ? c.v.map((v) => [v.k, v.id ?? 0, v.p ?? 0] as const) : 'variants' in c && c.variants ? c.variants : undefined;
-  return list?.length ? list.map(([key, id, p]) => ({ key, ...(id ? { cardmarket: id } : {}), ...(p ? { price: p } : {}) })) : undefined;
+  const list = 'v' in c && c.v ? c.v.map((v) => [v.k, v.id ?? 0, v.p ?? 0, v.tp ?? 0] as const) : 'variants' in c && c.variants ? c.variants : undefined;
+  return list?.length
+    ? list.map(([key, id, p, tp]) => ({ key, ...(id ? { cardmarket: id } : {}), ...(p ? { price: p } : {}), ...(tp ? { tcgplayer: tp } : {}) }))
+    : undefined;
 }
 
 /** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */

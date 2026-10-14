@@ -56,3 +56,23 @@ test('variantsOf : motifs traduits (fiches françaises) ; fusion avec PokemonWiz
   assert.deepEqual(v.map((x) => x.k), ['normal', 'pokeball', 'reverse-energy']);
   assert.deepEqual(mergeVariants(v, [{ k: 'normal' }, { k: 'masterball' }]).map((x) => x.k), ['normal', 'pokeball', 'reverse-energy', 'masterball']);
 });
+
+test('photos des variantes : seulement celles vendues sur une autre fiche TCGplayer', async () => {
+  const { ownImages, fixJapaneseBall } = await import('./variants.mjs');
+  assert.deepEqual(ownImages([{ k: 'normal', id: 1, tp: 10 }, { k: 'reverse', id: 1, tp: 10 }, { k: 'pokeball', id: 2, tp: 20 }]),
+    [{ k: 'normal', id: 1 }, { k: 'reverse', id: 1 }, { k: 'pokeball', id: 2, tp: 20 }]);
+  // Japonais : le « reverse » sans motif de TCGdex est la version Poké Ball de PokemonWizard.
+  const v = mergeVariants(
+    [{ k: 'normal', id: 1 }, { k: 'reverse-energy', id: 2 }, { k: 'reverse', id: 3 }],
+    [{ k: 'normal' }, { k: 'reverse-energy', tp: 66 }, { k: 'pokeball', tp: 65 }],
+  );
+  assert.deepEqual(fixJapaneseBall(v), [{ k: 'normal', id: 1 }, { k: 'reverse-energy', id: 2, tp: 66 }, { k: 'pokeball', tp: 65, id: 3 }]);
+});
+
+test('PokemonWizard : motifs et photo (n° produit TCGplayer) par numéro', async () => {
+  const { parseWizardVariants } = await import('./official-jp.mjs');
+  const html = '\\"tcgplayer_product_id\\":665930,\\"name\\":\\"Cynthia\'s Roserade (Poke Ball Pattern)\\",\\"slug\\":\\"x\\",\\"card_number\\":\\"10\\",'
+    + '\\"tcgplayer_product_id\\":665681,\\"name\\":\\"Cynthia\'s Roserade\\",\\"slug\\":\\"y\\",\\"card_number\\":\\"10\\",'
+    + '\\"tcgplayer_product_id\\":666096,\\"name\\":\\"Cynthia\'s Roserade (Energy Symbol Pattern)\\",\\"slug\\":\\"z\\",\\"card_number\\":\\"10\\",';
+  assert.deepEqual(parseWizardVariants(html).get('10'), [{ k: 'pokeball', tp: 665930 }, { k: 'reverse-energy', tp: 666096 }]);
+});

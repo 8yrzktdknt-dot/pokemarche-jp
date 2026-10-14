@@ -104,16 +104,19 @@ export function parseWizardSet(html) {
   return [...out.values()];
 }
 
-/** Variantes vendues à part sur PokemonWizard (« Cynthia's Roserade (Poke Ball Pattern) ») : numéro → motifs. */
+/**
+ * Variantes vendues à part sur PokemonWizard (« Cynthia's Roserade (Poke Ball Pattern) ») :
+ * numéro → [{ k: motif, tp: n° produit TCGplayer (photo de la variante) }].
+ */
 export function parseWizardVariants(html) {
   const text = html.replace(/\\"/g, '"');
   const out = new Map();
-  for (const m of text.matchAll(/"name":"([^"]*)","slug":"[^"]*","card_number":"([^"]*)"/g)) {
-    const k = wizardVariantKey(unescapeHtml(m[1]));
+  for (const m of text.matchAll(/"tcgplayer_product_id":(\d+),"name":"([^"]*)","slug":"[^"]*","card_number":"([^"]*)"/g)) {
+    const k = wizardVariantKey(unescapeHtml(m[2]));
     if (!k) continue;
-    const list = out.get(m[2]) ?? [];
-    if (!list.includes(k)) list.push(k);
-    out.set(m[2], list);
+    const list = out.get(m[3]) ?? [];
+    if (!list.some((v) => v.k === k)) list.push({ k, tp: Number(m[1]) });
+    out.set(m[3], list);
   }
   return out;
 }
@@ -150,7 +153,7 @@ export async function wizardCards(setId, pathOverride) {
     for (const c of cards) if (!all.has(c.n)) all.set(c.n, c);
     for (const [n, keys] of html ? parseWizardVariants(html) : []) {
       const c = all.get(n) ?? { n };
-      c.variants = [...new Set([...(c.variants ?? []), ...keys])];
+      c.variants = [...(c.variants ?? []), ...keys.filter((v) => !(c.variants ?? []).some((x) => x.k === v.k))];
       all.set(n, c);
     }
     if (all.size === before) break;

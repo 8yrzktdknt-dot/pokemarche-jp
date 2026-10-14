@@ -5,6 +5,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
+import { ReverseSheen } from '../../../components/ReverseSheen';
 import { VariantPicker } from '../../../components/VariantPicker';
 import { browseCard, neighbors } from '../../../lib/browse';
 import { rarityAbbr, rarityName } from '../../../lib/catalog/pokemonNames';
@@ -14,7 +15,7 @@ import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
 import { marketLinks, type MarketplaceId } from '../../../lib/prices/marketplaces';
 import { useStore } from '../../../lib/store';
-import { collectionKey, withVariant } from '../../../lib/variants';
+import { collectionKey, needsSheen, withVariant } from '../../../lib/variants';
 import type { AttributeKey, Card, CardAttribute, CardLang, GameId, Price } from '../../../lib/types';
 
 const SOURCE_LABEL = { cardmarket: 'Cardmarket', tcgplayer: 'TCGplayer', cardtrader: 'CardTrader', ebay: 'eBay' };
@@ -203,7 +204,11 @@ export default function CardScreen() {
       scrollEventThrottle={16}
       contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: displayName(card, appLang) }} />
-      <Image source={card.imageLarge ?? card.imageSmall} style={{ width: (imgH * 63) / 88, height: imgH, borderRadius: 12, alignSelf: 'center' }} contentFit="contain" />
+      {/* Visuel de la variante choisie (photo à part pour Poké Ball, Master Ball…, reflet pour le reverse). */}
+      <View style={{ width: (imgH * 63) / 88, height: imgH, alignSelf: 'center' }}>
+        <Image source={view.imageLarge ?? view.imageSmall} placeholder={view.imageSmall} style={{ width: '100%', height: '100%', borderRadius: 12 }} contentFit="contain" />
+        {needsSheen(view) && <ReverseSheen radius={12} />}
+      </View>
       {nav.total > 1 && (
         <View style={st.nav}>
           <Pressable style={[st.navBtn, !nav.prev && st.navOff]} disabled={!nav.prev} onPress={() => go(nav.prev)} accessibilityLabel={t('card.prev')}>

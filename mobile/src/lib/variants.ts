@@ -75,13 +75,30 @@ export function withVariant(card: Card, key?: string): Card {
   const v = card.variants?.find((x) => x.key === key) ?? card.variants?.[0];
   if (!v) return card;
   const price = cardmarketPrice({ avg7: v.price });
-  const own = v.cardmarket && v.cardmarket !== card.marketIds?.cardmarket;
+  const base = card.variants?.[0];
+  const own = v.cardmarket && v.cardmarket !== base?.cardmarket;
+  // Photo de la variante (fiche TCGplayer à part) ; sinon le visuel de la carte de base.
+  const image = v.tcgplayer ? variantImage(v.tcgplayer) : undefined;
   return {
     ...card,
     variant: v.key,
     prices: price ? [price] : [],
     marketIds: own ? { ...card.marketIds, cardmarket: v.cardmarket, cardmarketPath: undefined } : card.marketIds,
+    ...(image ? { imageSmall: image.small, imageLarge: image.large } : {}),
   };
+}
+
+/** Photo TCGplayer d'une variante (petite pour les listes, grande pour la fiche). */
+export function variantImage(tcgplayer: number): { small: string; large: string } {
+  const u = `https://tcgplayer-cdn.tcgplayer.com/product/${tcgplayer}`;
+  return { small: `${u}_200w.jpg`, large: `${u}_in_1000x1000.jpg` };
+}
+
+/** Variante brillante sans photo à elle (reverse, motif sans fiche à part) : le visuel reçoit un effet reflet. */
+export function needsSheen(card: Card, key?: string): boolean {
+  const v = card.variants?.find((x) => x.key === (key ?? card.variant));
+  const k = (v?.key ?? key ?? '').split('|')[0];
+  return !v?.tcgplayer && (k.startsWith('reverse') || /ball$/.test(k));
 }
 
 /** Clé d'une carte de la collection : une entrée par carte et par variante (sans variante choisie : la première). */

@@ -160,7 +160,8 @@ export function twCard(code, id, d, jp) {
     // Fiche de l'extension japonaise (même produit pour le japonais et le chinois traditionnel).
     cm: jp?.cm,
     // Mêmes variantes que la carte japonaise (mêmes impressions en Asie).
-    v: jp?.v,
+    // (sans les photos des variantes japonaises : le visuel reste celui de la carte taïwanaise).
+    v: jp?.v?.map(({ tp, ...v }) => v),
     tcgplayer: undefined,
     tw: id,
   };
