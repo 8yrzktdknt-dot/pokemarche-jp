@@ -20,6 +20,8 @@ export function catalogBase(): string {
 }
 
 const DAY = 24 * 3600 * 1000;
+/** Fichiers d'extension (prix, variantes) : relus au bout d'une heure, l'app pouvant rester ouverte longtemps. */
+const HOUR = 3600 * 1000;
 
 /** Logos publiés avec le catalogue (« logos/pokemon-ja/M6.png ») : chemin relatif au catalogue. */
 export const assetUrl = (u?: string) => (u && !/^https?:/.test(u) ? `${catalogBase()}/${u}` : u);
@@ -89,7 +91,7 @@ export async function staticBlocs(game: GameId, lang: CardLang): Promise<StaticB
 }
 
 export async function staticSetCards(game: GameId, lang: CardLang, setId: string): Promise<StaticCard[] | null> {
-  const r = await getJson<StaticCard[]>(`${catalogBase()}/cards/${game}-${lang}/${encodeURIComponent(setId)}.json`, DAY).catch(() => null);
+  const r = await getJson<StaticCard[]>(`${catalogBase()}/cards/${game}-${lang}/${encodeURIComponent(setId)}.json`, HOUR).catch(() => null);
   return r?.length ? r : null;
 }
 
@@ -280,11 +282,27 @@ export async function staticSearch(
   return sortCards(cards, f.sort, f.text);
 }
 
+/**
+ * Fiche d'une carte du catalogue : lue dans le fichier de son extension (petit, toujours à jour), l'extension étant
+ * déduite de l'identifiant (« 30th-c-001 » → « 30th-c ») ; sinon dans le fichier de recherche (lourd : sur un réseau
+ * lent, une copie plus ancienne peut être servie) pour retrouver l'extension.
+ */
 export async function staticGetCard(game: GameId, lang: CardLang, id: string): Promise<Card | null> {
-  const [rows, blocs] = await Promise.all([staticSearchRows(game, lang), staticBlocs(game, lang)]);
-  const r = rows?.find((x) => x.id === id);
+  const blocsP = staticBlocs(game, lang);
+  const fromSet = async (setId: string) => {
+    const c = (await staticSetCards(game, lang, setId))?.find((x) => x.id === id);
+    if (!c) return null;
+    const set = (await blocsP)?.flatMap((b) => b.sets).find((x) => x.id === setId);
+    return staticToCard(game, lang, c, { id: setId, name: set?.name, releaseDate: set?.releaseDate });
+  };
+  const guess = id.includes('-') ? id.slice(0, id.lastIndexOf('-')) : '';
+  const direct = guess ? await fromSet(guess) : null;
+  if (direct) return direct;
+  const r = (await staticSearchRows(game, lang))?.find((x) => x.id === id);
   if (!r) return null;
-  const set = blocs?.flatMap((b) => b.sets).find((x) => x.id === r.setId);
+  const viaSet = r.setId !== guess ? await fromSet(r.setId) : null;
+  if (viaSet) return viaSet;
+  const set = (await blocsP)?.flatMap((b) => b.sets).find((x) => x.id === r.setId);
   return staticToCard(game, lang, r, { id: r.setId, name: set?.name, releaseDate: set?.releaseDate });
 }
 
