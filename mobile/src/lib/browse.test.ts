@@ -18,8 +18,8 @@ test('carte précédente et suivante dans la liste ouverte', () => {
 });
 
 test('variantes séparées : chaque variante est une étape du parcours', () => {
-  const base = { game: 'pokemon', lang: 'fr', name: 'x', number: '1', prices: [] } as const;
-  setBrowseList([{ ...base, id: 'a', variant: 'normal' }, { ...base, id: 'a', variant: 'reverse' }, { ...base, id: 'b' }]);
+  const base = { game: 'pokemon' as const, lang: 'fr' as const, name: 'x', number: '1' };
+  setBrowseList([{ ...base, prices: [], id: 'a', variant: 'normal' }, { ...base, prices: [], id: 'a', variant: 'reverse' }, { ...base, prices: [], id: 'b' }]);
   const n = neighbors({ game: 'pokemon', id: 'a', lang: 'fr', variant: 'reverse' });
   assert.equal(n.prev?.variant, 'normal');
   assert.equal(n.next?.id, 'b');
