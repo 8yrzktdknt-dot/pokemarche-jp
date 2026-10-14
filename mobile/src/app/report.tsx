@@ -17,6 +17,7 @@ export default function ReportScreen() {
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState(user?.email ?? '');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [reason, setReason] = useState('');
 
   const card = p.id && p.game && p.lang ? { game: p.game, id: p.id, lang: p.lang, name: p.name, number: p.number, set: p.set } : undefined;
   const report: Report = {
@@ -25,7 +26,7 @@ export default function ReportScreen() {
   };
   const send = async () => {
     setState('sending');
-    try { await sendReport(report); setState('sent'); } catch { setState('error'); }
+    try { await sendReport(report); setState('sent'); } catch (e) { setReason(e instanceof Error ? e.message : String(e)); setState('error'); }
   };
 
   if (state === 'sent') {
@@ -79,6 +80,7 @@ export default function ReportScreen() {
       {state === 'error' && (
         <View style={{ gap: 8 }}>
           <Text style={{ color: colors.danger, fontFamily: fonts.bold }}>{t('report.error')}</Text>
+          {!!reason && <Text style={[s.meta, { fontSize: 12 }]}>{reason}</Text>}
           <Pressable style={s.ghost} onPress={() => Linking.openURL(mailtoLink(report))}>
             <Text style={s.ghostText}>{t('report.mail', { email: SUPPORT_EMAIL })}</Text>
           </Pressable>
