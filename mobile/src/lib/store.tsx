@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
+import { mergeCollections } from './cloud/merge';
+import { loadRemote, saveRemote, supabase } from './cloud/supabase';
 import { GAMES } from './games';
 import { LANG_LABELS, translate, type AppLang, type T } from './i18n';
 import { refreshCollectionPrices } from './refreshPrices';
@@ -41,6 +43,10 @@ interface Store {
   money(value: number, from: string): string;
   /** Prix converti dans la devise choisie (nombre). */
   toCurrency(value: number, from: string): number;
+  /** Compte connecté (null : collection sur cet appareil seulement). */
+  user: { id: string; email?: string; provider?: string } | null;
+  /** État de la sauvegarde en ligne. */
+  sync: 'off' | 'syncing' | 'ok' | 'error';
 }
 
 const KEY_COLLECTION = 'collection.v1';
@@ -54,6 +60,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [collection, setCollection] = useState<CollectionEntry[]>([]);
   const [settings, setSettingsState] = useState<Settings>({ game: 'auto', lang: 'fr', appLang: 'fr', currency: 'EUR' });
   const [rates, setRates] = useState<Rates>(FALLBACK_RATES);
+  const [user, setUser] = useState<Store['user']>(null);
+  const [sync, setSync] = useState<Store['sync']>('off');
+  // Compte dont la collection a été fusionnée avec celle de l'appareil (les envois ne partent qu'après).
+  const [merged, setMerged] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRates().then(setRates, () => {});
@@ -99,6 +109,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (ready) AsyncStorage.setItem(KEY_COLLECTION, JSON.stringify(collection)).catch(() => {});
   }, [collection, ready]);
 
+  // Compte : session gardée sur l'appareil, suivie en direct (connexion, déconnexion, retour de Google).
+  useEffect(() => {
+    const sb = supabase();
+    if (!sb) return;
+    const apply = (u: { id: string; email?: string; app_metadata?: { provider?: string } } | null | undefined) =>
+      setUser(u ? { id: u.id, email: u.email, provider: u.app_metadata?.provider } : null);
+    sb.auth.getSession().then(({ data }) => apply(data.session?.user));
+    const { data } = sb.auth.onAuthStateChange((_e, session) => apply(session?.user));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  // À la connexion : collection du compte fusionnée avec celle de l'appareil, réglages du compte repris.
+  useEffect(() => {
+    if (!ready || !user) { if (!user) { setMerged(null); setSync('off'); } return; }
+    if (merged === user.id) return;
+    let alive = true;
+    setSync('syncing');
+    loadRemote(user.id).then((remote) => {
+      if (!alive || !remote) return;
+      setCollection((local) => mergeCollections(local, remote.entries as CollectionEntry[]));
+      if (remote.settings) setSettingsState((prev) => ({ ...prev, ...(remote.settings as Partial<Settings>) }));
+      setMerged(user.id);
+    }).catch(() => alive && setSync('error'));
+    return () => { alive = false; };
+  }, [ready, user, merged]);
+
+  // Ensuite, chaque changement de la collection ou des réglages est enregistré sur le compte (regroupés sur 2 s).
+  useEffect(() => {
+    if (!user || merged !== user.id) return;
+    setSync('syncing');
+    const timer = setTimeout(() => {
+      saveRemote(user.id, collection, settings as unknown as Record<string, unknown>).then(() => setSync('ok'), () => setSync('error'));
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [user, merged, collection, settings]);
+
   useEffect(() => {
     if (ready) AsyncStorage.setItem(KEY_SETTINGS, JSON.stringify(settings)).catch(() => {});
   }, [settings, ready]);
@@ -138,8 +184,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [settings.appLang, settings.currency, rates]);
 
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, clear, ...helpers }),
-    [ready, settings, setSettings, collection, add, remove, clear, helpers],
+    () => ({ ready, settings, setSettings, collection, add, remove, clear, user, sync, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, clear, user, sync, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
