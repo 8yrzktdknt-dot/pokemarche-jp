@@ -6,6 +6,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cardmarketPaths } from './cardmarket-links.mjs';
+import { matchWizardSet, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
 import { CATALOG, getJson, pool, writeJson } from './lib.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
@@ -100,6 +101,25 @@ function setCodes(lang) {
   return new Map(JSON.parse(readFileSync(f, 'utf8')).blocs.flatMap((b) => b.sets).map((x) => [x.id, x.code]));
 }
 
+/**
+ * Cartes japonaises récentes absentes de TCGdex : n° produit et prix du marché TCGplayer (USD) via PokemonWizard.
+ * Extension → numéro → { tcgplayer, market }.
+ */
+async function japaneseWizard() {
+  const f = join(CATALOG, 'sets', 'pokemon-ja.json');
+  if (!existsSync(f)) return new Map();
+  const paths = await wizardJapaneseSets().catch(() => []);
+  const out = new Map();
+  for (const set of JSON.parse(readFileSync(f, 'utf8')).blocs.flatMap((b) => b.sets)) {
+    const path = matchWizardSet(paths, set);
+    if (!path) continue;
+    const cards = await wizardCards(set.id, path).catch(() => []);
+    out.set(set.id, new Map(cards.map((c) => [numKey(c.n), c])));
+  }
+  console.log(`PokemonWizard : ${paths.length} extensions japonaises, ${out.size} reliées au catalogue`);
+  return out;
+}
+
 export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 'en,fr,ja').split(',')) {
   // Liens Cardmarket exacts (Limitless), relevés une fois pour toutes les langues.
   const refs = new Map();
@@ -123,6 +143,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
     if (!existsSync(dir)) continue;
     const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
     const jaIds = lang === 'ja' ? await japaneseIds(files) : null;
+    const wizard = lang === 'ja' ? await japaneseWizard() : new Map();
     const stat = { cards: 0, found: 0, priced: 0, attrs: 0, links: 0 };
     await pool(files, 2, async (f) => {
       const setId = f.replace(/\.json$/, '');
@@ -131,6 +152,16 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
         const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
         const p = r && paths.get(r.key);
         if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
+      }
+      // TCGplayer (PokemonWizard) : n° produit, et prix du marché quand Cardmarket n'en a pas.
+      const wiz = wizard.get(setId);
+      if (wiz) {
+        for (const c of cards) {
+          const w = wiz.get(numKey(c.localId));
+          if (!w) continue;
+          c.tcgplayer = w.tcgplayer;
+          if (w.market) c.price = { value: w.market, currency: 'USD', source: 'tcgplayer' };
+        }
       }
       const map = jaIds?.get(setId);
       if (jaIds && !map) {

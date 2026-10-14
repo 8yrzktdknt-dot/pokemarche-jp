@@ -69,3 +69,18 @@ test('images officielles des 30 ans et liste Samurai Sword', async () => {
     full: 'https://samuraiswordtokyo.com/wp-content/uploads/2026/09/pokemon-30th-celebration-m6a-128-mewtwo-ex.webp',
   });
 });
+
+test('extension PokemonWizard reliée par nom ou par code', async () => {
+  const { matchWizardSet } = await import('./official-jp.mjs');
+  const paths = ['24399/mega-brave', '24721/30th-celebration-m6a', '24499/mega-dream-ex'];
+  assert.equal(matchWizardSet(paths, { id: 'M1L', name: 'Mega Brave' }), '24399/mega-brave');
+  assert.equal(matchWizardSet(paths, { id: 'M6a', name: '30th Celebration' }), '24721/30th-celebration-m6a');
+  assert.equal(matchWizardSet(paths, { id: 'M2a', name: 'MEGA Dream ex' }), '24499/mega-dream-ex');
+  assert.equal(matchWizardSet(paths, { id: 'SV1', name: 'Scarlet ex' }), undefined);
+});
+
+test('prix du marché PokemonWizard', async () => {
+  const { parseWizardSet } = await import('./official-jp.mjs');
+  const html = '{\\"tcgplayer_product_id\\":7,\\"name\\":\\"Mew ex - 135/103\\",\\"slug\\":\\"x\\",\\"card_number\\":\\"135\\",\\"rarity\\":\\"Futuristic Rare\\",\\"image_url\\":\\"https://i/x.jpg\\",\\"market_price\\":\\"12.5\\"}';
+  assert.equal(parseWizardSet(html)[0].market, 12.5);
+});
