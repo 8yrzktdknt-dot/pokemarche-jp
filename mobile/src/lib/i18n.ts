@@ -51,7 +51,7 @@ const fr = {
 
   'card.add': 'Ajouter',
   'card.prices': 'Prix',
-  'card.noPrice': 'Pas de prix automatique pour cette carte : consulte les sites ci-dessous.',
+  'card.noPrice': 'Pas encore de prix Cardmarket pour cette carte : consulte les sites ci-dessous.',
   'card.seeOn': 'Voir sur',
   'card.attributes': 'Attributs',
   'card.prev': 'Carte précédente',
@@ -196,7 +196,7 @@ const en: Record<Key, string> = {
 
   'card.add': 'Add',
   'card.prices': 'Prices',
-  'card.noPrice': 'No automatic price for this card: check the sites below.',
+  'card.noPrice': 'No Cardmarket price for this card yet: check the sites below.',
   'card.seeOn': 'See on',
   'card.attributes': 'Attributes',
   'card.prev': 'Previous card',

@@ -41,24 +41,14 @@ interface TcgdexCard extends TcgdexBrief {
 }
 
 /**
- * Prix affiché : moyenne des ventes Cardmarket sur 7 jours (sinon 30 jours, sinon toutes les ventes ;
- * champs « -holo » pour les cartes uniquement holo). Prix TCGplayer « Market » seulement sans prix Cardmarket.
+ * Prix affiché, toujours Cardmarket : moyenne des ventes sur 7 jours (sinon 30 jours, sinon toutes les ventes ;
+ * champs « -holo » pour les cartes uniquement holo). Aucun autre site.
  */
 function prices(c: TcgdexCard): Price[] {
   const cm = c.pricing?.cardmarket as Record<string, number | null | undefined> | null | undefined;
   const pick = (k: string) => cm?.[k] || cm?.[`${k}-holo`] || undefined;
   const main = cardmarketPrice(cm ? { avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg') } : null);
-  if (main) return [main];
-  const out: Price[] = [];
-  const tp = c.pricing?.tcgplayer;
-  if (tp) {
-    for (const [variant, v] of Object.entries(tp)) {
-      if (v && typeof v === 'object' && v.marketPrice) {
-        out.push({ source: 'tcgplayer', label: `Market (${variant})`, value: v.marketPrice, currency: 'USD' });
-      }
-    }
-  }
-  return out;
+  return main ? [main] : [];
 }
 
 function marketIds(c: TcgdexCard): Card['marketIds'] {

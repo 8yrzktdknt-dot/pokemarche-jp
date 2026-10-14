@@ -45,3 +45,14 @@ test('référence Limitless commune au français et à l\'anglais', async () => 
   assert.deepEqual(limitlessRef('fr', 'me01', 'MEG', '001'), { key: 'MEG/1', url: 'https://limitlesstcg.com/cards/MEG/1', code: 'MEG', n: '1', japanese: false });
   assert.equal(limitlessRef('ja', 'M6a', undefined, '001').url, 'https://limitlesstcg.com/cards/jp/M6a/1');
 });
+
+test('attributs d\'une page Limitless japonaise', async () => {
+  const { parseLimitlessDetails } = await import('./limitless-jp-details.mjs');
+  const pokemon = `<p class="card-text-title"> <span class="card-text-name"><a href="/cards/jp/MF/20">ゾロアーク</a></span> - Darkness - 120 HP </p>
+    <p class="card-text-type"> Pokémon - Stage 1 - Evolves from <a href="#">ゾロア</a> </p>
+    <div class="card-text-section card-text-artist"> Illustrated by <a href="/cards/jp?q=!artist:shiburingaru"> Shiburingaru </a> </div>
+    <div class="regulation-mark"> J Regulation Mark • <a>More formats</a></div>`;
+  assert.deepEqual(parseLimitlessDetails(pokemon), { type: 'Obscurité', hp: '120', category: 'Pokémon', stage: 'Niveau 1', illustrator: 'Shiburingaru', regulation: 'J' });
+  const trainer = `<p class="card-text-title"> <span class="card-text-name"><a>ボスの指令</a></span> </p><p class="card-text-type"> Trainer - Supporter </p>`;
+  assert.deepEqual(parseLimitlessDetails(trainer), { category: 'Dresseur · Supporter' });
+});

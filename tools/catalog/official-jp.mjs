@@ -82,7 +82,7 @@ const WIZARD_RARITY = {
 export function parseWizardSet(html) {
   const text = html.replace(/\\"/g, '"');
   const out = new Map();
-  for (const m of text.matchAll(/"tcgplayer_product_id":(\d+),"name":"([^"]*)","slug":"[^"]*","card_number":"([^"]*)","rarity":"([^"]*)"[\s\S]{0,300}?"image_url":"([^"]+)"/g)) {
+  for (const m of text.matchAll(/"tcgplayer_product_id":(\d+),"name":"([^"]*)","slug":"[^"]*","card_number":"([^"]*)","rarity":(?:"([^"]*)"|null)[\s\S]{0,300}?"image_url":"([^"]+)"/g)) {
     const [, tp, rawName, n, rarityName, image] = m;
     const head = rawName.match(/^(.+?) - ([A-Z]{0,3}\d{1,3})\/(\d{1,3})$/);
     if (!head || out.has(n)) continue;
@@ -94,7 +94,7 @@ export function parseWizardSet(html) {
       n,
       total: Number(head[3]),
       nameEn: unescapeHtml(head[1]).trim(),
-      rarity: WIZARD_RARITY[rarityName.toLowerCase()] ?? (rarityName || undefined),
+      rarity: rarityName ? WIZARD_RARITY[rarityName.toLowerCase()] ?? rarityName : undefined,
       image,
       tcgplayer: Number(tp),
       ...(market ? { market } : {}),
