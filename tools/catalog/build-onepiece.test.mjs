@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseCards, parseSeries, setName } from './build-onepiece.mjs';
+import { parseCards, parseSeries, setName, parseProductLogo } from './build-onepiece.mjs';
 
 test('sélecteur des extensions (extraits réels)', () => {
   const html = `<option value="569105" >BOOSTER PACK &lt;br class=&quot;spInline&quot;&gt;-AWAKENING OF THE NEW ERA- [OP-05]
@@ -45,4 +45,14 @@ test('attributs du dos de la fiche', () => {
   const html = '<dl class="modalCol" id="OP01-001"><dt><div class="infoCol"><span>OP01-001</span> | <span>L</span> | <span>LEADER</span></div><div class="cardName">Roronoa Zoro</div></dt><dd><div class="backCol"><div class="col2"><div class="cost"><h3>Life</h3>5</div><div class="attribute"><h3>Attribute</h3><img src="x" alt="Slash"><i>Slash</i></div></div><div class="col2"><div class="power"><h3>Power</h3>5000</div><div class="counter"><h3>Counter</h3>-</div></div><div class="block"><h3>Block<br class="spInline"> icon</h3>1</div><div class="feature"><h3>Type</h3>Supernovas/Straw Hat Crew</div></div></dd></dl>';
   const [c] = parseCards(html, 'https://en.onepiece-cardgame.com');
   assert.deepEqual(c.attrs, { life: '5', power: '5000', attribute: 'Slash', feature: 'Supernovas/Straw Hat Crew', block: '1' });
+});
+
+test('logo de la page produit officielle (dossier aléatoire ou relatif)', () => {
+  const page = 'https://www.onepiece-cardgame.com/products/boosters/op16.php';
+  assert.equal(
+    parseProductLogo('<img src="/onepiececg/bccard/jp/products/2026/03/19/PH7hkxHZKAf8gXnn/logo.webp" alt="">', page),
+    'https://www.onepiece-cardgame.com/onepiececg/bccard/jp/products/2026/03/19/PH7hkxHZKAf8gXnn/logo.webp',
+  );
+  assert.equal(parseProductLogo('<img src="./images/logo_3rd-anniv.webp"><img src="./images/mv/logo.webp">', page), 'https://www.onepiece-cardgame.com/products/boosters/images/mv/logo.webp');
+  assert.equal(parseProductLogo('<img src="/renewal/images/common/logo_op.png">', page), undefined);
 });

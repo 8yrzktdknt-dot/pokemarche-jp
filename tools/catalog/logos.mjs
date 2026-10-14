@@ -95,8 +95,8 @@ let placeholders = null;
 async function placeholderHashes() {
   placeholders ??= (async () => {
     const out = new Set();
-    for (const id of ['zz-inconnu_ja', 'zz-inconnu']) {
-      const buf = await download(`https://images.scrydex.com/pokemon/${id}-logo/logo`);
+    for (const id of ['pokemon/zz-inconnu_ja', 'pokemon/zz-inconnu', 'riftbound/zz-inconnu', 'riftbound/ZZ-INCONNU', 'onepiece/zz-inconnu', 'onepiece/ZZ-INCONNU']) {
+      const buf = await download(`https://images.scrydex.com/${id}-logo/logo`);
       if (buf) out.add(hash(buf));
     }
     return out;
@@ -140,8 +140,11 @@ export async function serebiiLogoMap() {
   return html ? parseSerebiiLogos(html) : new Map();
 }
 
-/** Logo et symbole Scrydex d'une extension (« mbg_ja » pour le japonais, identifiant pokemontcg.io pour l'anglais). */
-export const scrydexLogo = (id) => `https://images.scrydex.com/pokemon/${id}-logo/logo`;
+/**
+ * Logo et symbole Scrydex d'une extension (« mbg_ja » pour le japonais, identifiant pokemontcg.io pour l'anglais ;
+ * One Piece « OP15 », Riftbound « OGN » en majuscules).
+ */
+export const scrydexLogo = (id, game = 'pokemon') => `https://images.scrydex.com/${game}/${id}-logo/logo`;
 export const scrydexSymbol = (id) => `https://images.scrydex.com/pokemon/${id}-symbol/symbol`;
 
 /** Premier logo trouvé pour ce nom dans les tables (dans l'ordre de préférence). */

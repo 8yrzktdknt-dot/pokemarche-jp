@@ -1,6 +1,6 @@
 // Riftbound : galerie officielle de Riot (données de la page, en anglais et en français).
 import { getText, pool, sortByRelease, writeJson } from './lib.mjs';
-import { ownLogo } from './logos.mjs';
+import { ownLogo, saveLogos, scrydexLogo } from './logos.mjs';
 
 const LOCALES = { en: 'en-us', fr: 'fr-fr' };
 // La galerie ne donne pas les dates de sortie : ordre de sortie connu (du plus récent au plus ancien).
@@ -70,8 +70,10 @@ export async function buildRiftbound() {
       list.sort((a, b) => Number(a.localId) - Number(b.localId) || a.number.localeCompare(b.number));
       writeJson(`cards/riftbound-${lang}/${id}.json`, list);
     }
-    // Logos créés (tools/logos/make-deck-logos.cjs) : aucune source de logos Riftbound accessible aux robots.
-    for (const x of setList) x.logo = ownLogo(`riftbound-${lang}`, x.id) ?? ownLogo('riftbound-en', x.id);
+    // Logos Scrydex (communs aux langues), sinon logos créés (tools/logos/make-deck-logos.cjs).
+    const logos = await saveLogos(setList, 'riftbound', (x) => scrydexLogo(x.id.toUpperCase(), 'riftbound'));
+    for (const x of setList) x.logo = logos.get(x.id) ?? ownLogo(`riftbound-${lang}`, x.id) ?? ownLogo('riftbound-en', x.id);
+    console.log(`Riftbound ${lang} : logos Scrydex ${logos.size}/${setList.length}`);
     writeJson(`sets/riftbound-${lang}.json`, { built: new Date().toISOString(), blocs: [{ id: 'riftbound', name: 'Riftbound', sets: setList }] });
     console.log(`Riftbound ${lang} : ${cards.items.length} cartes, ${setList.length} extensions`);
   }
