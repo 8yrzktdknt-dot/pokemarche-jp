@@ -215,4 +215,9 @@ export const nl: Partial<Record<Key, string>> = {
   "report.back": "Terug naar de kaart",
   "report.error": "Versturen lukt nu niet.",
   "report.mail": "Mail naar {email}",
+  "variant.title": "Variant",
+  "variant.count": "{n} varianten",
+  "variant.all": "Alle varianten",
+  "variant.noPrice": "Nog geen prijs",
+  "variant.owned": "{n} in bezit",
 };

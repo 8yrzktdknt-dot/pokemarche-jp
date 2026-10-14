@@ -1,7 +1,7 @@
 // Détails des cartes Pokémon publiés avec le catalogue (étape « pokemon-details », chaque jour) :
-// prix Cardmarket (moyennes des ventes, tendance, plus bas) et TCGplayer, n° produit Cardmarket et TCGplayer,
-// attributs (illustrateur, n° Pokédex, type, PV, stade, catégorie, marque de régulation).
-// Source : fiche TCGdex de chaque carte, dans la langue de la carte (les prix sont communs aux langues).
+// n° produit Cardmarket et TCGplayer, variantes (normale, reverse, Poké Ball…), attributs (illustrateur,
+// n° Pokédex, type, PV, stade, catégorie, marque de régulation) : fiche TCGdex de chaque carte, dans sa langue.
+// Prix : uniquement les fichiers publics Cardmarket (moyenne des ventes sur 7 jours), jamais ceux de TCGdex.
 // Les cartes japonaises sont retrouvées par extension et numéro dans le catalogue japonais de TCGdex.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -10,6 +10,7 @@ import { INTL_EXPANSIONS, completeIntlPrices, completeJapanesePrices, loadCardma
 import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
 import { matchWizardSet, officialCardId, parseOfficialAttrs, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
 import { CATALOG, getJson, getText, pool, writeJson } from './lib.mjs';
+import { applyCardmarketPrices, japaneseBase, variantsOf } from './variants.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
 const enc = encodeURIComponent;
@@ -63,11 +64,14 @@ export function attrsOf(d, lang) {
 export function applyDetails(c, d, lang) {
   const attrs = { ...(c.attrs ?? {}), ...attrsOf(d, lang) };
   if (Object.keys(attrs).length) c.attrs = attrs;
-  const cm = cardmarketOf(d.pricing?.cardmarket);
-  if (cm) c.cm = cm; else delete c.cm;
+  // N° produit Cardmarket seulement : les prix viennent des fichiers Cardmarket (applyCardmarketPrices).
+  const v = variantsOf(d);
+  if (v.length) c.v = v; else delete c.v;
+  const id = d.pricing?.cardmarket?.idProduct || v[0]?.id;
+  if (id) c.cm = { id }; else delete c.cm;
   const tp = tcgplayerOf(d.pricing?.tcgplayer);
   if (tp.id) c.tcgplayer = tp.id;
-  if (tp.market) c.price = { value: tp.market, currency: 'USD', source: 'tcgplayer' };
+  delete c.price; // aucun prix de TCGdex
   if (!c.rarity && d.rarity) c.rarity = d.rarity;
 }
 
@@ -225,6 +229,19 @@ async function completeIntlCardmarket(dir, files) {
   if (changed) writeJson(`sets/${basename(dir)}.json`, sets);
 }
 
+/** Prix de toutes les cartes (et de leurs variantes) depuis le guide des prix Cardmarket du jour. */
+async function priceFromCardmarket(dir, files) {
+  const cmf = await cardmarketFiles();
+  if (!cmf?.prices.size) { console.warn('Guide des prix Cardmarket indisponible'); return; }
+  let n = 0;
+  for (const f of files) {
+    const cards = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+    n += applyCardmarketPrices(cards, cmf);
+    writeJson(`cards/${basename(dir)}/${f}`, cards);
+  }
+  console.log(`Prix Cardmarket (moyenne 7 jours) ${basename(dir)} : ${n} cartes`);
+}
+
 async function completeJapaneseCardmarket(dir, files) {
   const cmf = await cardmarketFiles();
   if (!cmf?.products.length) { console.warn('Fichiers Cardmarket indisponibles'); return; }
@@ -352,6 +369,9 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
         for (const c of cards) {
           const w = wiz.get(numKey(c.localId));
           if (!w) continue;
+          // Variantes : carte de base, puis les motifs vendus à part (Poké Ball, Master Ball, reverse…).
+          c.v = [{ k: japaneseBase(c.rarity ?? w.rarity) }, ...(w.variants ?? []).map((k) => ({ k }))];
+          if (!w.tcgplayer) continue;
           c.tcgplayer = w.tcgplayer;
           if (!c.rarity && w.rarity) c.rarity = w.rarity;
           if (w.market) c.price = { value: w.market, currency: 'USD', source: 'tcgplayer' };
@@ -383,6 +403,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       await completeJapaneseFromLimitless(dir, files);
       await completeJapaneseCardmarket(dir, files);
     }
+    await priceFromCardmarket(dir, files);
     console.log(`Détails Pokémon ${lang} : ${stat.found}/${stat.cards} fiches TCGdex, ${stat.priced} avec prix Cardmarket, ${stat.attrs} avec attributs, ${stat.links} avec lien Cardmarket exact`);
   }
 }

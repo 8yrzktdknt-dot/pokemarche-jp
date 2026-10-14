@@ -215,4 +215,9 @@ export const ko: Partial<Record<Key, string>> = {
   "report.back": "카드로 돌아가기",
   "report.error": "지금은 보낼 수 없습니다.",
   "report.mail": "{email}(으)로 메일 보내기",
+  "variant.title": "버전",
+  "variant.count": "{n}가지 버전",
+  "variant.all": "모든 버전",
+  "variant.noPrice": "아직 가격 없음",
+  "variant.owned": "{n}장 보유",
 };

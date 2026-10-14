@@ -1,8 +1,9 @@
+import { collectionKey } from '../variants.ts';
 import type { Card } from '../types.ts';
 
 export interface SyncEntry { card: Card; quantity: number; addedAt: number }
 
-const keyOf = (c: Card) => `${c.game}:${c.lang}:${c.id}`;
+const keyOf = collectionKey;
 
 /**
  * Fusion de la collection de l'appareil avec celle du compte (première connexion sur un appareil) :

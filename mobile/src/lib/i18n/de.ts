@@ -215,4 +215,9 @@ export const de: Partial<Record<Key, string>> = {
   "report.back": "Zurück zur Karte",
   "report.error": "Senden gerade nicht möglich.",
   "report.mail": "E-Mail an {email}",
+  "variant.title": "Variante",
+  "variant.count": "{n} Varianten",
+  "variant.all": "Alle Varianten",
+  "variant.noPrice": "Noch kein Preis",
+  "variant.owned": "{n} im Besitz",
 };

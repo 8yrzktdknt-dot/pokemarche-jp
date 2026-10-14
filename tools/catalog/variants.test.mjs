@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { applyCardmarketPrices, japaneseBase, variantsOf, wizardVariantKey } from './variants.mjs';
+
+test('variantsOf : normale, reverse, Poké Ball, Master Ball, tampon, sous-type', () => {
+  const d = { variants_detailed: [
+    { type: 'normal', size: 'standard', thirdParty: { cardmarket: 1 } },
+    { type: 'reverse', size: 'standard', thirdParty: { cardmarket: 1 } },
+    { type: 'reverse', size: 'standard', foil: 'pokeball', thirdParty: { cardmarket: 2 } },
+    { type: 'Reverse', size: 'Standard', foil: 'masterball', thirdParty: { cardmarket: 3 } },
+    { type: 'reverse', size: 'standard', stamp: ['30th-pokeday'], foil: 'league', thirdParty: { cardmarket: 4 } },
+    { type: 'holo', subtype: 'shadowless', size: 'standard', stamp: ['1st-edition'], thirdParty: { cardmarket: 5 } },
+    { type: 'holo', subtype: 'unlimited', size: 'standard' },
+    { type: 'holo', size: 'jumbo' },
+  ] };
+  assert.deepEqual(variantsOf(d), [
+    { k: 'normal', id: 1 }, { k: 'reverse', id: 1 }, { k: 'pokeball', id: 2 }, { k: 'masterball', id: 3 },
+    { k: 'reverse-league|30th-pokeday', id: 4 }, { k: 'holo|shadowless|1st-edition', id: 5 }, { k: 'holo' },
+  ]);
+});
+
+test('wizardVariantKey et carte japonaise de base', () => {
+  assert.equal(wizardVariantKey("Cynthia's Roserade (Poke Ball Pattern)"), 'pokeball');
+  assert.equal(wizardVariantKey("Cynthia's Roserade (Energy Symbol Pattern)"), 'reverse');
+  assert.equal(wizardVariantKey('Yanmega (Quick Ball Pattern)'), 'quickball');
+  assert.equal(wizardVariantKey("Cynthia's Roserade"), undefined);
+  assert.equal(japaneseBase('C'), 'normal');
+  assert.equal(japaneseBase('RR'), 'holo');
+});
+
+test('applyCardmarketPrices : moyenne 7 jours de chaque variante, depuis les fichiers Cardmarket', () => {
+  const prices = new Map([
+    [1, { idProduct: 1, avg7: 0.03, avg30: 0.04, 'avg7-holo': 0.12 }],
+    [2, { idProduct: 2, avg7: 0.28, 'avg7-holo': 0.46 }],
+    [3, { idProduct: 3, avg7: null, 'avg7-holo': 1.5 }],
+    [9, { idProduct: 9, avg7: null, 'avg7-holo': 0.5 }],
+  ]);
+  const c = { cm: { id: 1, avg7: 99 }, v: [{ k: 'normal', id: 1 }, { k: 'reverse', id: 1 }, { k: 'pokeball', id: 2 }, { k: 'masterball', id: 3 }] };
+  const jp = { cm: { id: 9, f: 1 }, v: [{ k: 'normal' }, { k: 'reverse' }, { k: 'pokeball' }] };
+  applyCardmarketPrices([c, jp], { prices });
+  assert.deepEqual(c.v.map((v) => v.p), [0.03, 0.12, 0.46, 1.5]);
+  assert.deepEqual(c.cm, { id: 1, avg7: 0.03, avg30: 0.04 });
+  // Normale sans vente sur 7 jours : pas le prix du reverse.
+  assert.equal(jp.cm.avg7, undefined);
+  assert.equal(jp.cm.f, 1);
+  assert.deepEqual(jp.v.map((v) => v.p), [undefined, 0.5, undefined]);
+});

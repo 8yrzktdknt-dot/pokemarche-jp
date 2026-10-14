@@ -215,4 +215,9 @@ export const es: Partial<Record<Key, string>> = {
   "report.back": "Volver a la carta",
   "report.error": "No se puede enviar ahora.",
   "report.mail": "Escribir a {email}",
+  "variant.title": "Variante",
+  "variant.count": "{n} variantes",
+  "variant.all": "Todas las variantes",
+  "variant.noPrice": "Sin precio aún",
+  "variant.owned": "{n} en tu colección",
 };

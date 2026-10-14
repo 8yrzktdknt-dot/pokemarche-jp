@@ -2,7 +2,6 @@ import { getJson } from '../http.ts';
 import { nameScore } from '../scan/parse.ts';
 import { applyFilters, sortCards } from '../search.ts';
 import { ENGLISH_NAMED_LANGS, JP_SERIE_EN, JP_SET_EN, rarityAbbr, rarityValuesFor } from '../catalog/pokemonNames.ts';
-import { cardmarketPrice } from '../prices/cardmarket.ts';
 import { NO_RARITY, assetUrl, staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSetCardsAsApp, toBlocs } from '../catalog/static';
 import type { Bloc, Card, CardAttribute, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
@@ -40,15 +39,9 @@ interface TcgdexCard extends TcgdexBrief {
   };
 }
 
-/**
- * Prix affiché, toujours Cardmarket : moyenne des ventes sur 7 jours (sinon 30 jours, sinon toutes les ventes ;
- * champs « -holo » pour les cartes uniquement holo). Aucun autre site.
- */
-function prices(c: TcgdexCard): Price[] {
-  const cm = c.pricing?.cardmarket as Record<string, number | null | undefined> | null | undefined;
-  const pick = (k: string) => cm?.[k] || cm?.[`${k}-holo`] || undefined;
-  const main = cardmarketPrice(cm ? { avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg') } : null);
-  return main ? [main] : [];
+/** Aucun prix de TCGdex : les prix viennent du catalogue (fichiers Cardmarket, moyenne des ventes sur 7 jours). */
+function prices(_c: TcgdexCard): Price[] {
+  return [];
 }
 
 function marketIds(c: TcgdexCard): Card['marketIds'] {
@@ -297,8 +290,8 @@ const INTL_EXTRA: Record<string, string[]> = { '30th': ['30th-R', '30th-G', '30t
 const INTL_LANGS: CardLang[] = ['de', 'es', 'it', 'pt'];
 
 /**
- * Langues internationales servies par TCGdex en direct : prix Cardmarket du catalogue anglais quand TCGdex n'en a pas
- * (même fiche Cardmarket pour toutes ces langues, ex. 30th Celebration) et cartes ajoutées hors TCGdex.
+ * Langues internationales servies par TCGdex en direct : prix Cardmarket et variantes du catalogue anglais
+ * (mêmes fiches Cardmarket pour toutes ces langues) et cartes ajoutées hors TCGdex.
  */
 async function withIntlCatalog(setId: string, lang: CardLang, cards: Card[], setName?: string): Promise<Card[]> {
   if (!INTL_LANGS.includes(lang)) return cards;
@@ -307,8 +300,8 @@ async function withIntlCatalog(setId: string, lang: CardLang, cards: Card[], set
   const byId = new Map(en.cards.map((c) => [c.id, c]));
   const out = cards.map((c) => {
     const e = byId.get(c.id);
-    return e && !c.prices.length && e.prices.length
-      ? { ...c, prices: e.prices, marketIds: { ...e.marketIds, ...Object.fromEntries(Object.entries(c.marketIds ?? {}).filter(([, v]) => v)) } }
+    return e
+      ? { ...c, prices: e.prices, variants: e.variants, marketIds: { ...Object.fromEntries(Object.entries(c.marketIds ?? {}).filter(([, v]) => v)), ...e.marketIds } }
       : c;
   });
   const have = new Set(out.map((c) => c.id));
@@ -377,9 +370,10 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
     ...live,
     nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName, rarity: st.rarity ?? live.rarity,
     imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
-    // Prix et fiches Cardmarket du catalogue (vérifiés, mis à jour chaque jour) en priorité : TCGdex en direct
-    // peut relier une carte japonaise à la fiche d'une autre langue (chinois simplifié pour M6a).
-    prices: st.prices.length ? st.prices : live.prices,
+    // Prix et variantes du catalogue uniquement (fichiers Cardmarket du jour) ; fiches Cardmarket du catalogue
+    // en priorité : TCGdex en direct peut relier une carte japonaise à la fiche d'une autre langue.
+    prices: st.prices,
+    variants: st.variants,
     attributes: mergeAttributes(live.attributes, st.attributes),
     marketIds: { ...Object.fromEntries(Object.entries(live.marketIds ?? {}).filter(([, v]) => v)), ...Object.fromEntries(Object.entries(st.marketIds ?? {}).filter(([, v]) => v)) },
   };

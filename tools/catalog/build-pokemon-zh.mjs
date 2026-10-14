@@ -159,6 +159,8 @@ export function twCard(code, id, d, jp) {
     attrs: { ...attrs, ...(jp?.attrs ?? {}) },
     // Fiche de l'extension japonaise (même produit pour le japonais et le chinois traditionnel).
     cm: jp?.cm,
+    // Mêmes variantes que la carte japonaise (mêmes impressions en Asie).
+    v: jp?.v,
     tcgplayer: undefined,
     tw: id,
   };

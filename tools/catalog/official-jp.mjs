@@ -2,6 +2,7 @@
 //  - base officielle pokemon-card.com : cartes absentes de Limitless (ex. cartes rares de M6a), avec image officielle ;
 //  - PokemonWizard : cartes secrètes pas encore dans la base officielle.
 import { getJson, getText, pool, unescapeHtml } from './lib.mjs';
+import { wizardVariantKey } from './variants.mjs';
 
 const PCC = 'https://www.pokemon-card.com';
 
@@ -103,6 +104,20 @@ export function parseWizardSet(html) {
   return [...out.values()];
 }
 
+/** Variantes vendues à part sur PokemonWizard (« Cynthia's Roserade (Poke Ball Pattern) ») : numéro → motifs. */
+export function parseWizardVariants(html) {
+  const text = html.replace(/\\"/g, '"');
+  const out = new Map();
+  for (const m of text.matchAll(/"name":"([^"]*)","slug":"[^"]*","card_number":"([^"]*)"/g)) {
+    const k = wizardVariantKey(unescapeHtml(m[1]));
+    if (!k) continue;
+    const list = out.get(m[2]) ?? [];
+    if (!list.includes(k)) list.push(k);
+    out.set(m[2], list);
+  }
+  return out;
+}
+
 /** Extensions japonaises de PokemonWizard : chemins « 24399/mega-brave ». */
 export async function wizardJapaneseSets() {
   const out = new Set();
@@ -133,6 +148,11 @@ export async function wizardCards(setId, pathOverride) {
     const cards = html ? parseWizardSet(html) : [];
     const before = all.size;
     for (const c of cards) if (!all.has(c.n)) all.set(c.n, c);
+    for (const [n, keys] of html ? parseWizardVariants(html) : []) {
+      const c = all.get(n) ?? { n };
+      c.variants = [...new Set([...(c.variants ?? []), ...keys])];
+      all.set(n, c);
+    }
     if (all.size === before) break;
   }
   return [...all.values()];

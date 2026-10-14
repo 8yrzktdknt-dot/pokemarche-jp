@@ -21,8 +21,13 @@ test('attributs japonais traduits', () => {
 
 test('fiche appliquée à la carte du catalogue', () => {
   const c = { id: 'x', rarity: '' };
-  applyDetails(c, { rarity: 'Rare', illustrator: 'A', pricing: { cardmarket: { idProduct: 5, avg7: 1.2 }, tcgplayer: { normal: { marketPrice: 2, productId: 8 } } } }, 'fr');
-  assert.deepEqual(c, { id: 'x', rarity: 'Rare', attrs: { illustrator: 'A' }, cm: { id: 5, avg7: 1.2 }, tcgplayer: 8, price: { value: 2, currency: 'USD', source: 'tcgplayer' } });
+  applyDetails(c, {
+    rarity: 'Rare', illustrator: 'A',
+    pricing: { cardmarket: { idProduct: 5, avg7: 1.2 }, tcgplayer: { normal: { marketPrice: 2, productId: 8 } } },
+    variants_detailed: [{ type: 'normal', size: 'standard', thirdParty: { cardmarket: 5 } }, { type: 'reverse', size: 'standard', thirdParty: { cardmarket: 5 } }],
+  }, 'fr');
+  // N° produit seulement : les prix viennent des fichiers Cardmarket, jamais de TCGdex.
+  assert.deepEqual(c, { id: 'x', rarity: 'Rare', attrs: { illustrator: 'A' }, v: [{ k: 'normal', id: 5 }, { k: 'reverse', id: 5 }], cm: { id: 5 }, tcgplayer: 8 });
 });
 
 test('lien Cardmarket : la carte elle-même, pas une réimpression', async () => {

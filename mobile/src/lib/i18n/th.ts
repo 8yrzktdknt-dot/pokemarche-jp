@@ -215,4 +215,9 @@ export const th: Partial<Record<Key, string>> = {
   "report.back": "กลับไปที่การ์ด",
   "report.error": "ส่งไม่ได้ในขณะนี้",
   "report.mail": "ส่งอีเมลถึง {email}",
+  "variant.title": "รูปแบบ",
+  "variant.count": "{n} รูปแบบ",
+  "variant.all": "รูปแบบทั้งหมด",
+  "variant.noPrice": "ยังไม่มีราคา",
+  "variant.owned": "มี {n} ใบ",
 };

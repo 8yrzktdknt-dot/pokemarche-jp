@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { setBrowseList } from '../lib/browse';
 import { GAME_LIST } from '../lib/games';
 import { useStore } from '../lib/store';
+import { variantLabel } from '../lib/variants';
 import { rarityAbbr, rarityName } from '../lib/catalog/pokemonNames';
 import type { AppLang } from '../lib/i18n';
 import type { Card, GameId } from '../lib/types';
@@ -87,6 +88,7 @@ export function CardRow({ card, right, list }: { card: Card; right?: string; lis
           <Text style={s.name} numberOfLines={2}>{name}</Text>
           {name !== card.name && <Text style={s.meta} numberOfLines={1}>{card.name}</Text>}
           <Text style={s.meta}>{[card.number, card.setName, card.game === 'pokemon' && card.rarity ? rarityName(rarityAbbr(card.rarity), appLang) ?? card.rarity : card.rarity].filter(Boolean).join(' · ')}</Text>
+          {!!card.variant && (card.variants?.length ?? 0) > 1 && <Text style={[s.meta, { color: colors.accent }]}>{variantLabel(card.variant, appLang)}</Text>}
         </View>
         {(right ?? price) && <Text style={s.price}>{right ?? price}</Text>}
       </Pressable>

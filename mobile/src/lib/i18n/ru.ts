@@ -215,4 +215,9 @@ export const ru: Partial<Record<Key, string>> = {
   "report.back": "Назад к карте",
   "report.error": "Сейчас отправить не удалось.",
   "report.mail": "Написать на {email}",
+  "variant.title": "Вариант",
+  "variant.count": "Вариантов: {n}",
+  "variant.all": "Все варианты",
+  "variant.noPrice": "Цены пока нет",
+  "variant.owned": "В коллекции: {n}",
 };
