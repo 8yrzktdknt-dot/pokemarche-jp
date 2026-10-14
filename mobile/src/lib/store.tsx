@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
+import { GAMES } from './games';
 import { LANG_LABELS, translate, type AppLang, type T } from './i18n';
+import { refreshCollectionPrices } from './refreshPrices';
 import type { Card, CardLang, GameId } from './types';
 
 export interface CollectionEntry {
@@ -68,6 +70,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     })();
   }, []);
+
+  // Prix du jour pour les cartes de la collection (au lancement puis toutes les 6 h) : la valeur de la collection
+  // et des extensions suit l'évolution des cotes Cardmarket.
+  useEffect(() => {
+    if (!ready) return;
+    let alive = true;
+    const run = () => {
+      setCollection((current) => {
+        refreshCollectionPrices(current, async (game, setId, lang) => (await GAMES[game].setCards(setId, lang)).cards).then((next) => {
+          if (!alive || !next) return;
+          const fresh = new Map(next.map((e) => [keyOf(e.card), e.card]));
+          // Fusion avec l'état le plus récent (des cartes ont pu être ajoutées pendant le chargement).
+          setCollection((now) => now.map((e) => {
+            const f = fresh.get(keyOf(e.card));
+            return f && f !== e.card ? { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds } } : e;
+          }));
+        });
+        return current;
+      });
+    };
+    run();
+    const timer = setInterval(run, 6 * 3600 * 1000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [ready]);
 
   useEffect(() => {
     if (ready) AsyncStorage.setItem(KEY_COLLECTION, JSON.stringify(collection)).catch(() => {});
