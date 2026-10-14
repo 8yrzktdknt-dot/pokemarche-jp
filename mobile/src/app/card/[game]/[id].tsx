@@ -7,6 +7,7 @@ import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollV
 import { colors, displayName, fonts, s } from '../../../components/ui';
 import { browseCard, neighbors } from '../../../lib/browse';
 import { rarityAbbr } from '../../../lib/catalog/pokemonNames';
+import { assetUrl } from '../../../lib/catalog/static';
 import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
 import { marketLinks, type MarketplaceId } from '../../../lib/prices/marketplaces';
@@ -14,11 +15,8 @@ import { useStore } from '../../../lib/store';
 import type { AttributeKey, Card, CardAttribute, CardLang, GameId, Price } from '../../../lib/types';
 
 const SOURCE_LABEL = { cardmarket: 'Cardmarket', tcgplayer: 'TCGplayer', cardtrader: 'CardTrader', ebay: 'eBay' };
-const SITE_DOMAIN: Record<MarketplaceId, string> = {
-  cardmarket: 'cardmarket.com', tcgplayer: 'tcgplayer.com', cardtrader: 'cardtrader.com', ebay: 'ebay.com',
-};
-/** Petit logo de chaque site (icône officielle du site). */
-const siteLogo = (id: MarketplaceId) => `https://www.google.com/s2/favicons?domain=${SITE_DOMAIN[id]}&sz=64`;
+/** Petit logo de chaque site (icône officielle, hébergée avec le catalogue). */
+const siteLogo = (id: MarketplaceId) => assetUrl(`sites/${id}.png`);
 
 const ICON: Record<AttributeKey, keyof typeof Ionicons.glyphMap> = {
   illustrator: 'brush-outline', release: 'calendar-outline', rarity: 'diamond-outline', dex: 'paw-outline',
@@ -49,7 +47,7 @@ function AttrIcon({ a }: { a: CardAttribute }) {
     if (n > 0) {
       return (
         <Image
-          source={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${n}.png`}
+          source={assetUrl(`sprites/${n}.png`)}
           style={{ width: 40, height: 40 }}
           contentFit="contain"
         />

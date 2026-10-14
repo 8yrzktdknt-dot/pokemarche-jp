@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Cherche les logos manquants : One Piece (OP14-16, decks ST) et Riftbound.
+# Cherche des logos français d'extensions Pokémon (Nuit Noire / ME05…).
 set -u
 UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-get() { curl -sS -L -m 30 -A "$UA" "$1"; }
-imgs() { grep -oE '(src|data-src|srcset|href|content)="[^"]*\.(png|jpg|jpeg|webp|svg)[^"]*"' | sort -u | head -${2:-40}; }
-for p in boosters/op14 boosters/op15 boosters/op16 decks/st23 decks/st30 decks/st01 decks/st36; do
-  echo "== OP $p"; for site in https://en.onepiece-cardgame.com https://www.onepiece-cardgame.com; do
-    for path in "/products/$p/" "/products/$p.php"; do
-      code=$(curl -s -o /tmp/p.html -L -m 30 -A "$UA" -w '%{http_code}' "$site$path"); echo "$code $site$path"; [ "$code" = 200 ] && imgs < /tmp/p.html 15
-    done; done; done
-echo "== OP products list"; get https://en.onepiece-cardgame.com/products/ | imgs 80
-echo "== Riftbound site"; get https://riftbound.leagueoflegends.com/en-us/ | imgs 60
-for u in https://riftbound.leagueoflegends.com/en-us/news/ https://api.riftcodex.com/sets https://riftcodex.com/ https://piltoverarchive.com/sets https://www.tcgplayer.com/categories/trading-and-collectible-card-games/riftbound-league-of-legends-trading-card-game; do
-  echo "== $u"; get "$u" | head -c 3000 | tr '\n' ' ' | head -c 3000; echo; get "$u" | imgs 40; done
+page() { code=$(curl -s -o /tmp/p.html -L -m 30 -A "$UA" -w '%{http_code} %{url_effective}' "$1"); echo "== $code ($(wc -c < /tmp/p.html)) $1"; }
+for u in https://www.pokecardex.com/series https://www.pokecardex.com/series/ME05 https://www.pokecardex.com/series/me05 https://www.pokecardex.com/series/PBL; do
+  page "$u"; grep -oiE '(src|data-src|href)="[^"]*(logo|serie|set)[^"]*\.(png|webp|jpg|svg)[^"]*"' /tmp/p.html | sort -u | head -25
+done
+for u in https://www.pokemon.com/fr/jcc-pokemon/nuit-noire https://www.pokemon.com/fr/jcc-pokemon/extensions https://www.pokemon.com/fr/jcc-pokemon/mega-evolution-nuit-noire https://www.pokemon.com/fr/jcc-pokemon https://www.pokemon.com/fr/jcc-pokemon/series; do
+  page "$u"; grep -oiE '(src|data-src|href)="[^"]*(logo|expansion|nuit|me05|pbl)[^"]*"' /tmp/p.html | sort -u | head -25
+  grep -oiE 'href="/fr/jcc-pokemon/[^"]+"' /tmp/p.html | sort -u | head -40
+done
+for u in https://assets.tcgdex.net/fr/me/me05/logo.webp https://assets.tcgdex.net/fr/me/me05/logo.png https://assets.tcgdex.net/fr/me/me05/symbol.webp https://assets.tcgdex.net/en/me/me05/logo.webp; do
+  echo "$(curl -s -o /dev/null -m 20 -A "$UA" -w '%{http_code} %{content_type}' $u) $u"; done
+curl -s -m 20 https://api.tcgdex.net/v2/fr/sets/me05 | head -c 600; echo

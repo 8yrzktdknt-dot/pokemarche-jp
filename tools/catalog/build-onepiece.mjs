@@ -1,6 +1,6 @@
 // One Piece Card Game : listes officielles (anglais et japonais) + prix TCGplayer d'OPTCG API pour l'anglais.
 import { getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
-import { ownLogo, saveLogos } from './logos.mjs';
+import { ownLogo, saveLogos, scrydexLogo } from './logos.mjs';
 
 const SITES = { en: 'https://en.onepiece-cardgame.com', ja: 'https://www.onepiece-cardgame.com' };
 const BLOCS = [
@@ -62,6 +62,22 @@ export function parseCards(html, site) {
 }
 
 const setId = (code) => code.replace('-', '');
+
+/**
+ * Logo indiqué dans la page produit officielle (les pages récentes rangent leurs images
+ * dans des dossiers aléatoires : …/products/2026/03/19/PH7hkxHZKAf8gXnn/logo.webp).
+ */
+export function parseProductLogo(html, pageUrl) {
+  const m = html.match(/["']([^"']*\/logo\.(?:webp|png))(?:\?[^"']*)?["']/);
+  return m ? new URL(m[1], pageUrl).href : undefined;
+}
+
+async function productPageLogo(site, id) {
+  const x = id.toLowerCase();
+  const url = `${site}/products/${/^st/.test(x) ? 'decks' : 'boosters'}/${x}.php`;
+  const html = await getText(url);
+  return html ? parseProductLogo(html, url) : undefined;
+}
 
 /** Emplacements possibles du logo d'une extension sur le site officiel. */
 export function logoCandidates(site, id) {
@@ -125,14 +141,20 @@ export async function buildOnePiece() {
       bloc.sets.push({ id, code: s.code, name: name || s.label, count: cards.length, order: Number(s.value) });
     });
     for (const b of [...blocs, other]) b.sets.sort((a, b2) => b2.order - a.order);
-    // Logos des pages produits officielles (extensions récentes : …/products/boosters/op13/images/mv/logo.webp).
+    // Logos : Scrydex (nom de l'extension stylisé), puis pages produits officielles (logo, sinon bannière).
     const all = [...blocs, other].flatMap((b) => b.sets);
     const logos = await saveLogos(all, `onepiece-${lang}`, async (x) => {
-      for (const url of logoCandidates(SITES[lang], x.id)) {
+      const candidates = [await productPageLogo(SITES[lang], x.id), ...logoCandidates(SITES[lang], x.id)].filter(Boolean);
+      let official;
+      for (const url of candidates) {
         const r = await fetch(url, { method: 'HEAD' }).catch(() => null);
-        if (r?.ok) return url;
+        if (r?.ok) { official = url; break; }
       }
-      return undefined;
+      const banner = official && /mv_01\.jpg/.test(official);
+      // Japonais : logo Scrydex japonais, logo officiel (en japonais), puis logo anglais ; la bannière en dernier.
+      return lang === 'en'
+        ? [scrydexLogo(x.id, 'onepiece'), official]
+        : [scrydexLogo(`${x.id}_ja`, 'onepiece'), banner ? null : official, scrydexLogo(x.id, 'onepiece'), official];
     });
     for (const x of all) x.logo = logos.get(x.id) ?? ownLogo(`onepiece-${lang}`, x.id);
     console.log(`One Piece ${lang} : logos ${logos.size}/${all.length}`);

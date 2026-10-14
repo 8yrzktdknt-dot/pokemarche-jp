@@ -32,6 +32,11 @@ writeFileSync(join(dist, 'manifest.json'), JSON.stringify({
   ],
 }, null, 2));
 
+// Cache de l'app (service worker), servi à la racine de l'app pour couvrir toutes ses pages.
+writeFileSync(join(dist, 'sw.js'), readFileSync(join(root, 'scripts', 'sw.js'), 'utf8')
+  .replace('__VERSION__', String(Date.now()))
+  .replace('__BASE__', base));
+
 // Balises pour l'ajout à l'écran d'accueil (iPhone et Android).
 const head = [
   `<link rel="manifest" href="${base}/manifest.json">`,
@@ -41,6 +46,7 @@ const head = [
   '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
   `<meta name="apple-mobile-web-app-title" content="${app.web.shortName}">`,
   `<style>html,body{background:${app.web.backgroundColor}}</style>`,
+  `<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('${base}/sw.js',{scope:'${base}/'}).catch(()=>{}))</script>`,
 ].join('');
 const indexPath = join(dist, 'index.html');
 let html = readFileSync(indexPath, 'utf8')
