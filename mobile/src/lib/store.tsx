@@ -47,6 +47,9 @@ interface Store {
   user: { id: string; email?: string; provider?: string } | null;
   /** État de la sauvegarde en ligne. */
   sync: 'off' | 'syncing' | 'ok' | 'error';
+  /** Arrivée par le lien « mot de passe oublié » : choisir un nouveau mot de passe. */
+  recovery: boolean;
+  endRecovery(): void;
 }
 
 const KEY_COLLECTION = 'collection.v1';
@@ -62,6 +65,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [rates, setRates] = useState<Rates>(FALLBACK_RATES);
   const [user, setUser] = useState<Store['user']>(null);
   const [sync, setSync] = useState<Store['sync']>('off');
+  const [recovery, setRecovery] = useState(false);
+  const endRecovery = useCallback(() => setRecovery(false), []);
   // Compte dont la collection a été fusionnée avec celle de l'appareil (les envois ne partent qu'après).
   const [merged, setMerged] = useState<string | null>(null);
 
@@ -116,7 +121,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const apply = (u: { id: string; email?: string; app_metadata?: { provider?: string } } | null | undefined) =>
       setUser(u ? { id: u.id, email: u.email, provider: u.app_metadata?.provider } : null);
     sb.auth.getSession().then(({ data }) => apply(data.session?.user));
-    const { data } = sb.auth.onAuthStateChange((_e, session) => apply(session?.user));
+    const { data } = sb.auth.onAuthStateChange((event, session) => {
+      apply(session?.user);
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -184,8 +192,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [settings.appLang, settings.currency, rates]);
 
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, clear, user, sync, ...helpers }),
-    [ready, settings, setSettings, collection, add, remove, clear, user, sync, helpers],
+    () => ({ ready, settings, setSettings, collection, add, remove, clear, user, sync, recovery, endRecovery, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, clear, user, sync, recovery, endRecovery, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

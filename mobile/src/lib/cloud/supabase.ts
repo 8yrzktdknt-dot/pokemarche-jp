@@ -29,18 +29,34 @@ function returnUrl(): string | undefined {
   return `${window.location.origin}${i >= 0 ? window.location.pathname.slice(0, i) : ''}/app/account`;
 }
 
-/** Envoie un code à 6 chiffres par e-mail (crée le compte s'il n'existe pas). */
-export async function sendEmailCode(email: string) {
+/** Création de compte par e-mail et mot de passe ; true si un e-mail de confirmation doit d'abord être validé. */
+export async function signUpWithPassword(email: string, password: string): Promise<boolean> {
   const sb = supabase();
   if (!sb) throw new Error('cloud');
-  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl() } });
+  if (error) throw error;
+  return !data.session;
+}
+
+export async function signInWithPassword(email: string, password: string) {
+  const sb = supabase();
+  if (!sb) throw new Error('cloud');
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
 }
 
-export async function verifyEmailCode(email: string, token: string) {
+/** Lien de réinitialisation du mot de passe (ouvre l'app, page Compte, pour choisir le nouveau). */
+export async function sendPasswordReset(email: string) {
   const sb = supabase();
   if (!sb) throw new Error('cloud');
-  const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: returnUrl() });
+  if (error) throw error;
+}
+
+export async function updatePassword(password: string) {
+  const sb = supabase();
+  if (!sb) throw new Error('cloud');
+  const { error } = await sb.auth.updateUser({ password });
   if (error) throw error;
 }
 
