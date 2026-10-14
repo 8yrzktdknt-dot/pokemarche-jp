@@ -75,8 +75,8 @@ export async function classicCollectionPaths(count = 30) {
     if (!html) return null;
     const name = html.match(/class="card-text-name">\s*<a[^>]*>([^<]+)</)?.[1];
     const path = parseCardmarketPaths(html).find((p) => p.startsWith('30th-Celebration/'));
-    const image = html.match(/src="(https:\/\/[^"]*\/30C_CC\d+_R_EN_)LG\.png"/)?.[1];
-    return name && path ? { key: classicKey(name), path, image: image && `${image}SM.png` } : null;
+    const image = html.match(/src="(https:\/\/[^"]*\/30C_CC\d+_[A-Z]+_EN_)LG\.(png|jpg|webp)"/);
+    return name && path ? { key: classicKey(name), path, image: image && `${image[1]}SM.${image[2]}` } : null;
   });
   const out = pages.filter(Boolean);
   console.log(`Collection Classique 30 ans : ${out.length} liens Cardmarket`);

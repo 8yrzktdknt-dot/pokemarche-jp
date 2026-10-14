@@ -78,4 +78,8 @@ test('Collection Classique : LV.X et moitiés LEGEND', async () => {
   assert.equal(cards[1].nameEn, 'Darkrai & Cresselia LEGEND (Bottom)');
   assert.equal(cards[2].cmPath, '30th-Celebration/Palkia-LVX-30CGE-106');
   assert.equal(cards[2].image, 'https://x/30C_CC12_R_EN_SM.png');
+  // Sans visuel Limitless : Scrydex au numéro d'origine, jamais au numéro de la collection.
+  const gen = [{ localId: '004', name: 'Genesect EX', nameEn: 'Genesect EX', image: 'https://images.scrydex.com/pokemon/me55c-4/large' }];
+  applyClassicCollection(gen, [{ key: classicKey('Genesect EX'), path: '30th-Celebration/Genesect-EX-30CPLB-97' }], 'fr');
+  assert.equal(gen[0].image, 'https://images.scrydex.com/pokemon/me55c-97/large');
 });
