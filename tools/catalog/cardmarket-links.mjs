@@ -65,18 +65,20 @@ export async function cardmarketPaths(cards, max = Number(process.env.CM_LINKS_M
 /**
  * Collection Classique des 30 ans (30th-c) : même code « 30C » que l'extension principale, mais pages Limitless
  * à part (CC1…CC30, dans un autre ordre) et fiches Cardmarket au code d'origine (« 30th-Celebration/Charizard-30CBS-4 »).
- * Nom anglais (comparable) → chemin Cardmarket.
+ * Renvoie, dans l'ordre des pages, { key, path, image } (nom anglais comparable, sans « LV.X »).
  */
+export const classicKey = (n) => n.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '').replace(/lvx$/, '');
+
 export async function classicCollectionPaths(count = 30) {
-  const out = new Map();
-  const key = (n) => n.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
-  await pool(Array.from({ length: count }, (_, i) => i + 1), 4, async (n) => {
+  const pages = await pool(Array.from({ length: count }, (_, i) => i + 1), 4, async (n) => {
     const html = await getText(`https://limitlesstcg.com/cards/30C/CC${n}`);
-    if (!html) return;
+    if (!html) return null;
     const name = html.match(/class="card-text-name">\s*<a[^>]*>([^<]+)</)?.[1];
     const path = parseCardmarketPaths(html).find((p) => p.startsWith('30th-Celebration/'));
-    if (name && path) out.set(key(name), path);
+    const image = html.match(/src="(https:\/\/[^"]*\/30C_CC\d+_R_EN_)LG\.png"/)?.[1];
+    return name && path ? { key: classicKey(name), path, image: image && `${image}SM.png` } : null;
   });
-  console.log(`Collection Classique 30 ans : ${out.size} liens Cardmarket`);
+  const out = pages.filter(Boolean);
+  console.log(`Collection Classique 30 ans : ${out.length} liens Cardmarket`);
   return out;
 }
