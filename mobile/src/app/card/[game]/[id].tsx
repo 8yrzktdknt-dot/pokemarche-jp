@@ -14,6 +14,7 @@ import { assetUrl } from '../../../lib/catalog/static';
 import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
 import { marketLinks, type MarketplaceId } from '../../../lib/prices/marketplaces';
+import { baseVariant } from '../../../lib/setView';
 import { useStore } from '../../../lib/store';
 import { collectionKey, needsSheen, withVariant } from '../../../lib/variants';
 import type { AttributeKey, Card, CardAttribute, CardLang, GameId, Price } from '../../../lib/types';
@@ -226,8 +227,11 @@ export default function CardScreen() {
         {[GAMES[card.game].label, card.setName, card.number, langLabel(card.lang)].filter(Boolean).join(' · ')}
       </Text>
 
-      {!!card.variants?.length && (
+      {/* Toujours une section Variante : celle de la carte (déduite de la rareté) quand la source n'en liste pas. */}
+      {card.variants?.length ? (
         <VariantPicker variants={card.variants} value={view.variant} onChange={setVariantKey} owned={ownedOf} />
+      ) : (
+        <VariantPicker variants={[{ key: baseVariant(card.rarity) }]} onChange={() => {}} owned={() => owned} />
       )}
 
       <View style={{ flexDirection: 'row', gap: 8 }}>

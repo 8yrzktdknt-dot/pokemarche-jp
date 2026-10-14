@@ -26,7 +26,7 @@ export interface SetTile {
 
 /** Variante d'une carte sans liste de variantes : normale pour les communes et peu communes, holo sinon. */
 export function baseVariant(rarity?: string): string {
-  return !rarity || /^(c|u|common|uncommon|commune|peu commune|comune|non comune|común|poco común|comum|incomum|häufig|nicht so häufig)$/i.test(rarity.trim())
+  return !rarity || /^(c|u|uc|common|uncommon|commune|peu commune|comune|non comune|común|poco común|comum|incomum|häufig|nicht so häufig)$/i.test(rarity.trim())
     ? 'normal'
     : 'holo';
 }
