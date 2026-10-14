@@ -29,7 +29,7 @@ export default function Account() {
   const saveName = () => setSettings({ profileName: name.trim() || undefined });
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 14, maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
+    <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 14, maxWidth: 700, width: '100%', alignSelf: 'center', paddingBottom: 48 }]}>
       <View style={{ alignItems: 'center', gap: 8, paddingVertical: 8 }}>
         <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="person" size={44} color="#fff" />
@@ -94,7 +94,7 @@ export default function Account() {
 
       <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>{t('acc.footer')}</Text>
       {!!process.env.EXPO_PUBLIC_VERSION && (
-        <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>{t('acc.version', { v: process.env.EXPO_PUBLIC_VERSION })}</Text>
+        <Text style={[s.muted, { fontSize: 13, textAlign: 'center', fontFamily: fonts.bold }]}>{t('acc.version', { v: process.env.EXPO_PUBLIC_VERSION })}</Text>
       )}
     </ScrollView>
   );
