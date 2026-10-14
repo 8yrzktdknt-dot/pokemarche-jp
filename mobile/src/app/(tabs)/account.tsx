@@ -9,6 +9,7 @@ import { colors, fonts, s } from '../../components/ui';
 import { CURRENCIES, type Currency } from '../../lib/currency';
 import { GAME_LIST, VISIBLE_LANGS } from '../../lib/games';
 import { APP_LANGS, APP_LANG_NAMES, deviceLang, type AppLang } from '../../lib/i18n';
+import { APP_VERSION } from '../../lib/version';
 import { useStore } from '../../lib/store';
 import type { CardLang, GameId } from '../../lib/types';
 
@@ -99,8 +100,8 @@ export default function Account() {
       </Panel>
 
       <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>{t('acc.footer')}</Text>
-      {!!process.env.EXPO_PUBLIC_VERSION && (
-        <Text style={[s.muted, { fontSize: 13, textAlign: 'center', fontFamily: fonts.bold }]}>{t('acc.version', { v: process.env.EXPO_PUBLIC_VERSION })}</Text>
+      {!!APP_VERSION && (
+        <Text style={[s.muted, { fontSize: 13, textAlign: 'center', fontFamily: fonts.bold }]}>{t('acc.version', { v: APP_VERSION })}</Text>
       )}
     </ScrollView>
   );

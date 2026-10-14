@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, fonts, s } from '../components/ui';
 import type { TKey } from '../lib/i18n';
+import { APP_VERSION } from '../lib/version';
 import { useStore } from '../lib/store';
 import { saveReport } from '../lib/cloud/reports';
 import { SUPPORT_EMAIL, emailReport, mailtoLink, type Report } from '../lib/support';
@@ -23,7 +24,7 @@ export default function ReportScreen() {
   const card = p.id && p.game && p.lang ? { game: p.game, id: p.id, lang: p.lang, name: p.name, number: p.number, set: p.set } : undefined;
   const report: Report = {
     topic: t(`report.topic.${topic}` as TKey), message, email: email.trim() || undefined, card,
-    version: process.env.EXPO_PUBLIC_VERSION, appLang,
+    version: APP_VERSION, appLang,
   };
   const send = async () => {
     setState('sending');
