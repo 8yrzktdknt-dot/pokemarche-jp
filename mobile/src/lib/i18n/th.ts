@@ -12,6 +12,7 @@ export const th: Partial<Record<Key, string>> = {
   "common.all": "ทั้งหมด",
   "common.loading": "กำลังโหลด…",
   "common.close": "ปิด",
+  "common.cancel": "ยกเลิก",
   "common.filterList": "กรองรายการ",
   "common.cards": "{n} ใบ",
   "common.noResult": "ไม่พบการ์ด",

@@ -12,6 +12,7 @@ export const nl: Partial<Record<Key, string>> = {
   "common.all": "Alles",
   "common.loading": "Laden…",
   "common.close": "Sluiten",
+  "common.cancel": "Annuleren",
   "common.filterList": "Lijst filteren",
   "common.cards": "{n} kaart|{n} kaarten",
   "common.noResult": "Geen kaart gevonden",

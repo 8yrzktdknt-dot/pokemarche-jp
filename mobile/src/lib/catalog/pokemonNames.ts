@@ -58,41 +58,60 @@ export function rarityAbbr(name: string): string {
 /** Les cartes japonaises et chinoises s'affichent avec le nom anglais de l'extension. */
 export const ENGLISH_NAMED_LANGS = ['en', 'ja', 'zh-tw', 'zh-cn'];
 
-/** Raretés Pokémon dans l'ordre d'affichage voulu (les autres suivent, par ordre alphabétique). */
-export const RARITY_ORDER: { abbr: string; fr: string; en: string }[] = [
-  { abbr: 'C', fr: 'Commune', en: 'Common' },
-  { abbr: 'U', fr: 'Peu commune', en: 'Uncommon' },
-  { abbr: 'R', fr: 'Rare', en: 'Rare' },
-  { abbr: 'RR', fr: 'Double Rare', en: 'Double Rare' },
-  { abbr: 'RRR', fr: 'Triple Rare', en: 'Triple Rare' },
-  { abbr: 'AR', fr: 'Illustration Rare', en: 'Illustration Rare' },
-  { abbr: 'UR', fr: 'Hyper Rare', en: 'Hyper Rare' },
-  { abbr: 'SR', fr: 'Ultra Rare', en: 'Ultra Rare' },
-  { abbr: 'SAR', fr: 'Illustration Spéciale Rare', en: 'Special Illustration Rare' },
-  { abbr: 'MUR', fr: 'Méga Hyper Rare', en: 'Mega Hyper Rare' },
-  { abbr: 'FUR', fr: 'Futuristic Rare', en: 'Futuristic Rare' },
+type RarityNames = Record<'fr' | 'en' | 'ja' | 'zh-tw' | 'zh-cn' | 'es' | 'it' | 'de' | 'nl' | 'pt' | 'ru' | 'th' | 'ko', string>;
+const R = (fr: string, en: string, ja: string, zhTw: string, zhCn: string, es: string, it: string, de: string, nl: string, pt: string, ru: string, th: string, ko: string): RarityNames =>
+  ({ fr, en, ja, 'zh-tw': zhTw, 'zh-cn': zhCn, es, it, de, nl, pt, ru, th, ko });
+
+/** Raretés Pokémon dans l'ordre d'affichage voulu (les autres suivent, par ordre alphabétique), nommées dans chaque langue. */
+export const RARITY_ORDER: { abbr: string; names: RarityNames }[] = [
+  { abbr: 'C', names: R('Commune', 'Common', 'コモン', '普通', '普通', 'Común', 'Comune', 'Häufig', 'Algemeen', 'Comum', 'Обычная', 'คอมมอน', '커먼') },
+  { abbr: 'U', names: R('Peu commune', 'Uncommon', 'アンコモン', '非普通', '非普通', 'Infrecuente', 'Non comune', 'Nicht so häufig', 'Ongewoon', 'Incomum', 'Необычная', 'อันคอมมอน', '언커먼') },
+  { abbr: 'R', names: R('Rare', 'Rare', 'レア', '稀有', '稀有', 'Rara', 'Rara', 'Selten', 'Zeldzaam', 'Rara', 'Редкая', 'แรร์', '레어') },
+  { abbr: 'RR', names: R('Double Rare', 'Double Rare', 'ダブルレア', '雙重稀有', '双重稀有', 'Rara Doble', 'Rara Doppia', 'Doppelselten', 'Dubbel Zeldzaam', 'Rara Dupla', 'Двойная редкая', 'ดับเบิลแรร์', '더블 레어') },
+  { abbr: 'RRR', names: R('Triple Rare', 'Triple Rare', 'トリプルレア', '三重稀有', '三重稀有', 'Rara Triple', 'Rara Tripla', 'Dreifachselten', 'Drievoudig Zeldzaam', 'Rara Tripla', 'Тройная редкая', 'ทริปเปิลแรร์', '트리플 레어') },
+  { abbr: 'AR', names: R('Illustration Rare', 'Illustration Rare', 'アートレア', '插畫稀有', '插画稀有', 'Rara Ilustración', 'Rara Illustrazione', 'Illustration Selten', 'Illustratie Zeldzaam', 'Rara Ilustrada', 'Редкая иллюстрация', 'อาร์ตแรร์', '아트 레어') },
+  { abbr: 'UR', names: R('Hyper Rare', 'Hyper Rare', 'ウルトラレア', '極致稀有', '极致稀有', 'Hiper Rara', 'Iper Rara', 'Hyperselten', 'Hyper Zeldzaam', 'Hiper-Rara', 'Гиперредкая', 'อัลตร้าแรร์', '울트라 레어') },
+  { abbr: 'SR', names: R('Ultra Rare', 'Ultra Rare', 'スーパーレア', '超級稀有', '超级稀有', 'Ultra Rara', 'Ultra Rara', 'Ultraselten', 'Ultra Zeldzaam', 'Ultra Rara', 'Ультраредкая', 'ซูเปอร์แรร์', '슈퍼 레어') },
+  { abbr: 'SAR', names: R('Illustration Spéciale Rare', 'Special Illustration Rare', 'スペシャルアートレア', '特別插畫稀有', '特别插画稀有', 'Rara Ilustración Especial', 'Rara Illustrazione Speciale', 'Besondere Illustration Selten', 'Speciale Illustratie Zeldzaam', 'Rara Ilustrada Especial', 'Особая редкая иллюстрация', 'สเปเชียลอาร์ตแรร์', '스페셜 아트 레어') },
+  { abbr: 'MUR', names: R('Méga Hyper Rare', 'Mega Hyper Rare', 'メガウルトラレア', '超級進化極致稀有', '超级进化极致稀有', 'Mega Hiper Rara', 'Mega Iper Rara', 'Mega-Hyperselten', 'Mega Hyper Zeldzaam', 'Mega Hiper-Rara', 'Мега гиперредкая', 'เมกะอัลตร้าแรร์', '메가 울트라 레어') },
+  { abbr: 'FUR', names: R('Futuristic Rare', 'Futuristic Rare', 'フューチャーレア', '未來稀有', '未来稀有', 'Rara Futurista', 'Rara Futuristica', 'Futuristisch Selten', 'Futuristisch Zeldzaam', 'Rara Futurista', 'Футуристическая редкая', 'ฟิวเจอร์แรร์', '퓨처 레어') },
+  { abbr: 'ACE', names: R('High-tech Rare', 'ACE SPEC Rare', 'エーススペック', 'ACE SPEC 稀有', 'ACE SPEC 稀有', 'Rara AS', 'Rara ACE SPEC', 'ACE SPEC Selten', 'ACE SPEC Zeldzaam', 'Rara ACE SPEC', 'Редкая ACE SPEC', 'เอซสเปค', '에이스 스펙') },
+  { abbr: 'S', names: R('Chromatique Rare', 'Shiny Rare', '色違い', '異色稀有', '异色稀有', 'Rara Variocolor', 'Rara Cromatica', 'Schillernd Selten', 'Shiny Zeldzaam', 'Rara Brilhante', 'Редкая сияющая', 'ชายนี่แรร์', '색이 다른 레어') },
+  { abbr: 'SSR', names: R('Chromatique Ultra Rare', 'Shiny Ultra Rare', '色違いスーパーレア', '異色超級稀有', '异色超级稀有', 'Ultra Rara Variocolor', 'Ultra Rara Cromatica', 'Schillernd Ultraselten', 'Shiny Ultra Zeldzaam', 'Ultra Rara Brilhante', 'Ультраредкая сияющая', 'ชายนี่ซูเปอร์แรร์', '색이 다른 슈퍼 레어') },
+  { abbr: 'PR', names: R('Promo', 'Promo', 'プロモ', '特典卡', '特典卡', 'Promo', 'Promo', 'Promo', 'Promo', 'Promo', 'Промо', 'โปรโม', '프로모') },
 ];
 
 /** Cartes sans rareté connue : toujours en fin de liste. */
-const NONE_OPTION = { abbr: 'None', fr: 'Sans rareté', en: 'No rarity' };
+const NONE_NAMES = R('Sans rareté', 'No rarity', 'レアリティなし', '無稀有度', '无稀有度', 'Sin rareza', 'Senza rarità', 'Ohne Seltenheit', 'Geen zeldzaamheid', 'Sem raridade', 'Без редкости', 'ไม่มีความหายาก', '레어도 없음');
+const NONE_ABBR = 'None';
+/** Raretés courantes, sans place réservée dans la liste de filtres (les autres sont celles de RARITY_ORDER). */
+const LISTED = new Set(['C', 'U', 'R', 'RR', 'RRR', 'AR', 'UR', 'SR', 'SAR', 'MUR', 'FUR']);
+
+/** Nom d'une rareté (abréviation) dans la langue de l'app ; undefined si inconnue. */
+export function rarityName(abbr: string, lang: string): string | undefined {
+  if (abbr === NONE_ABBR) return NONE_NAMES[lang as keyof RarityNames] ?? NONE_NAMES.en;
+  const r = RARITY_ORDER.find((x) => x.abbr === abbr);
+  return r ? r.names[lang as keyof RarityNames] ?? r.names.en : undefined;
+}
 
 /**
  * Options du filtre de rareté : les abréviations connues dans l'ordre ci-dessus, puis les autres valeurs.
  * `values` : raretés renvoyées par la source (dans la langue des cartes). La valeur d'une option est l'abréviation.
  */
-export function rarityOptions(values: string[], appLang: 'fr' | 'en'): { value: string; label: string }[] {
-  const known = RARITY_ORDER.map((r) => ({ value: r.abbr, label: `${r.abbr} - ${r[appLang]}` }));
-  const knownAbbr = new Set(RARITY_ORDER.map((r) => r.abbr));
+export function rarityOptions(values: string[], lang: string): { value: string; label: string }[] {
+  const known = RARITY_ORDER.filter((r) => LISTED.has(r.abbr)).map((r) => ({ value: r.abbr, label: `${r.abbr} - ${rarityName(r.abbr, lang)}` }));
+  const knownAbbr = new Set(known.map((r) => r.value));
   const others = new Map<string, string>();
   for (const v of values) {
     const a = rarityAbbr(v);
-    if (!knownAbbr.has(a) && !others.has(a)) others.set(a, a === v ? v : `${a} - ${v}`);
+    const name = rarityName(a, lang);
+    if (!knownAbbr.has(a) && !others.has(a)) others.set(a, name ? `${a} - ${name}` : a === v ? v : `${a} - ${v}`);
   }
-  const hasNone = others.delete(NONE_OPTION.abbr) || values.some((v) => !v);
+  const hasNone = others.delete(NONE_ABBR) || values.some((v) => !v);
   return [
     ...known,
     ...[...others].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label)),
-    ...(hasNone ? [{ value: NONE_OPTION.abbr, label: `${NONE_OPTION.abbr} - ${NONE_OPTION[appLang]}` }] : []),
+    ...(hasNone ? [{ value: NONE_ABBR, label: `${NONE_ABBR} - ${rarityName(NONE_ABBR, lang)}` }] : []),
   ];
 }
 

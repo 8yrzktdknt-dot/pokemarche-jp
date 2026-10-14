@@ -12,6 +12,7 @@ export const ko: Partial<Record<Key, string>> = {
   "common.all": "전체",
   "common.loading": "불러오는 중…",
   "common.close": "닫기",
+  "common.cancel": "취소",
   "common.filterList": "목록 필터",
   "common.cards": "카드 {n}장",
   "common.noResult": "카드를 찾을 수 없습니다",

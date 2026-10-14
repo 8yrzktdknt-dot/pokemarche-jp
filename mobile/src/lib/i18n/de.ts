@@ -12,6 +12,7 @@ export const de: Partial<Record<Key, string>> = {
   "common.all": "Alle",
   "common.loading": "Wird geladen…",
   "common.close": "Schließen",
+  "common.cancel": "Abbrechen",
   "common.filterList": "Liste filtern",
   "common.cards": "{n} Karte|{n} Karten",
   "common.noResult": "Keine Karte gefunden",
