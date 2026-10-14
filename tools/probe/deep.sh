@@ -1,25 +1,21 @@
 #!/usr/bin/env bash
-# Variantes des cartes (normal, holo, reverse, Poké Ball, Master Ball…) : ce que donnent les sources.
+# Visuels des variantes : TCGplayer (n° produit par variante), TCGdex, PokemonWizard (anglais et japonais).
 set -u
 UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
-for u in en/cards/sv08.5-001 en/cards/sv08.5-010 en/cards/sv10-001 en/cards/me01-001 fr/cards/me01-001 en/cards/swsh12-001 en/cards/base1-4 ja/cards/SV11B-001 ja/cards/M2a-010 ja/cards/SV8a-001; do
-  echo "== TCGdex $u"
-  curl -s -m 30 "https://api.tcgdex.net/v2/$u" | jq -c '{id, rarity, variants, variants_detailed, cm: .pricing.cardmarket, tpk: (.pricing.tcgplayer|keys?)}'
+echo "== TCGdex variants_detailed : toutes les clés"
+curl -s -m 30 "https://api.tcgdex.net/v2/en/cards/sv08.5-001" | jq -c '[.variants_detailed[] | keys] , .image'
+for u in 610356 610536 610637; do
+  for f in "product/${u}_in_1000x1000.jpg" "product/${u}_200w.jpg"; do
+    echo "tcgplayer $f $(curl -s -m 20 -o /tmp/i -w '%{http_code} %{size_download} %{content_type}' "https://tcgplayer-cdn.tcgplayer.com/$f")"
+  done
 done
-echo "== TCGdex set sv08.5 (brief: variants ?)"
-curl -s -m 30 "https://api.tcgdex.net/v2/en/sets/sv08.5" | jq -c '.cards[0]'
-echo "== Cardmarket price guide : champs"
-curl -s -m 120 -o g.json https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_6.json
-jq -c '.priceGuides[0], ([.priceGuides[]|select(.["avg7-holo"]!=null and .avg7!=null)]|length), (.priceGuides|length)' g.json
-curl -s -m 120 -o p.json https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json
-echo "== Cardmarket produits JP M2a (Roserade / Cynthia)"
-jq -c '.products[]|select(.name|test("Cynthia.s Roserade"))|[.idProduct,.idExpansion,.name]' p.json | head -20
-echo "== PokemonWizard M2a"
-curl -s -m 30 -A "$UA" "https://www.pokemonwizard.com/sets?language=japanese&page=1" | grep -o '/sets/[0-9]*/[a-z0-9-]*' | sort -u | head -40
-P=$(curl -s -m 30 -A "$UA" "https://www.pokemonwizard.com/sets?language=japanese&page=1" | grep -o '/sets/[0-9]*/mega-dream[a-z0-9-]*' | head -1)
+for p in high.webp reverse/high.webp high-reverse.webp; do echo "tcgdex $p $(curl -s -m 20 -o /dev/null -w '%{http_code}' "https://assets.tcgdex.net/en/sv/sv08.5/001/$p")"; done
+echo "== PokemonWizard EN Prismatic Evolutions"
+P=$(curl -s -m 30 -A "$UA" "https://www.pokemonwizard.com/sets?page=1" | grep -o '/sets/[0-9]*/prismatic-evolutions"' | head -1 | tr -d '"')
+[ -z "$P" ] && P=$(for pg in 2 3 4; do curl -s -m 30 -A "$UA" "https://www.pokemonwizard.com/sets?page=$pg"; done | grep -o '/sets/[0-9]*/prismatic-evolutions"' | head -1 | tr -d '"')
 echo "path $P"
-curl -s -m 30 -A "$UA" "https://www.pokemonwizard.com$P?page=1" | sed 's/\\"/"/g' | grep -o '"name":"[^"]*Roserade[^"]*"[^}]\{0,400\}' | head -5
-echo "== Limitless JP M2a 10"
-curl -s -m 30 -A "$UA" "https://limitlesstcg.com/cards/jp/M2a/10" | grep -io 'ball[^<]\{0,60\}\|variant[^<]\{0,80\}\|reverse[^<]\{0,60\}' | sort -u | head -20
-echo "== Limitless EN PRE 1"
-curl -s -m 30 -A "$UA" "https://limitlesstcg.com/cards/PRE/1" | grep -io 'ball[^<]\{0,60\}\|variant[^<]\{0,80\}\|reverse[^<]\{0,60\}' | sort -u | head -20
+curl -s -m 30 -A "$UA" "https://www.pokemonwizard.com$P?page=1" | sed 's/\\"/"/g' | grep -o '"tcgplayer_product_id":[0-9]*,"name":"Exeggcute[^"]*"[^}]\{0,300\}"image_url":"[^"]*"' | head -6
+echo "== PokemonWizard JP M2a Roserade images"
+curl -s -m 30 -A "$UA" "https://www.pokemonwizard.com/sets/24499/mega-dream-ex?page=1" | sed 's/\\"/"/g' | grep -o '"tcgplayer_product_id":[0-9]*,"name":"Cynthia.s Roserade[^"]*"[^}]\{0,300\}"image_url":"[^"]*"' | head -6
+echo "== TCGdex ja M2a-010 variants"
+curl -s -m 30 "https://api.tcgdex.net/v2/ja/cards/M2a-010" | jq -c '[.variants_detailed[]? | {type, foil, tp: .thirdParty}]'
