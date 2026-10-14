@@ -31,6 +31,8 @@ export default function ReportScreen() {
     // Base et e-mail en parallèle : le signalement est reçu dès que l'un des deux réussit.
     const [db, mail] = await Promise.allSettled([saveReport(report), emailReport(report)]);
     const ok = (db.status === 'fulfilled' && db.value) || (mail.status === 'fulfilled' && mail.value);
+    // Diagnostic discret quand seul l'enregistrement a réussi (l'e-mail n'est pas parti).
+    if (ok && mail.status === 'rejected') setReason(`e-mail : ${mail.reason instanceof Error ? mail.reason.message : String(mail.reason)}`);
     if (ok) { setState('sent'); return; }
     const err = [db, mail].map((x) => (x.status === 'rejected' ? (x.reason instanceof Error ? x.reason.message : String(x.reason)) : '')).filter(Boolean).join(' · ');
     setReason(err);
@@ -44,6 +46,7 @@ export default function ReportScreen() {
         <View style={st.check}><Ionicons name="checkmark" size={44} color={colors.bg} /></View>
         <Text style={[s.h2, { textAlign: 'center' }]}>{t('report.sent')}</Text>
         <Text style={[s.muted, { textAlign: 'center' }]}>{t('report.sentHint')}</Text>
+        {!!reason && <Text style={[s.meta, { textAlign: 'center', fontSize: 11 }]}>{reason}</Text>}
         <Pressable style={[s.button, { paddingHorizontal: 28 }]} onPress={() => router.back()}>
           <Text style={s.buttonText}>{t('report.back')}</Text>
         </Pressable>
