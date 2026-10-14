@@ -1,5 +1,6 @@
 // Logos des extensions, rassemblés depuis plusieurs sources et publiés avec le catalogue
 // (catalog/logos/<dossier>/<id>.png, réduits à 400 px de large) pour ne pas dépendre des sites d'origine.
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -84,6 +85,21 @@ async function download(url) {
 }
 export const failures = [];
 
+// Image générique « Pokémon Trading Card Game » que Scrydex renvoie quand il n'a pas le logo : à refuser.
+const hash = (buf) => createHash('sha1').update(buf).digest('hex');
+let placeholders = null;
+async function placeholderHashes() {
+  placeholders ??= (async () => {
+    const out = new Set();
+    for (const id of ['zz-inconnu_ja', 'zz-inconnu']) {
+      const buf = await download(`https://images.scrydex.com/pokemon/${id}-logo/logo`);
+      if (buf) out.add(hash(buf));
+    }
+    return out;
+  })();
+  return placeholders;
+}
+
 /** Logos Pokellector (anglais ou japonais) : « …/logos/Storm-Emeralda.logo.437.png » → clé du nom → URL. */
 export function parsePokellectorLogos(html) {
   const out = new Map();
@@ -142,6 +158,7 @@ export async function saveLogo(url, folder, id, width = 400) {
   if (existsSync(file)) return rel;
   const buf = await download(url);
   if (!buf || buf.length < 200) { failures.push(url); return undefined; }
+  if ((await placeholderHashes()).has(hash(buf))) return undefined;
   try {
     const png = await sharp(buf).resize({ width, withoutEnlargement: true }).png({ compressionLevel: 9, palette: true }).toBuffer();
     mkdirSync(join(CATALOG, 'logos', folder), { recursive: true });
