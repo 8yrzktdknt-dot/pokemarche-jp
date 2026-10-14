@@ -5,7 +5,8 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Te
 import { colors, fonts, s } from '../components/ui';
 import type { TKey } from '../lib/i18n';
 import { useStore } from '../lib/store';
-import { SUPPORT_EMAIL, mailtoLink, sendReport, type Report } from '../lib/support';
+import { saveReport } from '../lib/cloud/reports';
+import { SUPPORT_EMAIL, emailReport, mailtoLink, type Report } from '../lib/support';
 
 const TOPICS = ['image', 'price', 'link', 'attributes', 'name', 'other'] as const;
 
@@ -26,7 +27,13 @@ export default function ReportScreen() {
   };
   const send = async () => {
     setState('sending');
-    try { await sendReport(report); setState('sent'); } catch (e) { setReason(e instanceof Error ? e.message : String(e)); setState('error'); }
+    // Base et e-mail en parallèle : le signalement est reçu dès que l'un des deux réussit.
+    const [db, mail] = await Promise.allSettled([saveReport(report), emailReport(report)]);
+    const ok = (db.status === 'fulfilled' && db.value) || (mail.status === 'fulfilled' && mail.value);
+    if (ok) { setState('sent'); return; }
+    const err = [db, mail].map((x) => (x.status === 'rejected' ? (x.reason instanceof Error ? x.reason.message : String(x.reason)) : '')).filter(Boolean).join(' · ');
+    setReason(err);
+    setState('error');
   };
 
   if (state === 'sent') {
