@@ -90,7 +90,7 @@ function AttributeRow({ a, game, appLang, locale, label }: { a: CardAttribute; g
 }
 
 export default function CardScreen() {
-  const { game, id, lang } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang }>();
+  const { game, id, lang, variant } = useLocalSearchParams<{ game: GameId; id: string; lang: CardLang; variant?: string }>();
   const { add, remove, collection, settings, t, langLabel, money, appLang, locale } = useStore();
   const [card, setCard] = useState<Card | null>(null);
   // Variante affichée (prix, fiche Cardmarket, ajout à la collection) ; remise à zéro à chaque carte.
@@ -156,11 +156,11 @@ export default function CardScreen() {
     let alive = true;
     // Affichage immédiat avec les infos de la liste, puis la fiche complète (prix, attributs).
     setCard(browseCard({ game, id, lang }) ?? null);
-    setVariantKey(undefined);
+    setVariantKey(variant);
     setError(null);
     GAMES[game].getCard(id, lang).then((c) => alive && setCard(c), (e) => alive && setError(String(e)));
     return () => { alive = false; };
-  }, [game, id, lang]);
+  }, [game, id, lang, variant]);
 
   // Flèches du clavier (ordinateur) pour passer d'une carte à l'autre.
   useEffect(() => {
