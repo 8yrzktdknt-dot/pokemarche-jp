@@ -25,7 +25,7 @@ test('zh-tw : carte reliée à la carte japonaise (noms, rareté, Cardmarket)', 
   assert.equal(c.id, 'M6a-001');
   assert.equal(c.name, '蛋蛋');
   assert.equal(c.nameFr, 'Noeunoeuf');
-  assert.equal(c.image, 'https://asia.pokemon-card.com/tw/card-img/tw00019913.png');
+  assert.equal(c.image, 'https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00019913.png&w=360&output=webp');
   assert.equal(c.cm.id, 907765);
   assert.equal(c.cmPath, undefined);
   assert.equal(c.attrs.hp, '60');

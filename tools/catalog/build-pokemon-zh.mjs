@@ -10,6 +10,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadCardmarketFiles, matchProducts, pickExpansion, priceOf } from './cardmarket-japanese.mjs';
 import { CATALOG, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
+import { ownLogo } from './logos.mjs';
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
 const TW = 'https://asia.pokemon-card.com/tw';
@@ -85,7 +86,11 @@ export function parseTwDetail(page) {
   return out;
 }
 
-const twImage = (id) => `${TW}/card-img/tw${String(id).padStart(8, '0')}.png`;
+/**
+ * Visuel officiel (PNG de 1,6 Mo) servi réduit en WebP par le proxy d'images wsrv.nl (~40 Ko) ;
+ * l'app demande la grande taille en changeant « w= ».
+ */
+export const twImage = (id) => `https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw${String(id).padStart(8, '0')}.png&w=360&output=webp`;
 
 /** Liste des extensions et des n° de fiches (relue une fois par semaine), fiches gardées en cache. */
 async function twSources() {
@@ -189,7 +194,8 @@ function buildTraditional({ sets, details }) {
     writeJson(`cards/pokemon-zh-tw/${id}.json`, cards);
     const set = {
       id, code: js?.code ?? e.code, name: js?.name ?? e.title, nameLocal: e.title,
-      releaseDate: e.date ?? js?.releaseDate, logo: js?.logo, symbol: js?.symbol, count: cards.length,
+      // Logo au nom chinois (tools/logos/make-deck-logos.cjs, SETS=pokemon-zh-tw ALL=1), sinon celui du japonais.
+      releaseDate: e.date ?? js?.releaseDate, logo: ownLogo('pokemon-zh-tw', id) ?? js?.logo, symbol: js?.symbol, count: cards.length,
     };
     const blocId = js?.bloc.id ?? `tw-${e.series || 'autres'}`;
     if (!blocs.has(blocId)) blocs.set(blocId, { id: blocId, name: e.series || 'Autres', sets: [] });
@@ -367,7 +373,7 @@ async function buildSimplified({ sets, details }) {
     if (!blocs.has(b.id)) blocs.set(b.id, { ...b, sets: [] });
     blocs.get(b.id).sets.push({
       id: e.code, code: e.code, name: e.name, nameLocal: e.name, releaseDate: date,
-      logo: `${MIK}/static/setCode/${encodeURIComponent(e.code)}.png`, symbol: `${MIK}/static/setCode/${encodeURIComponent(e.code)}.png`, count: cards.length,
+      logo: ownLogo('pokemon-zh-cn', e.code) ?? `${MIK}/static/setCode/${encodeURIComponent(e.code)}.png`, symbol: `${MIK}/static/setCode/${encodeURIComponent(e.code)}.png`, count: cards.length,
     });
   }
   const list = [...blocs.values()];

@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="file:///tmp/claude-0/-home-user-pokemarche-jp/5cf6041e-59d5-56ed-bf11-4dd6d7b5f77a/scratchpad/fonts/fontsource-dela-gothic-one-5.3.0/400.css">
+<link rel="stylesheet" href="file:///tmp/claude-0/-home-user-pokemarche-jp/5cf6041e-59d5-56ed-bf11-4dd6d7b5f77a/scratchpad/fonts/fontsource-m-plus-rounded-1c-5.3.0/800.css">
+<link rel="stylesheet" href="file:///tmp/claude-0/-home-user-pokemarche-jp/5cf6041e-59d5-56ed-bf11-4dd6d7b5f77a/scratchpad/fonts/fontsource-noto-sans-sc-5.2.5/900.css">
+<style>
+  html,body{margin:0;background:transparent}
+  #logo{width:800px;height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+  .type{font-family:'Noto Sans SC';font-weight:800;font-size:40px;color:#ffffff;
+    padding:4px 26px 8px;border-radius:999px;background:linear-gradient(90deg,#ef6c00,#6a1b9a);
+    border:4px solid #fff;box-shadow:0 4px 0 #3e1600;white-space:nowrap;letter-spacing:1px}
+  .main{position:relative;font-family:'Noto Sans SC';font-weight:900;font-size:120px;line-height:1.12;white-space:nowrap;letter-spacing:2px;word-spacing:0.3em;text-align:center}
+  .main span{display:block}
+  .main .back{position:absolute;inset:0;-webkit-text-stroke:26px #ffffff;color:#fff;filter:drop-shadow(0 7px 0 #3e1600)}
+  .main .mid{position:absolute;inset:0;-webkit-text-stroke:14px #3e1600;color:#3e1600}
+  .main .front{position:relative;background:linear-gradient(180deg,#fffbe6,#ffd54f,#ff8f00,#d84315);-webkit-background-clip:text;background-clip:text;color:transparent}
+  i{font-style:italic}
+  .main br{display:block}
+</style></head><body><div id="logo">
+  <div class="type">起始卡组</div>
+  <div class="main" id="main"><span class="back">横空出世<i>GX</i></span><span class="mid">横空出世<i>GX</i></span><span class="front">横空出世<i>GX</i></span></div>
+</div>
+<script>
+  // Réduit la taille du texte pour tenir dans le cadre.
+  document.fonts.ready.then(() => {
+    const m = document.getElementById('main'), t = document.querySelector('.type');
+    let size = 120;
+    const maxH = t ? 240 : 320;
+    while ((m.scrollWidth > 760 || m.offsetHeight > maxH) && size > 30) { size -= 4; m.style.fontSize = size + 'px'; }
+    if (t) { let ts = 40; while (t.scrollWidth > 740 && ts > 18) { ts -= 2; t.style.fontSize = ts + 'px'; } }
+    document.body.dataset.ready = '1';
+  });
+</script></body></html>
