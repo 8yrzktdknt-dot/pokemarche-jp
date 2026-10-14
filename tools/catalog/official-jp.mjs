@@ -86,6 +86,10 @@ export function parseWizardSet(html) {
     const [, tp, rawName, n, rarityName, image] = m;
     const head = rawName.match(/^(.+?) - ([A-Z]{0,3}\d{1,3})\/(\d{1,3})$/);
     if (!head || out.has(n)) continue;
+    // Prix du marché TCGplayer (USD) de la carte, plus loin dans le même objet.
+    const rest = text.slice(m.index + m[0].length);
+    const next = rest.indexOf('"tcgplayer_product_id"');
+    const market = Number((next < 0 ? rest : rest.slice(0, next)).match(/"market_price":"?([\d.]+)/)?.[1]) || undefined;
     out.set(n, {
       n,
       total: Number(head[3]),
@@ -93,14 +97,35 @@ export function parseWizardSet(html) {
       rarity: WIZARD_RARITY[rarityName.toLowerCase()] ?? (rarityName || undefined),
       image,
       tcgplayer: Number(tp),
+      ...(market ? { market } : {}),
     });
   }
   return [...out.values()];
 }
 
+/** Extensions japonaises de PokemonWizard : chemins « 24399/mega-brave ». */
+export async function wizardJapaneseSets() {
+  const out = new Set();
+  for (let page = 1; page <= 20; page++) {
+    const html = await getText(`https://www.pokemonwizard.com/sets?language=japanese&page=${page}`);
+    const before = out.size;
+    for (const m of (html ?? '').matchAll(/href="\/sets\/(\d+\/[a-z0-9-]+)"/g)) out.add(m[1]);
+    if (out.size === before) break;
+  }
+  return [...out];
+}
+
+/** Extension PokemonWizard d'une extension japonaise : même nom anglais, ou code à la fin du chemin (« …-m6a »). */
+export function matchWizardSet(paths, set) {
+  const slug = (t) => t.toLowerCase().normalize('NFKD').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const name = slug(set.name ?? '');
+  const code = set.id.toLowerCase();
+  return paths.find((p) => p.split('/')[1] === name) ?? paths.find((p) => p.split('/')[1].endsWith(`-${code}`));
+}
+
 /** Toutes les pages (60 cartes par page) d'une extension PokemonWizard. */
-export async function wizardCards(setId) {
-  const path = WIZARD_SETS[setId];
+export async function wizardCards(setId, pathOverride) {
+  const path = pathOverride ?? WIZARD_SETS[setId];
   if (!path) return [];
   const all = new Map();
   for (let page = 1; page <= 10; page++) {
