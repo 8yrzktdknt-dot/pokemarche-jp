@@ -126,12 +126,12 @@ export async function buildPokemonCards(langs = ['fr', 'en']) {
         if (pid) ptcg = await ptcgImages(pid);
       }
       // Images officielles pokemon.com dans la langue de la carte quand TCGdex n'en a pas.
-      const official = await pokemonComImages(lang, s.id, list.filter((c) => !c.image).map((c) => c.localId));
-      const stillMissing = list.filter((c) => !c.image && !official.has(c.localId) && !en.get(c.id)?.image && !ptcg?.get(numberKey(c.localId)));
+      const officialImg = await pokemonComImages(lang, s.id, list.filter((c) => !c.image).map((c) => c.localId));
+      const stillMissing = list.filter((c) => !c.image && !officialImg.has(c.localId) && !en.get(c.id)?.image && !ptcg?.get(numberKey(c.localId)));
       const officialEn = lang === 'en' ? new Map() : await pokemonComImages('en', s.id, stillMissing.map((c) => c.localId));
       const cards = list.map((c) => {
         let image = tcgdexImage(c.image);
-        if (!image && official.get(c.localId)) { image = official.get(c.localId); fromOfficial++; }
+        if (!image && officialImg.get(c.localId)) { image = officialImg.get(c.localId); fromOfficial++; }
         if (!image && en.get(c.id)?.image) { image = tcgdexImage(en.get(c.id).image); fromEn++; }
         if (!image && ptcg?.get(numberKey(c.localId))) { image = ptcg.get(numberKey(c.localId)); fromPtcg++; }
         if (!image && officialEn.get(c.localId)) { image = officialEn.get(c.localId); fromOfficial++; }
