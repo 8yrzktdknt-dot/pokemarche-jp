@@ -36,7 +36,8 @@ export interface Card {
   /** Attributs affichés sur la fiche (illustrateur, PV, coût…), dans l'ordre d'affichage. */
   attributes?: CardAttribute[];
   /** Identifiants des fiches produit sur les places de marché (liens directs). */
-  marketIds?: { cardmarket?: number; tcgplayer?: number };
+  /** Fiches produit : n° Cardmarket, chemin exact de la fiche Cardmarket (« Extension/Carte-V1-CODE001 »), n° TCGplayer. */
+  marketIds?: { cardmarket?: number; cardmarketPath?: string; tcgplayer?: number };
 }
 
 export type AttributeKey =

@@ -42,3 +42,8 @@ test('fiches produit directes quand les identifiants sont connus', () => {
   assert.equal(links.find((l) => l.id === 'cardmarket')?.url, 'https://www.cardmarket.com/fr/Pokemon/Products?idProduct=794611&language=2');
   assert.equal(links.find((l) => l.id === 'tcgplayer')?.url, 'https://www.tcgplayer.com/product/590027');
 });
+
+test('fiche Cardmarket exacte quand son chemin est connu, offres dans la langue de la carte', () => {
+  const card: Card = { game: 'pokemon', id: 'M6a-001', lang: 'ja', name: 'タマタマ', number: '001', setId: 'M6a', prices: [], marketIds: { cardmarket: 1, cardmarketPath: '30th-Celebration/Exeggcute-30C001' } };
+  assert.equal(marketLinks(card, 'fr')[0].url, 'https://www.cardmarket.com/fr/Pokemon/Products/Singles/30th-Celebration/Exeggcute-30C001?language=7');
+});

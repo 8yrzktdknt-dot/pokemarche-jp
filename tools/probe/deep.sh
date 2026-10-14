@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-# Cherche des logos français d'extensions Pokémon (Nuit Noire / ME05…).
 set -u
 UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-page() { code=$(curl -s -o /tmp/p.html -L -m 30 -A "$UA" -w '%{http_code} %{url_effective}' "$1"); echo "== $code ($(wc -c < /tmp/p.html)) $1"; }
-for u in https://www.pokecardex.com/series https://www.pokecardex.com/series/ME05 https://www.pokecardex.com/series/me05 https://www.pokecardex.com/series/PBL; do
-  page "$u"; grep -oiE '(src|data-src|href)="[^"]*(logo|serie|set)[^"]*\.(png|webp|jpg|svg)[^"]*"' /tmp/p.html | sort -u | head -25
-done
-for u in https://www.pokemon.com/fr/jcc-pokemon/nuit-noire https://www.pokemon.com/fr/jcc-pokemon/extensions https://www.pokemon.com/fr/jcc-pokemon/mega-evolution-nuit-noire https://www.pokemon.com/fr/jcc-pokemon https://www.pokemon.com/fr/jcc-pokemon/series; do
-  page "$u"; grep -oiE '(src|data-src|href)="[^"]*(logo|expansion|nuit|me05|pbl)[^"]*"' /tmp/p.html | sort -u | head -25
-  grep -oiE 'href="/fr/jcc-pokemon/[^"]+"' /tmp/p.html | sort -u | head -40
-done
-for u in https://assets.tcgdex.net/fr/me/me05/logo.webp https://assets.tcgdex.net/fr/me/me05/logo.png https://assets.tcgdex.net/fr/me/me05/symbol.webp https://assets.tcgdex.net/en/me/me05/logo.webp; do
-  echo "$(curl -s -o /dev/null -m 20 -A "$UA" -w '%{http_code} %{content_type}' $u) $u"; done
-curl -s -m 20 https://api.tcgdex.net/v2/fr/sets/me05 | head -c 600; echo
+curl -sL -m 40 -A "$UA" "https://www.pokemon.com/fr/jcc-pokemon/cartes-pokemon" > /tmp/s.html; wc -c < /tmp/s.html
+# Cases à cocher des extensions : <input ... id="xy1" name="xy1" ...><label for="xy1">...</label>
+grep -oE '<input[^>]*type="checkbox"[^>]*>' /tmp/s.html | grep -oE 'name="[^"]+"' | sort -u | tr '\n' ' ' | head -c 6000; echo
+grep -oE 'for="[^"]+"[^>]*>[^<]{2,60}<' /tmp/s.html | head -400 | tr '\n' '|' | head -c 12000; echo
+for u in 30TH/30TH_FR_1 MEP/MEP_FR_1 SVP/SVP_FR_1 SVE/SVE_FR_1 SWSHP/SWSHP_FR_SWSH001 SMP/SMP_FR_SM01 SMP/SMP_FR_SM1 CEL25C/CEL25C_FR_2 TK10L/TK10L_FR_1 MCD19/MCD19_FR_1 XYP/XYP_FR_XY01 BWP/BWP_FR_BW01; do
+  echo "$(curl -s -o /dev/null -m 20 -A "$UA" -w '%{http_code} %{content_type} %{size_download}' "https://www.pokemon.com/static-assets/content-assets/cms2-fr-fr/img/cards/web/$u.png") $u"; done

@@ -80,6 +80,7 @@ const fr = {
   'price.cm.avg7': 'Moyenne des ventes · 7 jours',
   'price.cm.avg1': 'Moyenne des ventes · 24 h',
   'price.cm.avg30': 'Moyenne des ventes · 30 jours',
+  'price.cm.avg': 'Moyenne des ventes · toutes périodes',
   'price.cm.trend': 'Tendance',
   'price.cm.low': 'À partir de',
 
@@ -223,6 +224,7 @@ const en: Record<Key, string> = {
   'price.cm.avg7': 'Sales average · 7 days',
   'price.cm.avg1': 'Sales average · 24 h',
   'price.cm.avg30': 'Sales average · 30 days',
+  'price.cm.avg': 'Sales average · all time',
   'price.cm.trend': 'Trend',
   'price.cm.low': 'From',
 
