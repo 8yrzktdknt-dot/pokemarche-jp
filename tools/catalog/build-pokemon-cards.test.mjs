@@ -17,3 +17,12 @@ test('numéros comparables', () => {
   assert.equal(numberKey('007'), '7');
   assert.equal(numberKey('tg01'), 'TG01');
 });
+
+test('codes pokemon.com des extensions', async () => {
+  const { pokemonComCodes } = await import('./build-pokemon-cards.mjs');
+  assert.ok(pokemonComCodes('me02.5').includes('ME2PT5'));
+  assert.ok(pokemonComCodes('sv03.5').includes('SV3PT5'));
+  assert.ok(pokemonComCodes('30th').includes('30TH'));
+  assert.ok(pokemonComCodes('me01').includes('ME01'));
+  assert.ok(pokemonComCodes('swshp').includes('SWSHP'));
+});
