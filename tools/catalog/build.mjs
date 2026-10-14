@@ -1,5 +1,5 @@
 // Robot du catalogue (GitHub Actions, workflow « Catalogue de cartes »).
-//   STEPS=pokemon-ja,pokemon-intl,pokemon-cards,pokemon-details,onepiece,riftbound,visual,assets npm run build
+//   STEPS=pokemon-ja,pokemon-intl,pokemon-cards,pokemon-details,pokemon-zh,onepiece,riftbound,visual,assets npm run build
 //   VISUAL_TARGETS=pokemon-fr (index visuels à refaire, tous par défaut)
 import { buildAssets } from './build-assets.mjs';
 import { buildOnePiece } from './build-onepiece.mjs';
@@ -7,6 +7,7 @@ import { buildPokemonCards } from './build-pokemon-cards.mjs';
 import { buildPokemonDetails } from './build-pokemon-details.mjs';
 import { buildPokemonIntl } from './build-pokemon-intl.mjs';
 import { buildPokemonJa } from './build-pokemon-ja.mjs';
+import { buildPokemonZh } from './build-pokemon-zh.mjs';
 import { buildRiftbound } from './build-riftbound.mjs';
 import { buildSearch } from './build-search.mjs';
 import { buildVisual } from './build-visual.mjs';
@@ -27,7 +28,7 @@ async function grab() {
 }
 
 const STEPS = {
-  grab, 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), 'pokemon-cards': () => buildPokemonCards(), 'pokemon-details': () => buildPokemonDetails(), onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual(), assets: buildAssets, search: buildSearch };
+  grab, 'pokemon-ja': buildPokemonJa, 'pokemon-intl': () => buildPokemonIntl(), 'pokemon-cards': () => buildPokemonCards(), 'pokemon-details': () => buildPokemonDetails(), 'pokemon-zh': buildPokemonZh, onepiece: buildOnePiece, riftbound: buildRiftbound, visual: () => buildVisual(), assets: buildAssets, search: buildSearch };
 const wanted = (process.env.STEPS || Object.keys(STEPS).join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 // Les fichiers de recherche suivent toujours les catalogues reconstruits.
 if (!wanted.includes('search')) wanted.push('search');

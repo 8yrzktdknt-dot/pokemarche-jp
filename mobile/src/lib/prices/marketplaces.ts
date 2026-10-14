@@ -71,7 +71,8 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
 
   // Cartes japonaises : Cardmarket a des fiches à part (« 30th-Celebration-JP/Exeggcute-m6a001 »). Leur n° produit
   // (TCGdex japonais, fichiers Cardmarket) y mène directement ; le chemin Limitless, lui, mène à la version internationale.
-  const japanese = card.game === 'pokemon' && card.lang === 'ja';
+  // Le chinois traditionnel partage les fiches japonaises (mêmes codes d'extension).
+  const japanese = card.game === 'pokemon' && (card.lang === 'ja' || card.lang === 'zh-tw');
   const cmId = card.marketIds?.cardmarket;
   const cmPath = japanese ? undefined : card.marketIds?.cardmarketPath;
   // Recherche « nom anglais (ou français) + code japonais + numéro » : « Exeggcute m6a 001 ».

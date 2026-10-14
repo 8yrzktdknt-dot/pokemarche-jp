@@ -166,6 +166,9 @@ async function completeJapaneseCardmarket(dir, files) {
   const decks = files.map((f) => ({ f, setId: f.replace(/\.json$/, ''), cards: JSON.parse(readFileSync(join(dir, f), 'utf8')) }));
   for (const { cards } of decks) for (const c of cards) if (c.cm?.id && !c.cm.f && expOf.has(c.cm.id)) known.add(expOf.get(c.cm.id));
   const before = decks.map(({ cards }) => JSON.stringify(cards));
+  // Stades relevés avant le nettoyage des espaces insécables (« 2&nbsp;進化 »).
+  const STAGE_FIX = { '1進化': 'Niveau 1', '2進化': 'Niveau 2' };
+  for (const { cards } of decks) for (const c of cards) if (c.attrs?.stage?.includes('&nbsp;')) c.attrs.stage = STAGE_FIX[c.attrs.stage.replace(/&nbsp;/g, '')] ?? c.attrs.stage.replace(/&nbsp;/g, '');
   completeJapanesePrices(decks, cmf, known);
   decks.forEach(({ f, cards }, i) => { if (JSON.stringify(cards) !== before[i]) writeJson(`cards/pokemon-ja/${f}`, cards); });
 }
