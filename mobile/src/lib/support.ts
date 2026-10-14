@@ -5,7 +5,7 @@
  */
 export const SUPPORT_EMAIL = 'support.tcgmarket@gmail.com';
 /** Clé d'accès Web3Forms (publique par conception : elle ne permet que d'envoyer à l'adresse du support). */
-export const WEB3FORMS_KEY = '';
+export const WEB3FORMS_KEY = 'bb7cad15-ec72-4d2e-a04e-382e7ce1c473';
 const ENDPOINT = 'https://api.web3forms.com/submit';
 
 export interface Report {
