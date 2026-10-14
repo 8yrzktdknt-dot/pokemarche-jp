@@ -2,20 +2,20 @@
   "name": "TCGMarket",
   "short_name": "TCGMarket",
   "lang": "fr",
-  "start_url": "/pokemarche-jp/app/",
-  "scope": "/pokemarche-jp/app/",
+  "start_url": "/tcgmarket/app/",
+  "scope": "/tcgmarket/app/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A1F17",
   "theme_color": "#0A1F17",
   "icons": [
     {
-      "src": "/pokemarche-jp/app/pwa-192.png",
+      "src": "/tcgmarket/app/pwa-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/pokemarche-jp/app/pwa-512.png",
+      "src": "/tcgmarket/app/pwa-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

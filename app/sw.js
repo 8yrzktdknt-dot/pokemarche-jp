@@ -3,8 +3,8 @@
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
 //  - catalogue : réseau d'abord (toujours à jour), copie locale sans réseau ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
-const VERSION = '1791979779465';
-const BASE = '/pokemarche-jp/app';
+const VERSION = '1791981688570';
+const BASE = '/tcgmarket/app';
 const APP = `app-${VERSION}`;
 const IMAGES = 'images-v1';
 const DATA = 'data-v1';

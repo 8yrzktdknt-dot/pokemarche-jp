@@ -8,7 +8,7 @@ import type { AttributeKey, Bloc, Card, CardAttribute, CardLang, FilterOptions, 
  * Catalogue publié avec le site (construit chaque semaine par GitHub Actions, dossier catalog/ du dépôt) :
  * blocs et extensions dans l'ordre de sortie, logos, noms traduits et toutes les cartes de chaque extension.
  */
-const SITE = 'https://bananaintrouble.github.io/pokemarche-jp';
+const SITE = 'https://bananaintrouble.github.io/tcgmarket';
 
 export function catalogBase(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {

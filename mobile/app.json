@@ -48,7 +48,7 @@
     "scheme": "pokemarket",
     "backgroundColor": "#0A1F17",
     "experiments": {
-      "baseUrl": "/pokemarche-jp/app"
+      "baseUrl": "/tcgmarket/app"
     }
   }
 }

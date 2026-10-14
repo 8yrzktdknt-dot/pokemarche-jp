@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const CATALOG = join(ROOT, 'catalog');
-const UA = 'Mozilla/5.0 (compatible; PokeMarket-catalog/1.0; +https://github.com/BananaInTrouble/pokemarche-jp)';
+const UA = 'Mozilla/5.0 (compatible; PokeMarket-catalog/1.0; +https://github.com/BananaInTrouble/tcgmarket)';
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

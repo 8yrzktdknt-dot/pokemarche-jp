@@ -1,5 +1,5 @@
 // Construit la version web (PWA) et la place dans ../app, servie par GitHub Pages
-// à l'adresse https://<compte>.github.io/pokemarche-jp/app/.
+// à l'adresse https://<compte>.github.io/tcgmarket/app/.
 import { execSync } from 'node:child_process';
 import { copyFileSync, cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
