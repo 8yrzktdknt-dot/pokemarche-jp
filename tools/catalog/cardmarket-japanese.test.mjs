@@ -69,3 +69,15 @@ test('completeIntlPrices : 30th Celebration et Collection Classique dans la mêm
   assert.equal(classic[0].cm.avg7, 6);
   assert.equal(main[0].cm.f, 1);
 });
+
+test('matchProducts : Mew RGB (lettres) dans l\'ordre V1, V2, V3 de leur fiche, après la carte numérotée', () => {
+  const products = [907820, 909512, 909513, 909514].map((idProduct) => ({ idProduct, name: 'Mew [Psychic | 30C]' }));
+  const cards = [
+    { id: 'M6a-056', localId: '056', nameEn: 'Mew' },
+    { id: 'M6a-RRGB', localId: 'RRGB', nameEn: 'Mew', cmPath: '30th-Celebration-JP/Mew-V1-m6aRRGB' },
+    { id: 'M6a-GRGB', localId: 'GRGB', nameEn: 'Mew', cmPath: '30th-Celebration-JP/Mew-V2-m6aGRGB' },
+    { id: 'M6a-BRGB', localId: 'BRGB', nameEn: 'Mew', cmPath: '30th-Celebration-JP/Mew-V3-m6aBRGB' },
+  ];
+  const ids = matchProducts(cards, products);
+  assert.deepEqual(cards.map((c) => ids.get(c.id)), [907820, 909512, 909513, 909514]);
+});
