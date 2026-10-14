@@ -4,7 +4,8 @@
 //   2) image officielle pokemon.com dans la langue de la carte (promos, 30e anniversaire…),
 //   3) image TCGdex anglaise de la même carte,
 //   4) image pokemontcg.io (anglaise) — promos, galeries, kits et anciennes extensions que TCGdex n'illustre pas,
-//   5) image officielle pokemon.com anglaise.
+//   5) image officielle pokemon.com anglaise,
+//   6) image Scrydex (anglaise).
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CATALOG, getJson, pad3, pool, writeJson } from './lib.mjs';
@@ -14,9 +15,16 @@ const PTCG = 'https://api.pokemontcg.io/v2';
 const enc = encodeURIComponent;
 
 /** Identifiants pokemontcg.io possibles pour une extension TCGdex (sv03.5 → sv3pt5, sm7.5 → sm75, cel25cc → cel25c…). */
+/** Extensions dont l'identifiant pokemontcg.io ne se déduit pas (30e anniversaire, kits du dresseur EX). */
+const PTCG_ALIASES = {
+  '30th': 'me55', '30th-c': 'me55c',
+  'tk-ex-latia': 'tk1a', 'tk-ex-latio': 'tk1b', 'tk-ex-p': 'tk2a', 'tk-ex-m': 'tk2b',
+};
+
 export function ptcgCandidates(id) {
   const base = id.toLowerCase().replace(/(^|[a-z])0+(?=\d)/g, '$1');
   return [...new Set([
+    ...(PTCG_ALIASES[id.toLowerCase()] ? [PTCG_ALIASES[id.toLowerCase()]] : []),
     base,
     base.replace(/\.5/g, 'pt5'),
     base.replace(/\./g, ''),
@@ -30,12 +38,57 @@ export function ptcgCandidates(id) {
 /** Numéro de carte comparable entre sources : « 007 » → « 7 », « TG01 » reste « TG01 ». */
 export const numberKey = (n) => (/^\d+$/.test(n) ? String(Number(n)) : String(n).toUpperCase());
 
+/** Nom comparable entre sources (« Charizard ex », « Dark Tyranitar » → « charizardex », « darktyranitar »). */
+export const nameKey = (n) => (n ?? '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+
+/**
+ * Images pokemontcg.io d'une extension, par numéro (« 7 », « TG01 ») et par nom anglais (« name:charizard »)
+ * pour les collections qui reprennent les numéros d'origine (Collection Classique : 4/102…).
+ */
 async function ptcgImages(ptcgId) {
   const out = new Map();
+  const names = new Map();
   for (let page = 1; page <= 4; page++) {
-    const r = await getJson(`${PTCG}/cards?q=set.id:${enc(ptcgId)}&select=number,images&pageSize=250&page=${page}`);
-    for (const c of r?.data ?? []) if (c.images?.small) out.set(numberKey(c.number), c.images.small);
+    const r = await getJson(`${PTCG}/cards?q=set.id:${enc(ptcgId)}&select=number,name,images&pageSize=250&page=${page}`);
+    for (const c of r?.data ?? []) {
+      if (!c.images?.small) continue;
+      out.set(numberKey(c.number), c.images.small);
+      out.set(`nameof:${numberKey(c.number)}`, nameKey(c.name));
+      const k = `name:${nameKey(c.name)}`;
+      names.set(k, names.has(k) ? null : c.images.small);
+    }
     if (!r || (r.page ?? page) * (r.pageSize ?? 250) >= (r.totalCount ?? 0)) break;
+  }
+  // Noms uniques seulement (deux cartes du même nom : on ne devine pas).
+  for (const [k, v] of names) if (v) out.set(k, v);
+  return out;
+}
+
+// Scrydex : images anglaises « …/pokemon/mcd23-1/large » ; une image générique quand la carte est inconnue.
+const SCRYDEX = (pid, n) => `https://images.scrydex.com/pokemon/${pid}-${n}/large`;
+let scrydexBlank;
+async function scrydexSize(url) {
+  try {
+    const r = await fetch(url, { method: 'HEAD' });
+    return r.ok ? Number(r.headers.get('content-length') ?? 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Images Scrydex des cartes demandées (numéro → URL), en écartant l'image générique. */
+async function scrydexImages(setId, localIds) {
+  const out = new Map();
+  if (!localIds.length) return out;
+  scrydexBlank ??= await scrydexSize(SCRYDEX('zz-inconnu', 1));
+  for (const pid of ptcgCandidates(setId)) {
+    await pool(localIds, 6, async (id) => {
+      if (out.has(id)) return;
+      const n = /^\d+$/.test(id) ? String(Number(id)) : id;
+      const size = await scrydexSize(SCRYDEX(pid, n));
+      if (size && size !== scrydexBlank) out.set(id, SCRYDEX(pid, n));
+    });
+    if (out.size) break;
   }
   return out;
 }
@@ -112,7 +165,7 @@ export async function buildPokemonCards(langs = ['fr', 'en']) {
     const { blocs } = JSON.parse(readFileSync(setsFile, 'utf8'));
     const rarity = await rarities(lang);
     const other = lang === 'fr' ? en : fr;
-    let total = 0, withImage = 0, fromEn = 0, fromPtcg = 0, fromOfficial = 0;
+    let total = 0, withImage = 0, fromEn = 0, fromPtcg = 0, fromOfficial = 0, fromScrydex = 0;
 
     await pool(blocs.flatMap((b) => b.sets), 6, async (s) => {
       const st = await getJson(`${API}/${lang}/sets/${enc(s.id)}`);
@@ -127,14 +180,25 @@ export async function buildPokemonCards(langs = ['fr', 'en']) {
       }
       // Images officielles pokemon.com dans la langue de la carte quand TCGdex n'en a pas.
       const officialImg = await pokemonComImages(lang, s.id, list.filter((c) => !c.image).map((c) => c.localId));
-      const stillMissing = list.filter((c) => !c.image && !officialImg.has(c.localId) && !en.get(c.id)?.image && !ptcg?.get(numberKey(c.localId)));
-      const officialEn = lang === 'en' ? new Map() : await pokemonComImages('en', s.id, stillMissing.map((c) => c.localId));
+      const stillMissing = list.filter((c) => !c.image && !officialImg.has(c.localId) && !en.get(c.id)?.image);
+      // Par numéro quand le nom concorde (ou est inconnu), sinon par nom anglais.
+      const ptcgOf = (c) => {
+        if (!ptcg) return undefined;
+        const name = nameKey(en.get(c.id)?.name ?? (lang === 'en' ? c.name : other.get(c.id)?.name));
+        const byNum = ptcg.get(numberKey(c.localId));
+        const numName = ptcg.get(`nameof:${numberKey(c.localId)}`);
+        if (byNum && (!name || !numName || numName === name)) return byNum;
+        return ptcg.get(`name:${name}`) ?? (byNum && !ptcg.has(`name:${name}`) && !name ? byNum : undefined);
+      };
+      const officialEn = lang === 'en' ? new Map() : await pokemonComImages('en', s.id, stillMissing.filter((c) => !ptcgOf(c)).map((c) => c.localId));
+      const scrydex = await scrydexImages(s.id, stillMissing.filter((c) => !ptcgOf(c) && !officialEn.has(c.localId)).map((c) => c.localId));
       const cards = list.map((c) => {
         let image = tcgdexImage(c.image);
         if (!image && officialImg.get(c.localId)) { image = officialImg.get(c.localId); fromOfficial++; }
         if (!image && en.get(c.id)?.image) { image = tcgdexImage(en.get(c.id).image); fromEn++; }
-        if (!image && ptcg?.get(numberKey(c.localId))) { image = ptcg.get(numberKey(c.localId)); fromPtcg++; }
+        if (!image && ptcgOf(c)) { image = ptcgOf(c); fromPtcg++; }
         if (!image && officialEn.get(c.localId)) { image = officialEn.get(c.localId); fromOfficial++; }
+        if (!image && scrydex.get(c.localId)) { image = scrydex.get(c.localId); fromScrydex++; }
         if (image) withImage++;
         const alt = other.get(c.id)?.name;
         return {
@@ -150,6 +214,6 @@ export async function buildPokemonCards(langs = ['fr', 'en']) {
       total += cards.length;
       writeJson(`cards/pokemon-${lang}/${s.id}.json`, cards);
     });
-    console.log(`Pokémon ${lang} : ${total} cartes, ${withImage} avec image (dont ${fromOfficial} pokemon.com, ${fromEn} anglaises TCGdex, ${fromPtcg} pokemontcg.io), ${total - withImage} sans image`);
+    console.log(`Pokémon ${lang} : ${total} cartes, ${withImage} avec image (dont ${fromOfficial} pokemon.com, ${fromEn} anglaises TCGdex, ${fromPtcg} pokemontcg.io, ${fromScrydex} Scrydex), ${total - withImage} sans image`);
   }
 }

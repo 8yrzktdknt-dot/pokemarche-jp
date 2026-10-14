@@ -26,3 +26,8 @@ test('codes pokemon.com des extensions', async () => {
   assert.ok(pokemonComCodes('me01').includes('ME01'));
   assert.ok(pokemonComCodes('swshp').includes('SWSHP'));
 });
+
+test('identifiants pokemontcg.io particuliers', () => {
+  assert.equal(ptcgCandidates('30th-c')[0], 'me55c');
+  assert.equal(ptcgCandidates('tk-ex-latia')[0], 'tk1a');
+});
