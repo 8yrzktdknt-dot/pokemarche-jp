@@ -38,9 +38,8 @@ function endpointFor(code: string): string {
 }
 
 function toCard(c: OptcgCard, lang: CardLang): Card {
+  // Prix affiché : Cardmarket uniquement (pas encore de source Cardmarket pour One Piece).
   const prices: Price[] = [];
-  const market = Number(c.market_price);
-  if (market > 0) prices.push({ source: 'tcgplayer', label: 'Market', value: market, currency: 'USD' });
   const imageId = c.card_image_id ?? c.card_set_id;
   const official = OFFICIAL_IMG[lang];
   const image = official ? `${official}/${imageId}.png` : c.card_image;

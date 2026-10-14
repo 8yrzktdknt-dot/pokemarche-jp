@@ -84,3 +84,12 @@ test('prix du marché PokemonWizard', async () => {
   const html = '{\\"tcgplayer_product_id\\":7,\\"name\\":\\"Mew ex - 135/103\\",\\"slug\\":\\"x\\",\\"card_number\\":\\"135\\",\\"rarity\\":\\"Futuristic Rare\\",\\"image_url\\":\\"https://i/x.jpg\\",\\"market_price\\":\\"12.5\\"}';
   assert.equal(parseWizardSet(html)[0].market, 12.5);
 });
+
+test('PokemonWizard : carte sans rareté', async () => {
+  const { parseWizardSet } = await import('./official-jp.mjs');
+  const html = '{\\"tcgplayer_product_id\\":8,\\"name\\":\\"Exeggcute - 001/103\\",\\"slug\\":\\"x\\",\\"card_number\\":\\"001\\",\\"rarity\\":null,\\"image_url\\":\\"https://i/e.jpg\\",\\"market_price\\":\\"0.2\\"}';
+  const [c] = parseWizardSet(html);
+  assert.equal(c.n, '001');
+  assert.equal(c.rarity, undefined);
+  assert.equal(c.market, 0.2);
+});

@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -u
-curl -s -m 30 "https://downloads.s3.cardmarket.com/?prefix=productCatalog/" | grep -oE '<Key>[^<]+</Key>' | head -60
-curl -s -m 30 "https://downloads.s3.cardmarket.com/" | head -c 1500; echo
-curl -s -m 60 -o /tmp/p.json https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json
-node -e '
-const d=JSON.parse(require("fs").readFileSync("/tmp/p.json")).products;
-const ex=d.filter(p=>/^Exeggcute/.test(p.name));console.log(JSON.stringify(ex.slice(-8)));
-const byExp={};for(const p of d){(byExp[p.idExpansion]??=[]).push(p)}
-const recent=Object.entries(byExp).map(([k,v])=>[k,v.length,v.map(x=>x.dateAdded).sort().pop(),v.slice(0,3).map(x=>x.name).join("; ")]).sort((a,b)=>b[2].localeCompare(a[2])).slice(0,40);
-for(const r of recent)console.log(r.join(" | "));'
+UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+for u in https://limitlesstcg.com/cards/jp/M6a/1 https://limitlesstcg.com/cards/jp/M6a/80 https://limitlesstcg.com/cards/jp/MF/20; do
+  echo "== $u"; curl -sL -m 30 -A "$UA" "$u" > /tmp/c.html
+  node -e 'const h=require("fs").readFileSync("/tmp/c.html","utf8");const i=h.indexOf("card-text");console.log(h.slice(i-50,i+2500).replace(/\s+/g," "));const j=h.indexOf("prints");console.log("---",h.slice(j-200,j+800).replace(/\s+/g," "))'
+done

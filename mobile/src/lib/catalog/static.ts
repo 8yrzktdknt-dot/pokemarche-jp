@@ -156,14 +156,10 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
   return out;
 }
 
-/**
- * Prix du catalogue : moyenne des ventes Cardmarket sur 7 jours (sinon 30 jours, sinon toutes les ventes),
- * ou à défaut le prix TCGplayer (USD).
- */
-function staticPrices(c: StaticCard | StaticRow, usd?: number): Price[] {
+/** Prix du catalogue, toujours Cardmarket : moyenne des ventes sur 7 jours, sinon 30 jours, sinon toutes les ventes. */
+function staticPrices(c: StaticCard | StaticRow): Price[] {
   const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ avg7: c.eur }) : undefined;
-  if (main) return [main];
-  return usd ? [{ source: 'tcgplayer', label: 'Market', value: usd, currency: 'USD' }] : [];
+  return main ? [main] : [];
 }
 
 /** Carte du catalogue au format de l'app. Les images Limitless existent en petit (_SM) et grand (_LG). */
@@ -193,7 +189,7 @@ export function staticToCard(
     rarity: rarityOf(c.rarity),
     imageSmall: image,
     imageLarge: largeImage(image),
-    prices: staticPrices(c, usd),
+    prices: staticPrices(c),
     facets: (c as { facets?: Record<string, string[]> }).facets,
     attributes: staticAttributes(c, set?.releaseDate),
     marketIds: cmId || tpId || cmPath ? { cardmarket: cmId || undefined, cardmarketPath: cmPath || undefined, tcgplayer: tpId || undefined } : undefined,

@@ -6,6 +6,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cardmarketPaths } from './cardmarket-links.mjs';
+import { limitlessJapaneseDetails } from './limitless-jp-details.mjs';
 import { matchWizardSet, wizardCards, wizardJapaneseSets } from './official-jp.mjs';
 import { CATALOG, getJson, pool, writeJson } from './lib.mjs';
 
@@ -120,6 +121,33 @@ async function japaneseWizard() {
   return out;
 }
 
+/** Cartes japonaises sans attributs TCGdex : attributs lus sur leur page Limitless. */
+async function completeJapaneseFromLimitless(dir, files) {
+  const decks = files.map((f) => ({ f, cards: JSON.parse(readFileSync(join(dir, f), 'utf8')) }));
+  const refs = [];
+  for (const { f, cards } of decks) {
+    for (const c of cards) {
+      if (c.attrs?.illustrator || c.attrs?.hp) continue;
+      const r = limitlessRef('ja', f.replace(/\.json$/, ''), undefined, c.localId);
+      refs.push(r);
+    }
+  }
+  const details = await limitlessJapaneseDetails(refs);
+  let filled = 0;
+  for (const { f, cards } of decks) {
+    let changed = false;
+    for (const c of cards) {
+      const d = details.get(limitlessRef('ja', f.replace(/\.json$/, ''), undefined, c.localId).key);
+      if (!d || !Object.keys(d).length || c.attrs?.illustrator || c.attrs?.hp) continue;
+      c.attrs = { ...d, ...(c.attrs ?? {}) };
+      changed = true;
+      filled++;
+    }
+    if (changed) writeJson(`cards/pokemon-ja/${f}`, cards);
+  }
+  console.log(`Attributs japonais complétés par Limitless : ${filled} cartes`);
+}
+
 export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 'en,fr,ja').split(',')) {
   // Liens Cardmarket exacts (Limitless), relevés une fois pour toutes les langues.
   const refs = new Map();
@@ -160,6 +188,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
           const w = wiz.get(numKey(c.localId));
           if (!w) continue;
           c.tcgplayer = w.tcgplayer;
+          if (!c.rarity && w.rarity) c.rarity = w.rarity;
           if (w.market) c.price = { value: w.market, currency: 'USD', source: 'tcgplayer' };
         }
       }
@@ -182,6 +211,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       });
       writeJson(`cards/pokemon-${lang}/${f}`, cards);
     });
+    if (lang === 'ja') await completeJapaneseFromLimitless(dir, files);
     console.log(`Détails Pokémon ${lang} : ${stat.found}/${stat.cards} fiches TCGdex, ${stat.priced} avec prix Cardmarket, ${stat.attrs} avec attributs, ${stat.links} avec lien Cardmarket exact`);
   }
 }
