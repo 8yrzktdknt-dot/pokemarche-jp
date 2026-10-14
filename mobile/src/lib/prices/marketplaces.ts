@@ -74,7 +74,8 @@ export function marketLinks(card: Card, userLang = 'fr'): MarketLink[] {
   const japanese = card.game === 'pokemon' && card.lang === 'ja';
   const cmId = japanese ? undefined : card.marketIds?.cardmarket;
   const cmPath = japanese ? undefined : card.marketIds?.cardmarketPath;
-  const cmSearch = japanese ? (card.nameEn ?? card.name) : terms;
+  // Recherche « nom anglais + code d'extension + numéro » (« Exeggcute M6a 001 »).
+  const cmSearch = japanese ? [card.nameEn ?? card.name, card.setId, card.number.split('/')[0]].filter(Boolean).join(' ') : terms;
   const cmLanguage = CARDMARKET_LANGUAGE[card.lang];
   const tpId = card.marketIds?.tcgplayer;
 
