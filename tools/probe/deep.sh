@@ -1,18 +1,86 @@
 #!/usr/bin/env bash
-# Visuels et logos chinois : protection anti-liens externes, proxy d'images, sources de logos.
-set -u
-UA="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
-R="https://bananaintrouble.github.io/"
-t() { curl -s -o /tmp/x -m 25 -A "$UA" "$@" -w "%{http_code} %{content_type} %{size_download}"; echo "  $*" | cut -c1-200; }
-echo "== TW image (referer github)"; t -H "Referer: $R" https://asia.pokemon-card.com/tw/card-img/tw00019913.png
-echo "== TW image (sans referer)"; t https://asia.pokemon-card.com/tw/card-img/tw00019913.png
-echo "== mik image (referer github)"; t -H "Referer: $R" https://tcg.mik.moe/static/img/CSV1C/008.png
-curl -sI -m 20 -H "Referer: $R" https://tcg.mik.moe/static/img/CSV1C/008.png | grep -iE "access-control|cache|cross-origin|content-length"
-curl -sI -m 20 -H "Referer: $R" https://asia.pokemon-card.com/tw/card-img/tw00019913.png | grep -iE "access-control|cache|cross-origin|content-length|server"
-echo "== weserv"; t "https://images.weserv.nl/?url=tcg.mik.moe/static/img/CSV1C/008.png&w=400&output=webp"; t "https://images.weserv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00019913.png&w=400&output=webp"
-echo "== wsrv"; t "https://wsrv.nl/?url=tcg.mik.moe/static/img/CSV1C/008.png&w=400&output=webp"
-echo "== mik logos"; for u in /static/setCode/CSV1C.png /static/setCodeEN/CSV1C.png /static/setCodeEn/CSV1C.png /static/logo/CSV1C.png /static/product/CSV1C.png /static/expansion/CSV1C.png; do t -H "Referer: https://tcg.mik.moe/" "https://tcg.mik.moe$u"; done
-P() { curl -s -m 60 -A "$UA" -H "Content-Type: application/json" -H "Referer: https://tcg.mik.moe/" -X POST "https://tcg.mik.moe/api/v3/$1" -d "$2"; }
-echo "== product-list"; P card/product-list '{}' | head -c 2500; echo; P card/product-list '{"page":1,"pageSize":5}' | head -c 2500; echo
-echo "== TW expansions logos?"; curl -sL -m 30 -A "$UA" "https://asia.pokemon-card.com/tw/products/" | grep -oE '(src|data-original)="[^"]*(logo|Logo|LOGO)[^"]*"' | sort -u | head -20
-curl -sL -m 30 -A "$UA" "https://asia.pokemon-card.com/tw/products/" | grep -oE 'href="/tw/products/[^"]*"' | sort -u | head -10
+# Vérifie un échantillon de visuels chinois (traditionnel via wsrv.nl, simplifié via mik.moe).
+ok=0; ko=0
+while read -r u; do c=$(curl -s -o /dev/null -m 30 -w "%{http_code}" "$u"); if [ "$c" = 200 ]; then ok=$((ok+1)); else ko=$((ko+1)); echo "ÉCHEC $c $u"; fi; done <<EOF
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00001634.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00001417.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00011097.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00011102.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00007481.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00012248.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00002536.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00007218.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00014129.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00007750.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00019332.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00002101.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00003523.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00009223.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00002070.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00003471.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00014048.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00000975.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00000777.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00002083.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00011283.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00000757.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00013435.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00007107.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00003676.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00003755.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00000211.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00013140.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00003597.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00011158.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00002018.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00001811.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00001452.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00006202.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00008985.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00008092.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00005243.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00019327.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00007771.png&w=360&output=webp
+https://wsrv.nl/?url=asia.pokemon-card.com/tw/card-img/tw00012763.png&w=360&output=webp
+https://tcg.mik.moe/static/img/CSVH4C/037.png
+https://tcg.mik.moe/static/img/CSVE2C/146.png
+https://tcg.mik.moe/static/img/CSHC/006.png
+https://tcg.mik.moe/static/img/CS3bC/068.png
+https://tcg.mik.moe/static/img/CSBC/018.png
+https://tcg.mik.moe/static/img/CSVH5aC/003.png
+https://tcg.mik.moe/static/img/CSYC/007.png
+https://tcg.mik.moe/static/img/CSM2bC/127.png
+https://tcg.mik.moe/static/img/CSM2aC/025.png
+https://tcg.mik.moe/static/img/CS5aC/083.png
+https://tcg.mik.moe/static/img/CSMC/003.png
+https://tcg.mik.moe/static/img/CSVE1pC/003.png
+https://tcg.mik.moe/static/img/CSV4C/028.png
+https://tcg.mik.moe/static/img/CBB6C/0203.png
+https://tcg.mik.moe/static/img/CSVH5C/051.png
+https://tcg.mik.moe/static/img/CSM1cC/054.png
+https://tcg.mik.moe/static/img/CSBC/003.png
+https://tcg.mik.moe/static/img/CSM1aC/009.png
+https://tcg.mik.moe/static/img/CSGC/003.png
+https://tcg.mik.moe/static/img/CSVL1C/100.png
+https://tcg.mik.moe/static/img/CSVH1pC/005.png
+https://tcg.mik.moe/static/img/CSVH4aC/013.png
+https://tcg.mik.moe/static/img/CSM2.5C/080.png
+https://tcg.mik.moe/static/img/CSHC/008.png
+https://tcg.mik.moe/static/img/CSMPhC/006.png
+https://tcg.mik.moe/static/img/CSV10C/123.png
+https://tcg.mik.moe/static/img/CSVH4pC/WAT.png
+https://tcg.mik.moe/static/img/CSVH4pC/LIG.png
+https://tcg.mik.moe/static/img/CS4DaC/393.png
+https://tcg.mik.moe/static/img/CS6.5C/004.png
+https://tcg.mik.moe/static/img/CSBC/011.png
+https://tcg.mik.moe/static/img/CSMPkC/006.png
+https://tcg.mik.moe/static/img/CSMYC/001.png
+https://tcg.mik.moe/static/img/CSVH1aC/019.png
+https://tcg.mik.moe/static/img/CSCC/011.png
+https://tcg.mik.moe/static/img/CSM1cC/177.png
+https://tcg.mik.moe/static/img/CBB1C/1703.png
+https://tcg.mik.moe/static/img/CSVM1aC/018.png
+https://tcg.mik.moe/static/img/CSM2.1C/047.png
+https://tcg.mik.moe/static/img/CSM2aC/058.png
+EOF
+echo "visuels OK: $ok, en échec: $ko"
