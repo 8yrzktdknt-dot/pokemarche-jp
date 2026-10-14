@@ -93,6 +93,9 @@ export default function Account() {
       </Panel>
 
       <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>{t('acc.footer')}</Text>
+      {!!process.env.EXPO_PUBLIC_VERSION && (
+        <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>{t('acc.version', { v: process.env.EXPO_PUBLIC_VERSION })}</Text>
+      )}
     </ScrollView>
   );
 }

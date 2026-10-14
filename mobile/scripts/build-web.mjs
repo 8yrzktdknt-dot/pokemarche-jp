@@ -12,7 +12,9 @@ const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
 const base = app.experiments.baseUrl;
 
 rmSync(dist, { recursive: true, force: true });
-execSync(`npx expo export --platform web --output-dir ${dist}`, { cwd: root, stdio: 'inherit' });
+// Date de la version, affichée dans l'onglet Compte (pour vérifier que l'app est à jour).
+const version = new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+execSync(`npx expo export --platform web --output-dir ${dist}`, { cwd: root, stdio: 'inherit', env: { ...process.env, EXPO_PUBLIC_VERSION: version } });
 
 for (const f of ['apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png']) copyFileSync(join(root, 'assets', f), join(dist, f));
 
