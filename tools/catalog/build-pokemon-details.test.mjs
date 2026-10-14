@@ -24,3 +24,24 @@ test('fiche appliquée à la carte du catalogue', () => {
   applyDetails(c, { rarity: 'Rare', illustrator: 'A', pricing: { cardmarket: { idProduct: 5, avg7: 1.2 }, tcgplayer: { normal: { marketPrice: 2, productId: 8 } } } }, 'fr');
   assert.deepEqual(c, { id: 'x', rarity: 'Rare', attrs: { illustrator: 'A' }, cm: { id: 5, avg7: 1.2 }, tcgplayer: 8, price: { value: 2, currency: 'USD', source: 'tcgplayer' } });
 });
+
+test('lien Cardmarket : la carte elle-même, pas une réimpression', async () => {
+  const { parseCardmarketPaths, pickCardmarketPath } = await import('./cardmarket-links.mjs');
+  const html = `<a href="https://www.cardmarket.com/en/Pokemon/Products/Singles/Mega-Evolution/Bulbasaur-V1-MEG001?utm_source=limitlesstcg">
+    <a href="https://www.cardmarket.com/en/Pokemon/Products/Singles/Mega-Evolution/Bulbasaur-V2-MEG133?utm_source=limitlesstcg">`;
+  const paths = parseCardmarketPaths(html);
+  assert.deepEqual(paths, ['Mega-Evolution/Bulbasaur-V1-MEG001', 'Mega-Evolution/Bulbasaur-V2-MEG133']);
+  assert.equal(pickCardmarketPath(paths, 'MEG', '1', false), 'Mega-Evolution/Bulbasaur-V1-MEG001');
+  assert.equal(pickCardmarketPath(paths, 'MEG', '133', false), 'Mega-Evolution/Bulbasaur-V2-MEG133');
+  // Page Base Set qui ne pointe que vers une réimpression : pas de lien.
+  assert.equal(pickCardmarketPath(['30th-Celebration/Charizard-30CBS-4'], 'BS', '4', false), undefined);
+  assert.equal(pickCardmarketPath(['Base-Set/Charizard-V2-BS4'], 'BS', '4', false), 'Base-Set/Charizard-V2-BS4');
+  // Carte japonaise : sa version internationale.
+  assert.equal(pickCardmarketPath(['Destined-Rivals/Ethans-Pinsir-DRI001'], 'SV9a', '1', true), 'Destined-Rivals/Ethans-Pinsir-DRI001');
+});
+
+test('référence Limitless commune au français et à l\'anglais', async () => {
+  const { limitlessRef } = await import('./build-pokemon-details.mjs');
+  assert.deepEqual(limitlessRef('fr', 'me01', 'MEG', '001'), { key: 'MEG/1', url: 'https://limitlesstcg.com/cards/MEG/1', code: 'MEG', n: '1', japanese: false });
+  assert.equal(limitlessRef('ja', 'M6a', undefined, '001').url, 'https://limitlesstcg.com/cards/jp/M6a/1');
+});

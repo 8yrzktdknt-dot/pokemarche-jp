@@ -71,6 +71,8 @@ export interface StaticCard {
   tcgplayer?: number;
   /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
   cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; trend?: number; low?: number };
+  /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
+  cmPath?: string;
 }
 
 export async function staticBlocs(game: GameId, lang: CardLang): Promise<StaticBloc[] | null> {
@@ -117,16 +119,17 @@ export interface StaticRow {
   /** Prix Cardmarket de référence (EUR) et n° produit. */
   eur?: number;
   cardmarket?: number;
+  cmPath?: string;
 }
 
 /** Toutes les cartes d'un jeu et d'une langue (fichier compact), pour chercher par nom traduit. */
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket]) => ({
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket, cmPath]) => ({
     id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd,
     facets: facets || undefined, attrs: attrs || undefined, tcgplayer: tcgplayer || undefined,
-    eur: eur || undefined, cardmarket: cardmarket || undefined,
+    eur: eur || undefined, cardmarket: cardmarket || undefined, cmPath: cmPath || undefined,
   }) as StaticRow);
 }
 
@@ -185,6 +188,7 @@ export function staticToCard(
   const cm = 'cm' in c ? c.cm : undefined;
   const cmId = cm?.id ?? ('cardmarket' in c ? c.cardmarket : undefined);
   const tpId = c.tcgplayer;
+  const cmPath = c.cmPath;
   return {
     game,
     id: c.id,
@@ -201,7 +205,7 @@ export function staticToCard(
     prices: staticPrices(c, usd),
     facets: (c as { facets?: Record<string, string[]> }).facets,
     attributes: staticAttributes(c, set?.releaseDate),
-    marketIds: cmId || tpId ? { cardmarket: cmId || undefined, tcgplayer: tpId || undefined } : undefined,
+    marketIds: cmId || tpId || cmPath ? { cardmarket: cmId || undefined, cardmarketPath: cmPath || undefined, tcgplayer: tpId || undefined } : undefined,
   };
 }
 

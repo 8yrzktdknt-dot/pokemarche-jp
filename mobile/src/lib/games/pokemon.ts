@@ -365,7 +365,7 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
     // Prix du jour publiés avec le catalogue quand TCGdex n'en donne pas en direct.
     prices: live.prices.length ? live.prices : st.prices,
     attributes: mergeAttributes(live.attributes, st.attributes),
-    marketIds: { ...st.marketIds, ...live.marketIds },
+    marketIds: { ...st.marketIds, ...Object.fromEntries(Object.entries(live.marketIds ?? {}).filter(([, v]) => v)) },
   };
   return card ? withRelease(card, lang) : null;
 }

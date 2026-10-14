@@ -5,6 +5,7 @@
 // Les cartes japonaises sont retrouvées par extension et numéro dans le catalogue japonais de TCGdex.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { cardmarketPaths } from './cardmarket-links.mjs';
 import { CATALOG, getJson, pool, writeJson } from './lib.mjs';
 
 const API = 'https://api.tcgdex.net/v2';
@@ -85,18 +86,58 @@ async function japaneseIds(files) {
   return out;
 }
 
+/** Carte → page Limitless où lire son lien Cardmarket (clé commune au français et à l'anglais). */
+export function limitlessRef(lang, setId, code, localId) {
+  const n = /^\d+$/.test(localId) ? String(Number(localId)) : localId;
+  if (lang === 'ja') return { key: `jp/${setId}/${n}`, url: `https://limitlesstcg.com/cards/jp/${encodeURIComponent(setId)}/${encodeURIComponent(n)}`, code: setId, n, japanese: true };
+  if (!code) return null;
+  return { key: `${code}/${n}`, url: `https://limitlesstcg.com/cards/${encodeURIComponent(code)}/${encodeURIComponent(n)}`, code, n, japanese: false };
+}
+
+function setCodes(lang) {
+  const f = join(CATALOG, 'sets', `pokemon-${lang}.json`);
+  if (!existsSync(f)) return new Map();
+  return new Map(JSON.parse(readFileSync(f, 'utf8')).blocs.flatMap((b) => b.sets).map((x) => [x.id, x.code]));
+}
+
 export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 'en,fr,ja').split(',')) {
+  // Liens Cardmarket exacts (Limitless), relevés une fois pour toutes les langues.
+  const refs = new Map();
   for (const lang of langs) {
+    const dir = join(CATALOG, 'cards', `pokemon-${lang}`);
+    if (!existsSync(dir)) continue;
+    const codes = setCodes(lang);
+    for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+      const setId = f.replace(/\.json$/, '');
+      for (const c of JSON.parse(readFileSync(join(dir, f), 'utf8'))) {
+        const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
+        if (r && !refs.has(r.key)) refs.set(r.key, r);
+      }
+    }
+  }
+  const paths = await cardmarketPaths([...refs.values()]);
+
+  for (const lang of langs) {
+    const codes = setCodes(lang);
     const dir = join(CATALOG, 'cards', `pokemon-${lang}`);
     if (!existsSync(dir)) continue;
     const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
     const jaIds = lang === 'ja' ? await japaneseIds(files) : null;
-    const stat = { cards: 0, found: 0, priced: 0, attrs: 0 };
+    const stat = { cards: 0, found: 0, priced: 0, attrs: 0, links: 0 };
     await pool(files, 2, async (f) => {
       const setId = f.replace(/\.json$/, '');
       const cards = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+      for (const c of cards) {
+        const r = limitlessRef(lang, setId, codes.get(setId), c.localId);
+        const p = r && paths.get(r.key);
+        if (p) { c.cmPath = p; stat.links++; } else delete c.cmPath;
+      }
       const map = jaIds?.get(setId);
-      if (jaIds && !map) { stat.cards += cards.length; return; }
+      if (jaIds && !map) {
+        stat.cards += cards.length;
+        writeJson(`cards/pokemon-${lang}/${f}`, cards);
+        return;
+      }
       await pool(cards, 8, async (c) => {
         stat.cards++;
         const id = map ? map.get(numKey(c.localId)) : c.id;
@@ -110,6 +151,6 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       });
       writeJson(`cards/pokemon-${lang}/${f}`, cards);
     });
-    console.log(`Détails Pokémon ${lang} : ${stat.found}/${stat.cards} fiches TCGdex, ${stat.priced} avec prix Cardmarket, ${stat.attrs} avec attributs`);
+    console.log(`Détails Pokémon ${lang} : ${stat.found}/${stat.cards} fiches TCGdex, ${stat.priced} avec prix Cardmarket, ${stat.attrs} avec attributs, ${stat.links} avec lien Cardmarket exact`);
   }
 }
