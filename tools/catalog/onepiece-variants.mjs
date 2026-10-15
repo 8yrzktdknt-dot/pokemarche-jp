@@ -127,3 +127,12 @@ export function applyProductIds(cards, ids) {
   }
   return n;
 }
+
+/**
+ * Ordre d'une extension : ses propres cartes d'abord (« OP17-… » dans OP17), puis celles d'autres extensions
+ * qu'elle contient (cartes spéciales EB04, réimpressions, promos), chacune dans l'ordre officiel.
+ */
+export function ownCardsFirst(cards, setId) {
+  const own = (c) => c.number.split('-')[0].replace('-', '') === setId;
+  return [...cards.filter(own), ...cards.filter((c) => !own(c))];
+}

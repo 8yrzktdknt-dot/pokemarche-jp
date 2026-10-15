@@ -40,10 +40,11 @@ export async function refreshCollectionPrices<E extends Entry>(entries: E[], loa
     const f = withVariant(base, e.card.variant);
     const same = JSON.stringify(f.prices) === JSON.stringify(e.card.prices)
       && JSON.stringify(f.marketIds ?? null) === JSON.stringify(e.card.marketIds ?? null)
-      && JSON.stringify(f.variants ?? null) === JSON.stringify(e.card.variants ?? null);
+      && JSON.stringify(f.variants ?? null) === JSON.stringify(e.card.variants ?? null)
+      && f.imageSmall === e.card.imageSmall;
     if (same) return e;
     changed = true;
-    return { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds ?? e.card.marketIds, variants: f.variants, variant: f.variant } };
+    return { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds ?? e.card.marketIds, variants: f.variants, variant: f.variant, imageSmall: f.imageSmall ?? e.card.imageSmall, imageLarge: f.imageLarge ?? e.card.imageLarge } };
   });
   return changed ? next : null;
 }
