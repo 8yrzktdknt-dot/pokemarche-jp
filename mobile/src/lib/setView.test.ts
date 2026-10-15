@@ -14,7 +14,7 @@ const cards = [
   mk('002', 'Herbizarre', 'Ann', [['normal', 0.3]]),
   mk('003', 'Florizarre', 'Max', [['holo', 5]]),
 ];
-const owned = new Map([['pokemon:fr:001#reverse', 2], ['pokemon:fr:003#holo', 1]]);
+const owned = new Map([['pokemon:fr:001#reverse', 2], ['pokemon:fr:003', 1]]);
 const qty = (c: Card) => owned.get(collectionKey(c)) ?? 0;
 const ids = (o: Partial<typeof DEFAULT_SET_VIEW>) => setView(cards, { ...DEFAULT_SET_VIEW, ...o }, qty, (c) => c.name).map((t) => t.key);
 

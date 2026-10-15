@@ -48,9 +48,10 @@ export function Chip({ label, active, onPress }: { label: string; active?: boole
 export function GamePicker({
   value, onChange, allowAuto,
 }: { value: GameId | 'auto'; onChange(g: GameId | 'auto'): void; allowAuto?: boolean }) {
+  const { t } = useStore();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
-      {allowAuto && <Chip label="Auto" active={value === 'auto'} onPress={() => onChange('auto')} />}
+      {allowAuto && <Chip label={t('lang.auto')} active={value === 'auto'} onPress={() => onChange('auto')} />}
       {GAME_LIST.map((g) => (
         <Chip key={g.id} label={g.label} active={value === g.id} onPress={() => onChange(g.id)} />
       ))}

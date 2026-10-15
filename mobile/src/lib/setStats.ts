@@ -39,6 +39,15 @@ const numberOf = (c: Card) => {
   return /^\d+$/.test(head) ? Number(head) : undefined;
 };
 
+/**
+ * Numéro qui identifie la carte dans l'extension : « 056/103 » → « 056 » ; un numéro sans total numérique reste
+ * entier (« R/RGB » ≠ « R », l'énergie de base).
+ */
+const numberKey = (c: Card) => {
+  const n = c.number.trim().toUpperCase();
+  return (/\/\s*\d+$/.test(n) ? n.split('/')[0].trim() : n) || c.id;
+};
+
 /** Raretés des cartes de l'extension « normale » (les secrètes, AR, SR, SAR, UR…, sont numérotées après). */
 const BASE_RARITIES = new Set(['C', 'U', 'R', 'RR', 'RRR', 'ACE']);
 
@@ -92,7 +101,7 @@ export function setStats(
     const own = isOwned(c);
     const keys = c.variants?.length ? c.variants.map((v) => v.key) : [undefined];
     const ownedKeys = keys.filter((k) => (k && variantOwned ? variantOwned(c, k) : own)).length;
-    const mk = c.number.split('/')[0].trim().toUpperCase() || c.id;
+    const mk = numberKey(c);
     const m = masterByNumber.get(mk) ?? { cards: 0, variants: 0, owned: 0 };
     m.cards++;
     m.variants = Math.max(m.variants, keys.length);
@@ -100,7 +109,7 @@ export function setStats(
     masterByNumber.set(mk, m);
     const n = numberOf(c);
     const group = printed && (n === undefined || n > printed) ? extra : base;
-    const key = c.number.split('/')[0].trim().toUpperCase() || c.id;
+    const key = numberKey(c);
     const seen = numbers.get(key);
     if (!seen) {
       numbers.set(key, { group, owned: own });
