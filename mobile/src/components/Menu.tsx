@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../lib/store';
 import { colors, fonts } from './theme';
 
@@ -16,10 +17,12 @@ export interface MenuItem {
 /** Menu d'actions ouvert par le bouton « ⋮ » en haut à droite, fermé par un appui à côté. */
 export function Menu({ open, onClose, items }: { open: boolean; onClose(): void; items: MenuItem[] }) {
   const { t } = useStore();
+  // Sous la barre d'état et l'en-tête (encoche, heure du téléphone) : jamais dans la zone floutée du haut.
+  const { top } = useSafeAreaInsets();
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} />
-      <View style={st.menu} accessibilityRole="menu">
+      <View style={[st.menu, { top: top + 72 }]} accessibilityRole="menu">
         {items.map((x) => (
           <Pressable
             key={x.label}
@@ -51,7 +54,7 @@ export function MenuButton({ onPress, label }: { onPress(): void; label: string 
 
 const st = StyleSheet.create({
   menu: {
-    position: 'absolute', top: 56, right: 12, minWidth: 260, maxWidth: 340, paddingVertical: 8,
+    position: 'absolute', right: 12, minWidth: 260, maxWidth: 340, paddingVertical: 8,
     backgroundColor: colors.card, borderRadius: 22, borderWidth: 1, borderColor: colors.line,
     shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 12,
   },
