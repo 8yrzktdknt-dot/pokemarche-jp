@@ -9,7 +9,7 @@ import { ReverseSheen } from '../../../components/ReverseSheen';
 import { VariantPicker } from '../../../components/VariantPicker';
 import { browseCard, neighbors } from '../../../lib/browse';
 import { rarityAbbr, rarityName } from '../../../lib/catalog/pokemonNames';
-import { localizeAttr, opRarity, typeConcept } from '../../../lib/attrValues';
+import { localizeAttr, opFeature, opRarity, typeConcept } from '../../../lib/attrValues';
 import { assetUrl } from '../../../lib/catalog/static';
 import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
@@ -87,6 +87,7 @@ function AttributeRow({ a, game, appLang, locale, label }: { a: CardAttribute; g
     value = abbr !== name ? `${abbr} · ${name}` : name;
   }
   if (a.key === 'rarity' && game === 'onepiece') value = opRarity(a.value, appLang);
+  if (game === 'onepiece' && a.key === 'feature') value = opFeature(a.value, appLang);
   if (game === 'pokemon' || (game === 'onepiece' && a.key !== 'rarity')) value = localizeAttr(a.key, value, appLang);
   return (
     <View style={st.attr}>

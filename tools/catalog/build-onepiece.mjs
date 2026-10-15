@@ -42,7 +42,8 @@ const CM_PRODUCTS = 'https://downloads.s3.cardmarket.com/productCatalog/productL
 const CM_SEALED = 'https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_18.json';
 export const CM_PRICES = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_18.json';
 
-const clean = (s) => unescapeHtml(unescapeHtml(s)).replace(/<br[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+// Saut de ligne au milieu d'un mot (« L'HÉRITA<br>GE ») : collé ; ailleurs : une espace.
+const clean = (s) => unescapeHtml(unescapeHtml(s)).replace(/(\S)<br[^>]*>(?=\S)/g, (m, a) => (/[\s-]/.test(a) ? `${a} ` : a)).replace(/<br[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** Options du sélecteur d'extensions : [{ value, label, code }]. */
 export function parseSeries(html) {
@@ -124,8 +125,19 @@ export function logoCandidates(site, id) {
   ]);
 }
 
-const TYPES = /^(BOOSTER PACK|EXTRA BOOSTER|PREMIUM BOOSTER|STARTER DECK EX|STARTER DECK|ULTRA DECK|DECK DE DÉMARRAGE EX|DECK DE DÉMARRAGE|DECK ULTRA|BOOSTER|ブースターパック|エクストラブースター|プレミアムブースター|スタートデッキEX|スタートデッキ|アルティメットデッキ)\s*/i;
-const titleCase = (s) => (s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()) : s);
+const TYPES = /^(BOOSTER PACK|EXTRA BOOSTER|PREMIUM BOOSTER|STARTER DECK EX|STARTER DECK|ULTRA DECK|DECK DE DÉMARRAGE EX|DECK DE DÉMARRAGE|DECK POUR DÉBUTANT\s*-?|DECK POUR DÉMARRAGE\s*-?|DECK ULTRA|BOOSTER|ブースターパック|エクストラブースター|プレミアムブースター|スタートデッキEX|スタートデッキ|アルティメットデッキ)\s*/i;
+/** Petits mots laissés en minuscules dans un titre (sauf en premier). */
+const SMALL = new Set(['of', 'the', 'on', 'in', 'into', 'and', 'a', 'an', 'to', 'for', 'le', 'la', 'les', 'de', 'du', 'des', 'au', 'aux', 'sur', 'et', 'en', 'à', 'un', 'une', 'comme']);
+/** Titre écrit tout en majuscules → casse de titre (« LES SEPT DE LA MER D'AZUR » → « Les Sept de la Mer d'Azur »). */
+const titleCase = (s) => {
+  if (s !== s.toUpperCase()) return s;
+  return s.toLowerCase().split(' ').map((w, i) => {
+    const m = w.match(/^([ld]')(.*)$/);
+    const cap = (x) => x.replace(/^(\P{L}*)(\p{L})/u, (_, a, b) => a + b.toUpperCase());
+    if (m) return (i === 0 ? m[1].toUpperCase() : m[1]) + cap(m[2]);
+    return i > 0 && SMALL.has(w) ? w : cap(w).replace(/-(\p{L})/gu, (_, b) => `-${b.toUpperCase()}`);
+  }).join(' ');
+};
 
 /** « BOOSTER PACK -AWAKENING OF THE NEW ERA- [OP-05] » → « Awakening Of The New Era » ; « ブースターパック 新時代の主役【OP-05】 » → « 新時代の主役 ». */
 export function setName(label) {
@@ -160,6 +172,27 @@ async function officialLists(lang, site) {
     sets.push({ id: setId(s.code), code: s.code, name: setName(s.label) || s.label, bloc, order: Number(s.value), entries });
   });
   return sets;
+}
+
+/**
+ * Types (équipages, organisations) dans les trois langues : la même carte (même id officiel) donne la correspondance,
+ * terme à terme (« Straw Hat Crew/Supernovas » ↔ « Équipage de Chapeau de paille/Supernovas »). [anglais, français, japonais].
+ */
+export function featureTable(lists) {
+  const byId = { en: new Map(), fr: new Map(), ja: new Map() };
+  for (const [lang, sets] of Object.entries(lists)) for (const s of sets) for (const e of s.entries) if (e.attrs?.feature) byId[lang]?.set(e.id, e.attrs.feature.split('/').map((x) => x.trim()));
+  const votes = new Map();
+  for (const [id, en] of byId.en) {
+    const fr = byId.fr.get(id), ja = byId.ja.get(id);
+    en.forEach((term, i) => {
+      const v = votes.get(term) ?? { fr: new Map(), ja: new Map() };
+      votes.set(term, v);
+      if (fr?.length === en.length) v.fr.set(fr[i], (v.fr.get(fr[i]) ?? 0) + 1);
+      if (ja?.length === en.length) v.ja.set(ja[i], (v.ja.get(ja[i]) ?? 0) + 1);
+    });
+  }
+  const best = (m) => [...m].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+  return [...votes].map(([en, v]) => [en, best(v.fr), best(v.ja)]).filter(([, fr, ja]) => fr || ja).sort((a, b) => a[0].localeCompare(b[0]));
 }
 
 export async function buildOnePiece() {
@@ -202,6 +235,8 @@ export async function buildOnePiece() {
       for (const e of s.entries) cardNames.set(e.id, { ...(cardNames.get(e.id) ?? {}), [lang]: e.name });
     }
   }
+
+  writeJson('names/onepiece-features.json', { langs: ['en', 'fr', 'ja'], features: featureTable(lists) });
 
   const logos = {};
   for (const lang of ['en', 'ja', 'fr']) {

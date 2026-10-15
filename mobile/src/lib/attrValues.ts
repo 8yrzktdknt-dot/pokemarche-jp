@@ -138,6 +138,20 @@ function one(kind: keyof typeof IDX, v: string, lang: string): string {
   return TABLE[kind][concept]?.[lang as Lang] ?? v;
 }
 
+/** Types One Piece (équipages…) : [anglais, français, japonais], publiés avec le catalogue (names/onepiece-features.json). */
+let FEATURES: Map<string, string[]> | null = null;
+export function setOpFeatures(rows: string[][] | null): void {
+  FEATURES = new Map();
+  for (const r of rows ?? []) for (const v of r) if (v && !FEATURES.has(norm(v))) FEATURES.set(norm(v), r);
+}
+const FEATURE_LANG: Record<string, number> = { en: 0, fr: 1, ja: 2 };
+/** « Straw Hat Crew/Supernovas » dans la langue de l'app (français, japonais, sinon anglais). */
+export function opFeature(value: string, lang: string): string {
+  if (!FEATURES) return value;
+  const i = FEATURE_LANG[lang] ?? 0;
+  return value.split('/').map((v) => { const r = FEATURES!.get(norm(v)); return (r && (r[i] || r[0])) || v.trim(); }).join(' / ');
+}
+
 /** Valeur d'un attribut dans la langue de l'app (types « A / B », catégories « Dresseur · Objet »). */
 export function localizeAttr(key: AttributeKey, value: string, lang: string): string {
   if (key === 'type') return value.split(' / ').map((v) => one('type', v, lang)).join(' / ');

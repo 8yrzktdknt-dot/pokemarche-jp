@@ -35,7 +35,7 @@ test('cartes d\'une page officielle (extrait réel)', () => {
 });
 
 test('noms des extensions', () => {
-  assert.equal(setName('BOOSTER PACK -AWAKENING OF THE NEW ERA- [OP-05]'), 'Awakening Of The New Era');
+  assert.equal(setName('BOOSTER PACK -AWAKENING OF THE NEW ERA- [OP-05]'), 'Awakening of the New Era');
   assert.equal(setName('エクストラブースター EGGHEAD CRISIS【EB-04】'), 'Egghead Crisis');
   assert.equal(setName('ブースターパック 新時代の主役【OP-05】'), '新時代の主役');
   assert.equal(setName('STARTER DECK EX -Luffy & Ace- [ST-30]'), 'Luffy & Ace');
@@ -55,4 +55,15 @@ test('logo de la page produit officielle (dossier aléatoire ou relatif)', () =>
   );
   assert.equal(parseProductLogo('<img src="./images/logo_3rd-anniv.webp"><img src="./images/mv/logo.webp">', page), 'https://www.onepiece-cardgame.com/products/boosters/images/mv/logo.webp');
   assert.equal(parseProductLogo('<img src="/renewal/images/common/logo_op.png">', page), undefined);
+});
+
+test('types One Piece dans les trois langues, terme à terme', async () => {
+  const { featureTable } = await import('./build-onepiece.mjs');
+  const entry = (id, feature) => ({ id, attrs: { feature } });
+  const t = featureTable({
+    en: [{ entries: [entry('OP01-001', 'Supernovas/Straw Hat Crew'), entry('OP01-016', 'Straw Hat Crew')] }],
+    fr: [{ entries: [entry('OP01-001', 'Supernovas/Équipage de Chapeau de paille'), entry('OP01-016', 'Équipage de Chapeau de paille')] }],
+    ja: [{ entries: [entry('OP01-016', '麦わらの一味')] }],
+  });
+  assert.deepEqual(t, [['Straw Hat Crew', 'Équipage de Chapeau de paille', '麦わらの一味'], ['Supernovas', 'Supernovas', '']]);
 });
