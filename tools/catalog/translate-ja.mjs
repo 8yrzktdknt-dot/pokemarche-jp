@@ -57,6 +57,25 @@ const STAPLES = {
   '勝利の勲章': ['Victory Medal', 'Victory Medal'],
 };
 
+/**
+ * Traductions provisoires des cartes pas encore sorties hors du Japon (aucun nom officiel anglais ni français) :
+ * utilisées seulement tant que Limitless ne donne pas de version internationale, puis remplacées par les noms
+ * officiels (carte marquée « tr » et jamais gardée dans le cache des noms).
+ */
+const PROVISIONAL = {
+  // Storm Emeralda (M6)
+  'おいしいおむすび': ['Tasty Rice Ball', 'Délicieux Onigiri'],
+  'ぼうけんのランタン': ['Adventure Lantern', "Lanterne d'Aventure"],
+  'とくちゅうチョッキ': ['Custom-Made Vest', 'Gilet sur Mesure'],
+  'メガレックウザキャップ': ['Mega Rayquaza Cap', 'Casquette Méga-Rayquaza'],
+  'ギリー': ['Gilly', 'Gilly'],
+  'ヒガナの信頼': ["Zinnia's Trust", 'Confiance de Zinnia'],
+  'フウとランの修行': ["Tate & Liza's Training", 'Entraînement de Lévy et Tatia'],
+  '伝説の海溝': ['Legendary Trench', 'Fosse Légendaire'],
+  '伝説の山頂': ['Legendary Summit', 'Sommet Légendaire'],
+  '伝説の溶岩洞': ['Legendary Lava Cave', 'Caverne de Lave Légendaire'],
+};
+
 /** Énergies de base : « 基本水エネルギー » → Basic Water Energy / Énergie Eau de base. */
 const ENERGY = {
   草: ['Grass', 'Plante'], 炎: ['Fire', 'Feu'], 水: ['Water', 'Eau'], 雷: ['Lightning', 'Électrique'], 超: ['Psychic', 'Psy'],
@@ -82,7 +101,7 @@ export async function translateRemaining() {
   const todo = new Map();
   for (const { f, cards } of decks) {
     for (const c of cards) {
-      if (c.nameEn || known[c.name]) continue;
+      if ((c.nameEn && !c.tr) || known[c.name]) continue;
       const energy = basicEnergy(c.name) ?? STAPLES[c.name];
       if (energy) { known[c.name] = energy; continue; }
       if (!/^\d+$/.test(c.localId)) continue;
@@ -111,8 +130,20 @@ export async function translateRemaining() {
   for (const { f, cards } of decks) {
     let changed = false;
     for (const c of cards) {
-      const t = !c.nameEn && known[c.name];
-      if (t) { c.nameEn = t[0]; c.nameFr = c.nameFr ?? t[1]; changed = true; translated++; }
+      const t = (!c.nameEn || c.tr) && known[c.name];
+      if (t) {
+        // Nom officiel (remplace une traduction provisoire).
+        c.nameEn = t[0];
+        c.nameFr = c.tr ? t[1] : c.nameFr ?? t[1];
+        delete c.tr;
+        changed = true;
+        translated++;
+      } else if (!c.nameEn && PROVISIONAL[c.name]) {
+        [c.nameEn, c.nameFr] = PROVISIONAL[c.name];
+        c.tr = 1;
+        changed = true;
+        translated++;
+      }
     }
     if (changed) writeJson(`cards/pokemon-ja/${f}`, cards);
   }

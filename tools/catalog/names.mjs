@@ -15,6 +15,19 @@ const TRAINERS = {
   'ハルカ': ['May', 'Flora'], 'ヒカリ': ['Dawn', 'Aurore'], 'セレナ': ['Serena', 'Serena'], 'スティーブン': ['Steven', 'Pierre Rochard'],
   'ミモザ': ['Miriam', 'Mimosa'], 'ハッサク': ['Hassel', 'Hassaku'], 'リップ': ['Tulip', 'Tulipe'], 'ライム': ['Ryme', 'Laïm'],
   'グルーシャ': ['Grusha', 'Grusha'], 'チリ': ['Rika', 'Chili'], 'ポピー': ['Poppy', 'Popi'], 'オモダカ': ['Geeta', 'Alisma'],
+  'サトシ': ['Ash', 'Sacha'],
+};
+// Formes au nom officiel propre (anglais, français).
+const FORMS = {
+  'ヒートロトム': ['Heat Rotom', 'Motisma Chaleur'], 'ウォッシュロトム': ['Wash Rotom', 'Motisma Lavage'],
+  'フロストロトム': ['Frost Rotom', 'Motisma Froid'], 'スピンロトム': ['Fan Rotom', 'Motisma Hélice'], 'カットロトム': ['Mow Rotom', 'Motisma Tonte'],
+  'オリジンパルキア': ['Origin Forme Palkia', 'Palkia Originel'], 'オリジンディアルガ': ['Origin Forme Dialga', 'Dialga Originel'],
+  'オリジンギラティナ': ['Origin Forme Giratina', 'Giratina Originel'],
+  'ウルトラネクロズマ': ['Ultra Necrozma', 'Ultra-Necrozma'],
+  'ネクロズマ あかつきのつばさ': ['Dawn Wings Necrozma', "Necrozma Ailes de l'Aurore"],
+  'ネクロズマ たそがれのたてがみ': ['Dusk Mane Necrozma', 'Necrozma Crinière du Couchant'],
+  'ホワイトキュレム': ['White Kyurem', 'Kyurem Blanc'], 'ブラックキュレム': ['Black Kyurem', 'Kyurem Noir'],
+  'サトシゲッコウガ': ['Ash-Greninja', 'Amphinobi de Sacha'], '名探偵ピカチュウ': ['Detective Pikachu', 'Détective Pikachu'],
 };
 // Préfixes d'anciennes cartes (« ひかるセレビィ » → « Shining Celebi », « わるいバンギラス » → « Dark Tyranitar »).
 const PREFIXES = { 'ひかる': ['Shining', 'brillant'], 'わるい': ['Dark', 'obscur'] };
@@ -48,6 +61,8 @@ const fullWidth = (s) => s.replace(/[A-Za-z0-9]/g, (ch) => String.fromCharCode(c
 
 function species(raw) {
   const ja = raw.trim();
+  const form = FORMS[ja] ?? FORMS[ja.normalize('NFKC')];
+  if (form) return form;
   if (table.has(ja)) return table.get(ja);
   if (table.has(fullWidth(ja))) return table.get(fullWidth(ja));
   if (table.has(ja.normalize('NFKC'))) return table.get(ja.normalize('NFKC'));
