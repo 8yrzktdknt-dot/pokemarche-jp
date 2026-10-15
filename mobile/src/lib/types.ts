@@ -59,6 +59,10 @@ export interface CardVariant {
   priceTier?: 'avg30' | 'avg' | 'trend' | 'low';
   /** N° produit TCGplayer de la variante quand elle a sa propre photo (Poké Ball, Master Ball, motifs japonais). */
   tcgplayer?: number;
+  /** Visuel propre à la variante (One Piece : parallèles, réimpressions). */
+  image?: string;
+  /** Identifiant officiel de la version (One Piece : « OP01-120_p1 »). */
+  official?: string;
 }
 
 export type AttributeKey =

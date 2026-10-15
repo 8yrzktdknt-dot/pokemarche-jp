@@ -105,11 +105,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCollection((current) => {
         refreshCollectionPrices(current, async (game, setId, lang) => (await GAMES[game].setCards(setId, lang)).cards).then((next) => {
           if (!alive || !next) return;
-          const fresh = new Map(next.map((e) => [keyOf(e.card), e.card]));
+          // Par clé d'origine : une ancienne carte One Piece (une version = une carte) devient une carte et sa variante.
+          const fresh = new Map(next.map((e, i) => [keyOf(current[i].card), e.card]));
           // Fusion avec l'état le plus récent (des cartes ont pu être ajoutées pendant le chargement).
           setCollection((now) => now.map((e) => {
             const f = fresh.get(keyOf(e.card));
-            return f && f !== e.card ? { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds, variants: f.variants } } : e;
+            return f && f !== e.card
+              ? { ...e, card: { ...e.card, id: f.id, variant: f.variant, imageSmall: f.imageSmall, imageLarge: f.imageLarge, prices: f.prices, marketIds: f.marketIds, variants: f.variants } }
+              : e;
           }));
         });
         return current;

@@ -62,7 +62,7 @@ export default function SetStatsScreen() {
         <View style={{ flex: 1, gap: 6 }}>
           <Line label={t('setStats.master')} value={`${stats.master.owned} / ${stats.master.total}`} pct={percent(stats.master)} />
           <Line label={t('setStats.base')} value={`${stats.base.owned} / ${stats.base.total}`} pct={percent(stats.base)} />
-          <Line label={t('setStats.extra')} value={`${stats.extra.owned} / ${stats.extra.total}`} pct={percent(stats.extra)} />
+          {stats.extra.total > 0 && <Line label={t('setStats.extra')} value={`${stats.extra.owned} / ${stats.extra.total}`} pct={percent(stats.extra)} />}
           <Line label={t('setStats.copies')} value={String(copies)} />
         </View>
       </View>

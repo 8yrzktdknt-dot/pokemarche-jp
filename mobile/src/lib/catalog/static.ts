@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { getJson } from '../http';
+import { withVariant } from '../variants.ts';
 import { cardmarketPrice } from '../prices/cardmarket';
 import { distinct, normalize, sortCards } from '../search';
 import type { AttributeKey, Bloc, Card, CardAttribute, CardVariant, CardLang, FilterOptions, GameId, Price, SearchFilters, SetInfo } from '../types';
@@ -82,7 +83,7 @@ export interface StaticCard {
   /** Noms dans d'autres langues (tools/catalog : TCGdex de/es/it/pt, japonais ↔ chinois traditionnel). */
   n?: Partial<Record<string, string>>;
   /** Variantes : clé, n° produit Cardmarket, moyenne 7 jours (tools/catalog/variants.mjs). */
-  v?: { k: string; id?: number; p?: number; tp?: number; t?: 'avg30' | 'avg' | 'trend' | 'low' }[];
+  v?: { k: string; id?: number; p?: number; tp?: number; t?: 'avg30' | 'avg' | 'trend' | 'low'; img?: string; o?: string }[];
   /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
   cmPath?: string;
 }
@@ -147,7 +148,7 @@ export interface StaticRow {
   /** Noms dans d'autres langues. */
   names?: Partial<Record<string, string>>;
   /** Variantes [clé, n° produit Cardmarket, moyenne 7 jours]. */
-  variants?: [string, number, number, number?, (string | 0)?][];
+  variants?: [string, number, number, number?, (string | 0)?, (string | 0)?, (string | 0)?][];
   cardmarket?: number;
   cmPath?: string;
 }
@@ -193,11 +194,12 @@ function staticPrices(c: StaticCard | StaticRow): Price[] {
 
 /** Variantes du catalogue (fiche d'extension ou ligne de recherche) au format de l'app. */
 function variantsOf(c: StaticCard | StaticRow): CardVariant[] | undefined {
-  const list = 'v' in c && c.v ? c.v.map((v) => [v.k, v.id ?? 0, v.p ?? 0, v.tp ?? 0, v.t ?? 0] as const) : 'variants' in c && c.variants ? c.variants : undefined;
+  const list = 'v' in c && c.v ? c.v.map((v) => [v.k, v.id ?? 0, v.p ?? 0, v.tp ?? 0, v.t ?? 0, v.img ?? 0, v.o ?? 0] as const) : 'variants' in c && c.variants ? c.variants : undefined;
   return list?.length
-    ? list.map(([key, id, p, tp, t]) => ({
+    ? list.map(([key, id, p, tp, t, img, o]) => ({
       key, ...(id ? { cardmarket: id } : {}), ...(p ? { price: p } : {}), ...(tp ? { tcgplayer: tp } : {}),
       ...(t === 'avg30' || t === 'avg' || t === 'trend' || t === 'low' ? { priceTier: t } : {}),
+      ...(img ? { image: img } : {}), ...(o ? { official: o } : {}),
     }))
     : undefined;
 }
@@ -246,7 +248,7 @@ export async function staticSetCardsAsApp(game: GameId, lang: CardLang, setId: s
   if (!cards) return null;
   const st = blocs?.flatMap((b) => b.sets.map((x) => ({ ...x, blocId: b.id }))).find((x) => x.id === setId);
   const set: SetInfo | null = st ? { id: st.id, code: st.code, name: st.name, names: namesOf(st), logo: assetUrl(st.logo), count: st.count, blocId: st.blocId } : null;
-  return { set, cards: cards.map((c) => staticToCard(game, lang, c, { id: setId, name: st?.name })) };
+  return { set, cards: cards.map((c) => staticToCard(game, lang, c, { id: setId, name: st?.name, releaseDate: st?.releaseDate })) };
 }
 
 /** « M6 110 », « SV4a-123 », « OP05-119 » → extension + numéro. */
@@ -299,12 +301,16 @@ export async function staticSearch(
 export async function staticGetCard(game: GameId, lang: CardLang, id: string): Promise<Card | null> {
   const blocsP = staticBlocs(game, lang);
   const fromSet = async (setId: string) => {
-    const c = (await staticSetCards(game, lang, setId))?.find((x) => x.id === id);
+    const cards = await staticSetCards(game, lang, setId);
+    // Version officielle (One Piece « OP01-120_p1 ») : la carte, vue dans cette variante.
+    const c = cards?.find((x) => x.id === id) ?? cards?.find((x) => x.v?.some((v) => v.o === id));
     if (!c) return null;
     const set = (await blocsP)?.flatMap((b) => b.sets).find((x) => x.id === setId);
-    return staticToCard(game, lang, c, { id: setId, name: set?.name, releaseDate: set?.releaseDate });
+    const card = staticToCard(game, lang, c, { id: setId, name: set?.name, releaseDate: set?.releaseDate });
+    const key = c.id !== id ? c.v?.find((v) => v.o === id)?.k : undefined;
+    return key ? withVariant(card, key) : card;
   };
-  const guess = id.includes('-') ? id.slice(0, id.lastIndexOf('-')) : '';
+  const guess = id.includes('-') ? id.replace(/_[pr]\d+$/, '').slice(0, id.lastIndexOf('-')) : '';
   const direct = guess ? await fromSet(guess) : null;
   if (direct) return direct;
   const r = (await staticSearchRows(game, lang))?.find((x) => x.id === id);

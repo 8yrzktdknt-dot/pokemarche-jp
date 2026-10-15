@@ -5,9 +5,9 @@ import { staticBlocs, staticFilterOptions, staticGetCard, staticSearch, staticSe
 import type { Bloc, Card, CardLang, FilterOptions, GameProvider, Price, ScanHint, SearchFilters, SetInfo } from '../types.ts';
 
 /**
- * One Piece Card Game via OPTCG API (https://optcgapi.com), sans clé, données anglaises
- * avec prix TCGplayer. Le code carte (OP05-119) est identique dans toutes les langues ;
- * seules les images officielles changent selon la langue.
+ * One Piece Card Game : catalogue publié avec l'app (listes officielles anglaise, japonaise et française, variantes,
+ * prix Cardmarket) ; en secours, OPTCG API (https://optcgapi.com), sans clé, données anglaises.
+ * Le code carte (OP05-119) est identique dans toutes les langues ; seules les images officielles changent.
  */
 const API = 'https://optcgapi.com/api';
 const DAY = 24 * 3600 * 1000;
@@ -137,7 +137,10 @@ async function search(f: SearchFilters, lang: CardLang): Promise<Card[]> {
 }
 
 async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
-  const cards = await byCode(hint.code, lang);
+  // Catalogue d'abord (variantes et prix Cardmarket) : la carte de ce numéro dans son extension.
+  const setId = hint.code.split('-')[0];
+  const fromCatalog = (await staticSetCardsAsApp('onepiece', lang, setId).catch(() => null))?.cards.filter((c) => c.number === hint.code) ?? [];
+  const cards = fromCatalog.length ? fromCatalog : await byCode(hint.code, lang);
   return cards.sort((a, b) => nameScore(b.name, hint.text) - nameScore(a.name, hint.text));
 }
 

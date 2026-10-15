@@ -23,6 +23,8 @@ const PARTS: Record<string, Labels> = {
   ultraball: L('Hyper Ball Holo', 'Ultra Ball Holo', 'ハイパーボール柄', '高級球紋', '高级球纹', 'Holo Ultra Ball', 'Holo Ultra Ball', 'Hyperball-Holo', 'Ultra Ball-holo', 'Holo Ultra Bola', 'Голо Ультра-бол', 'โฮโลไฮเปอร์บอล', '하이퍼볼 홀로'),
   '1st-edition': L('1re édition', '1st Edition', '初版', '初版', '初版', '1.ª edición', '1ª edizione', '1. Edition', '1e editie', '1ª edição', '1-е издание', 'พิมพ์ครั้งแรก', '초판'),
   shadowless: L('Sans ombre', 'Shadowless', 'シャドウレス', '無陰影', '无阴影', 'Sin sombra', 'Senza ombra', 'Ohne Schatten', 'Zonder schaduw', 'Sem sombra', 'Без тени', 'ไม่มีเงา', '섀도리스'),
+  parallel: L('Parallèle', 'Parallel', 'パラレル', '平行卡', '平行卡', 'Paralela', 'Parallela', 'Parallel', 'Parallel', 'Paralela', 'Параллельная', 'พาราเรล', '패럴렐'),
+  reprint: L('Réimpression', 'Reprint', '再録', '再錄', '再录', 'Reimpresión', 'Ristampa', 'Neudruck', 'Herdruk', 'Reimpressão', 'Переиздание', 'พิมพ์ซ้ำ', '재록'),
   stamp: L('tampon', 'stamp', 'スタンプ', '印章', '印章', 'sello', 'timbro', 'Stempel', 'stempel', 'carimbo', 'штамп', 'ตราประทับ', '스탬프'),
 };
 
@@ -41,6 +43,9 @@ export function variantLabel(key: string, lang: string): string {
   return key.split('|').map((part, i) => {
     const known = PARTS[part]?.[l];
     if (known) return known;
+    // Parallèle n° 2, 3… (One Piece : « parallel-2 »).
+    const numbered = part.match(/^(parallel|reprint)-(\d+)$/);
+    if (numbered) return `${PARTS[numbered[1]][l]} ${numbered[2]}`;
     // Motif sans libellé (« reverse-cosmos ») : reverse + nom du motif ; tampon (« 30th-pokeday ») : « tampon 30th Pokeday ».
     if (i === 0 && part.startsWith('reverse-')) {
       const motif = part.slice(8);
@@ -77,8 +82,8 @@ export function withVariant(card: Card, key?: string): Card {
   const price = cardmarketPrice({ [v.priceTier ?? 'avg7']: v.price });
   const base = card.variants?.[0];
   const own = v.cardmarket && v.cardmarket !== base?.cardmarket;
-  // Photo de la variante (fiche TCGplayer à part) ; sinon le visuel de la carte de base (gardé à part).
-  const image = v.tcgplayer ? variantImage(v.tcgplayer) : undefined;
+  // Visuel de la variante (One Piece : visuel officiel ; Pokémon : fiche TCGplayer à part) ; sinon celui de la carte de base.
+  const image = v.image ? { small: v.image, large: v.image } : v.tcgplayer ? variantImage(v.tcgplayer) : undefined;
   const baseImage = card.baseImage ?? { small: card.imageSmall, large: card.imageLarge };
   return {
     ...card,
@@ -100,6 +105,7 @@ export function variantImage(tcgplayer: number): { small: string; large: string 
 /** Variante brillante sans photo à elle (reverse, motif sans fiche à part) : le visuel reçoit un effet reflet. */
 export function needsSheen(card: Card, key?: string): boolean {
   const v = card.variants?.find((x) => x.key === (key ?? card.variant));
+  if (v?.image) return false;
   const k = (v?.key ?? key ?? '').split('|')[0];
   return !v?.tcgplayer && (k.startsWith('reverse') || /ball$/.test(k));
 }

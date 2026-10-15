@@ -20,7 +20,7 @@ export interface Point {
 const INTL = new Set<CardLang>(['de', 'es', 'it', 'pt']);
 const PUBLISHED: Record<GameId, CardLang[]> = {
   pokemon: ['en', 'fr', 'ja', 'zh-tw', 'zh-cn'],
-  onepiece: ['en', 'ja'],
+  onepiece: ['en', 'ja', 'fr'],
   riftbound: ['en', 'fr'],
 };
 
