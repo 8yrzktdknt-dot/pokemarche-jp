@@ -31,6 +31,8 @@ export interface Settings {
   scanLang?: CardLang | 'auto';
   /** Scanner en continu sans appuyer sur le déclencheur. */
   scanAuto?: boolean;
+  /** Extensions favorites (« pokemon:fr:sv10 »), en tête de l'onglet Extensions. */
+  favoriteSets?: string[];
 }
 
 interface Store {
@@ -40,6 +42,10 @@ interface Store {
   collection: CollectionEntry[];
   add(card: Card): void;
   remove(card: Card): void;
+  /** Plusieurs cartes d'un coup : un exemplaire de plus chacune, ou seulement celles qui manquent (`missingOnly`). */
+  addMany(cards: Card[], missingOnly?: boolean): void;
+  /** Un exemplaire de moins pour chaque carte. */
+  removeMany(cards: Card[]): void;
   clear(): void;
   t: T;
   /** Langue de l'interface effective (réglage « auto » résolu avec la langue de l'appareil). */
@@ -196,6 +202,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const addMany = useCallback((cards: Card[], missingOnly = false) => {
+    setCollection((prev) => {
+      const index = new Map(prev.map((e, i) => [keyOf(e.card), i]));
+      const next = [...prev];
+      const now = Date.now();
+      let added = 0;
+      for (const card of cards) {
+        const i = index.get(keyOf(card));
+        if (i === undefined) {
+          index.set(keyOf(card), next.length);
+          next.push({ card, quantity: 1, addedAt: now });
+          added++;
+        } else if (!missingOnly) {
+          next[i] = { ...next[i], card, quantity: next[i].quantity + 1 };
+          added++;
+        }
+      }
+      return added ? next : prev;
+    });
+  }, []);
+
+  const removeMany = useCallback((cards: Card[]) => {
+    const keys = new Set(cards.map(keyOf));
+    setCollection((prev) => prev.map((e) => (keys.has(keyOf(e.card)) ? { ...e, quantity: e.quantity - 1 } : e)).filter((e) => e.quantity > 0));
+  }, []);
+
   const clear = useCallback(() => setCollection([]), []);
 
   const setSettings = useCallback((s: Partial<Settings>) => setSettingsState((prev) => ({ ...prev, ...s })), []);
@@ -216,8 +248,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [settings.appLang, settings.currency, rates, namesReady]);
 
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, clear, user, sync, recovery, endRecovery, ...helpers }),
-    [ready, settings, setSettings, collection, add, remove, clear, user, sync, recovery, endRecovery, helpers],
+    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, sync, recovery, endRecovery, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, sync, recovery, endRecovery, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
