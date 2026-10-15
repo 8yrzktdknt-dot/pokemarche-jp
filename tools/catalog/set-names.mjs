@@ -73,10 +73,15 @@ export async function buildSetNames({ online = true } = {}) {
   // Japonais ↔ chinois traditionnel : mêmes codes d'extension.
   const ja = new Map((files.ja?.blocs ?? []).flatMap((b) => b.sets.map((s) => [s.id.toLowerCase(), s])));
   const tw = new Map((files['zh-tw']?.blocs ?? []).flatMap((b) => b.sets.map((s) => [s.id.toLowerCase(), s])));
+  // Extension japonaise au même nom anglais qu'une extension internationale (« 30th Celebration » = 30th) :
+  // ses noms officiels dans les autres langues (« 30ᵉ Anniversaire »…). Les autres gardent leur nom anglais officiel.
+  const key = (n) => (n ?? '').toLowerCase().replace(/&/g, 'and').normalize('NFKD').replace(/[^a-z0-9]/g, '');
+  const intlByName = new Map((files.en?.blocs ?? []).flatMap((b) => b.sets.map((s) => [key(s.name), s.names])));
   const asian = (id, en) => {
     const j = ja.get(id.toLowerCase());
     const t = tw.get(id.toLowerCase())?.nameLocal;
-    return clean({ en: en ?? j?.name, ja: j?.nameLocal, 'zh-tw': t, 'zh-cn': t ? t2s(t) : undefined });
+    const intl = intlByName.get(key(en ?? j?.name));
+    return clean({ ...(intl ?? {}), en: en ?? j?.name, ja: j?.nameLocal, 'zh-tw': t, 'zh-cn': t ? t2s(t) : undefined });
   };
   for (const b of files.ja?.blocs ?? []) for (const s of b.sets) s.names = asian(s.id, s.name);
   for (const b of files['zh-tw']?.blocs ?? []) {

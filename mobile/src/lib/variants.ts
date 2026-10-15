@@ -106,7 +106,9 @@ export function needsSheen(card: Card, key?: string): boolean {
 
 /** Clé d'une carte de la collection : une entrée par carte et par variante (sans variante choisie : la première). */
 export function collectionKey(c: Card): string {
-  const v = c.variant ?? c.variants?.[0]?.key;
+  // Variante de base (la première) sans suffixe : une carte ajoutée avant les variantes, ou dont la variante de base
+  // a changé de nom (normale → holo), reste la même entrée.
+  const v = c.variant && c.variant !== c.variants?.[0]?.key ? c.variant : undefined;
   return `${c.game}:${c.lang}:${c.id}${v ? `#${v}` : ''}`;
 }
 

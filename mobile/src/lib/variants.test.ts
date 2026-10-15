@@ -21,9 +21,11 @@ test('withVariant : prix et fiche Cardmarket de la variante', () => {
 });
 
 test('collectionKey : une entrée par variante, la première par défaut', () => {
-  assert.equal(collectionKey(card), 'pokemon:fr:sv08.5-001#normal');
+  assert.equal(collectionKey(card), 'pokemon:fr:sv08.5-001');
+  assert.equal(collectionKey(withVariant(card, 'normal')), 'pokemon:fr:sv08.5-001');
   assert.equal(collectionKey(withVariant(card, 'pokeball')), 'pokemon:fr:sv08.5-001#pokeball');
-  assert.equal(collectionKey({ ...card, variants: undefined }), 'pokemon:fr:sv08.5-001');
+  // Carte ajoutée avant les variantes : c'est la variante de base.
+  assert.equal(collectionKey({ ...card, variants: undefined }), collectionKey(withVariant(card, 'normal')));
 });
 
 test('variantLabel : libellés traduits, tampons et motifs inconnus', () => {
@@ -35,4 +37,13 @@ test('variantLabel : libellés traduits, tampons et motifs inconnus', () => {
   assert.equal(variantLabel('reverse-quickball', 'fr'), 'Rapide Ball Holo');
   assert.equal(variantLabel('reverse-loveball', 'en'), 'Love Ball Holo');
   assert.equal(variantLabel('normal', 'xx'), 'Normal');
+});
+
+test('variantOwnership : les cartes ajoutées avant les variantes comptent pour la variante de base', async () => {
+  const { variantOwnership } = await import('./variants.ts');
+  const old: Card = { game: 'pokemon', id: 'M6a-001', lang: 'ja', name: 'x', number: '001', prices: [] };
+  const now: Card = { ...old, variants: [{ key: 'holo' }] };
+  const owned = variantOwnership([{ card: old, quantity: 1 }]);
+  assert.equal(owned(now, 'holo'), true);
+  assert.equal(owned(card, 'reverse'), false);
 });
