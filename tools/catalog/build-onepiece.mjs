@@ -234,7 +234,9 @@ export async function buildOnePiece() {
     };
     const mine = await saveLogos(sets, `onepiece-${lang}`, async (x) => {
       if (lang === 'en') { const o = await official(x); return [scrydexLogo(x.id, 'onepiece'), o.logo, o.banner]; }
-      if (lang === 'fr') return [(await official(x)).logo];
+      // Français : seulement le logo du visuel principal (« mv/logo ») ; la page peut montrer d'autres emblèmes
+      // (anniversaire…).
+      if (lang === 'fr') { const o = await official(x); return [o.logo && /\/mv\/logo\./.test(o.logo) ? o.logo : null]; }
       if (logos.en?.has(x.id)) return [];
       const o = await official(x);
       return [scrydexLogo(`${x.id}_ja`, 'onepiece'), o.logo, scrydexLogo(x.id, 'onepiece'), o.banner];

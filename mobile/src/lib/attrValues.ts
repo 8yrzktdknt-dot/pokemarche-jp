@@ -76,6 +76,27 @@ Object.assign(CATEGORIES, {
   opStage: L('Lieu', 'Stage', 'ステージ', '場地', '场地', 'Escenario', 'Luogo', 'Ort', 'Locatie', 'Cenário', 'Сцена', 'สเตจ', '스테이지'),
 });
 
+/** One Piece : raretés (abréviation imprimée → nom). */
+const OP_RARITIES: Record<string, Labels> = {
+  L: L('Leader', 'Leader', 'リーダー', '領袖', '领袖', 'Líder', 'Leader', 'Leader', 'Leader', 'Líder', 'Лидер', 'ลีดเดอร์', '리더'),
+  C: L('Commune', 'Common', 'コモン', '普通', '普通', 'Común', 'Comune', 'Gewöhnlich', 'Gewoon', 'Comum', 'Обычная', 'คอมมอน', '커먼'),
+  UC: L('Peu commune', 'Uncommon', 'アンコモン', '非普通', '非普通', 'Infrecuente', 'Non comune', 'Ungewöhnlich', 'Ongewoon', 'Incomum', 'Необычная', 'อันคอมมอน', '언커먼'),
+  R: L('Rare', 'Rare', 'レア', '稀有', '稀有', 'Rara', 'Rara', 'Selten', 'Zeldzaam', 'Rara', 'Редкая', 'แรร์', '레어'),
+  SR: L('Super rare', 'Super Rare', 'スーパーレア', '超稀有', '超稀有', 'Súper rara', 'Super rara', 'Super selten', 'Super zeldzaam', 'Super rara', 'Суперредкая', 'ซูเปอร์แรร์', '슈퍼 레어'),
+  SEC: L('Secrète', 'Secret Rare', 'シークレットレア', '秘密稀有', '秘密稀有', 'Secreta', 'Segreta', 'Geheim', 'Geheim', 'Secreta', 'Секретная', 'ซีเคร็ทแรร์', '시크릿 레어'),
+  SP: L('Carte SP', 'SP Card', 'SPカード', 'SP卡', 'SP卡', 'Carta SP', 'Carta SP', 'SP-Karte', 'SP-kaart', 'Carta SP', 'SP-карта', 'การ์ด SP', 'SP 카드'),
+  TR: L('Trésor rare', 'Treasure Rare', 'トレジャーレア', '寶藏稀有', '宝藏稀有', 'Tesoro rara', 'Tesoro rara', 'Schatz-Rare', 'Schat zeldzaam', 'Tesouro rara', 'Сокровище', 'เทรเชอร์แรร์', '트레저 레어'),
+  P: L('Promo', 'Promo', 'プロモ', '宣傳卡', '宣传卡', 'Promo', 'Promo', 'Promo', 'Promo', 'Promo', 'Промо', 'โปรโม', '프로모'),
+};
+
+/** Rareté One Piece affichée : « SR · Super rare » (abréviation imprimée et nom dans la langue de l'app). */
+export function opRarity(value: string, lang: string): string {
+  const v = value.trim().toUpperCase();
+  const abbr = /^SP/.test(v) ? 'SP' : v;
+  const name = OP_RARITIES[abbr]?.[(OP_RARITIES.C[lang as Lang] ? lang : 'en') as Lang];
+  return name ? (abbr === 'SP' ? name : `${value} · ${name}`) : value;
+}
+
 /** Variantes des sources qui ne sont le libellé d'aucune langue. */
 const EXTRA: Record<'type' | 'stage' | 'category' | 'color' | 'attribute', Record<string, string>> = {
   color: {},
