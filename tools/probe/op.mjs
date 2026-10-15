@@ -1,22 +1,24 @@
-// Sondage One Piece : jeu Cardmarket, noms des produits et variantes, guide des prix.
+// One Piece Cardmarket : langue des extensions d'après les produits scellés (« … Booster Box (Japanese) »).
 const get = async (u) => { try { const r = await fetch(u); return r.ok ? r.json() : null; } catch { return null; } };
-for (let g = 1; g <= 30; g++) {
-  const p = await get(`https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_${g}.json`);
-  if (!p) continue;
-  const list = p.products ?? [];
-  console.log(`== jeu ${g} : ${list.length} produits ; ex. ${list.slice(0, 2).map((x) => JSON.stringify(x)).join(' ')}`);
-  if (!list.some((x) => /OP01-0\d\d/.test(x.name) || /Roronoa|Monkey\.?D/i.test(x.name))) continue;
-  console.log('   >>> ONE PIECE');
-  const show = (re) => list.filter((x) => re.test(x.name)).slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));
-  show(/Nami/); show(/Shanks/);
-  const exp = {};
-  for (const x of list) exp[x.idExpansion] = (exp[x.idExpansion] ?? 0) + 1;
-  console.log('   extensions', Object.keys(exp).length, JSON.stringify(Object.entries(exp).slice(0, 80)));
-  const cats = {};
-  for (const x of list) cats[x.categoryName] = (cats[x.categoryName] ?? 0) + 1;
-  console.log('   catégories', JSON.stringify(cats));
-  const g2 = await get(`https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_${g}.json`);
-  console.log('   guide', g2 && Object.keys(g2), g2?.createdAt, g2?.priceGuides?.length, JSON.stringify(g2?.priceGuides?.slice(0, 2)));
-  const ids = new Set(list.filter((x) => /Nami|Shanks/.test(x.name)).slice(0, 10).map((x) => x.idProduct));
-  for (const x of g2?.priceGuides ?? []) if (ids.has(x.idProduct)) console.log('   prix', JSON.stringify(x));
+const sealed = await get('https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_18.json');
+const singles = await get('https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_18.json');
+console.log('scellés', sealed && Object.keys(sealed), sealed?.products?.length, JSON.stringify(sealed?.products?.slice(0, 3)));
+const byExp = new Map();
+for (const p of sealed?.products ?? []) {
+  if (!byExp.has(p.idExpansion)) byExp.set(p.idExpansion, []);
+  byExp.get(p.idExpansion).push(p.name);
+}
+const singleExp = new Map();
+for (const p of singles?.products ?? []) {
+  const e = singleExp.get(p.idExpansion) ?? { n: 0, first: p.dateAdded, codes: new Map() };
+  e.n++;
+  if (p.dateAdded < e.first) e.first = p.dateAdded;
+  const code = p.name.match(/\(([A-Z]{1,4}\d{0,2})-\d{3}\)/)?.[1];
+  if (code) e.codes.set(code, (e.codes.get(code) ?? 0) + 1);
+  singleExp.set(p.idExpansion, e);
+}
+for (const [id, e] of [...singleExp].sort((a, b) => a[0] - b[0])) {
+  const top = [...e.codes].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c, n]) => `${c}:${n}`).join(' ');
+  const names = (byExp.get(id) ?? []).slice(0, 3).join(' | ');
+  console.log(`${id} ${e.n} ${e.first.slice(0, 10)} [${top}] ${names}`);
 }
