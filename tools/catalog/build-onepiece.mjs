@@ -1,14 +1,45 @@
-// One Piece Card Game : listes officielles (anglais et japonais) + prix TCGplayer d'OPTCG API pour l'anglais.
+// One Piece Card Game : listes officielles (anglais, japonais, français), versions regroupées en variantes
+// (normale, parallèles, réimpressions) et prix Cardmarket (jeu n° 18 : moyenne des ventes sur 7 jours, sinon 30 jours…).
 import { getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
 import { ownLogo, saveLogos, scrydexLogo } from './logos.mjs';
+import { applyProductIds, groupVersions, indexProducts, matchVersions, pickExpansion } from './onepiece-variants.mjs';
+import { applyCardmarketPrices } from './variants.mjs';
 
-const SITES = { en: 'https://en.onepiece-cardgame.com', ja: 'https://www.onepiece-cardgame.com' };
+const SITES = { en: 'https://en.onepiece-cardgame.com', ja: 'https://www.onepiece-cardgame.com', fr: 'https://fr.onepiece-cardgame.com' };
 const BLOCS = [
-  { id: 'op', test: /BOOSTER PACK|ブースターパック/i, name: { en: 'Booster Packs', ja: 'Booster Packs' } },
-  { id: 'eb', test: /EXTRA BOOSTER|エクストラブースター/i, name: { en: 'Extra Boosters', ja: 'Extra Boosters' } },
-  { id: 'prb', test: /PREMIUM BOOSTER|プレミアムブースター/i, name: { en: 'Premium Boosters', ja: 'Premium Boosters' } },
-  { id: 'st', test: /DECK|デッキ/i, name: { en: 'Starter Decks', ja: 'Starter Decks' } },
+  { id: 'op', test: /BOOSTER PACK|ブースターパック|^BOOSTER\b/i, name: 'Booster Packs' },
+  { id: 'eb', test: /EXTRA BOOSTER|エクストラブースター/i, name: 'Extra Boosters' },
+  { id: 'prb', test: /PREMIUM BOOSTER|プレミアムブースター/i, name: 'Premium Boosters' },
+  { id: 'st', test: /DECK|デッキ/i, name: 'Starter Decks' },
 ];
+/** Noms des blocs dans les langues de l'app. */
+const BLOC_NAMES = {
+  op: { fr: 'Boosters', en: 'Booster Packs', ja: 'ブースターパック', de: 'Booster', es: 'Sobres', it: 'Buste', pt: 'Boosters', 'zh-tw': '補充包', 'zh-cn': '补充包', ko: '부스터 팩' },
+  eb: { fr: 'Boosters Extra', en: 'Extra Boosters', ja: 'エクストラブースター', de: 'Extra-Booster', es: 'Sobres Extra', it: 'Buste Extra', pt: 'Boosters Extra', 'zh-tw': '額外補充包', 'zh-cn': '额外补充包', ko: '엑스트라 부스터' },
+  prb: { fr: 'Boosters Premium', en: 'Premium Boosters', ja: 'プレミアムブースター', de: 'Premium-Booster', es: 'Sobres Premium', it: 'Buste Premium', pt: 'Boosters Premium', 'zh-tw': '高級補充包', 'zh-cn': '高级补充包', ko: '프리미엄 부스터' },
+  st: { fr: 'Decks de démarrage', en: 'Starter Decks', ja: 'スタートデッキ', de: 'Starterdecks', es: 'Barajas de inicio', it: 'Mazzi base', pt: 'Decks iniciais', 'zh-tw': '起始牌組', 'zh-cn': '起始卡组', ko: '스타터 덱' },
+  other: { fr: 'Autres', en: 'Other', ja: 'その他', de: 'Andere', es: 'Otros', it: 'Altro', pt: 'Outros', 'zh-tw': '其他', 'zh-cn': '其他', ko: '기타' },
+};
+
+/** Dates de sortie des boosters (anglais et japonais) ; le français suit l'anglais quand il n'a pas la sienne. */
+const RELEASES = {
+  en: {
+    OP01: '2022-12-02', OP02: '2023-03-10', OP03: '2023-06-30', OP04: '2023-09-22', OP05: '2023-12-08', OP06: '2024-03-15',
+    EB01: '2024-05-03', OP07: '2024-06-28', OP08: '2024-09-13', PRB01: '2024-11-08', OP09: '2024-12-13', OP10: '2025-03-21',
+    EB02: '2025-05-09', OP11: '2025-06-06', OP12: '2025-08-22', PRB02: '2025-10-03', OP13: '2025-11-07', OP14: '2026-01-16',
+    EB03: '2026-02-20', OP15: '2026-04-03', OP16: '2026-06-12', OP17: '2026-08-28',
+  },
+  ja: {
+    OP01: '2022-07-22', OP02: '2022-11-04', OP03: '2023-02-11', OP04: '2023-05-27', OP05: '2023-08-26', OP06: '2023-11-25',
+    EB01: '2024-02-10', OP07: '2024-02-24', OP08: '2024-05-25', PRB01: '2024-07-27', OP09: '2024-08-31', OP10: '2024-11-30',
+    EB02: '2025-01-25', OP11: '2025-03-01', OP12: '2025-05-31', OP13: '2025-08-23', PRB02: '2025-09-30', EB03: '2025-10-25',
+    OP14: '2026-01-16', EB04: '2026-01-31', OP15: '2026-02-28', OP16: '2026-05-30', OP17: '2026-08-21',
+  },
+};
+
+/** Fichiers publics Cardmarket du One Piece Card Game (jeu n° 18) : fiches produits et guide des prix. */
+const CM_PRODUCTS = 'https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_18.json';
+export const CM_PRICES = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_18.json';
 
 const clean = (s) => unescapeHtml(unescapeHtml(s)).replace(/<br[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -92,7 +123,7 @@ export function logoCandidates(site, id) {
   ]);
 }
 
-const TYPES = /^(BOOSTER PACK|EXTRA BOOSTER|PREMIUM BOOSTER|STARTER DECK EX|STARTER DECK|ULTRA DECK|ブースターパック|エクストラブースター|プレミアムブースター|スタートデッキEX|スタートデッキ|アルティメットデッキ)\s*/i;
+const TYPES = /^(BOOSTER PACK|EXTRA BOOSTER|PREMIUM BOOSTER|STARTER DECK EX|STARTER DECK|ULTRA DECK|DECK DE DÉMARRAGE EX|DECK DE DÉMARRAGE|DECK ULTRA|BOOSTER|ブースターパック|エクストラブースター|プレミアムブースター|スタートデッキEX|スタートデッキ|アルティメットデッキ)\s*/i;
 const titleCase = (s) => (s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()) : s);
 
 /** « BOOSTER PACK -AWAKENING OF THE NEW ERA- [OP-05] » → « Awakening Of The New Era » ; « ブースターパック 新時代の主役【OP-05】 » → « 新時代の主役 ». */
@@ -101,64 +132,121 @@ export function setName(label) {
   return titleCase(core);
 }
 
+/** Versions d'une extension (site officiel) au format du catalogue, avant regroupement. */
+const toEntry = (c) => ({
+  id: c.id,
+  localId: c.number.split('-').pop(),
+  number: c.number,
+  name: c.name,
+  image: c.image,
+  rarity: c.rarity,
+  facets: { color: c.colors, category: c.category ? [c.category] : [] },
+  attrs: Object.keys(c.attrs ?? {}).length ? c.attrs : undefined,
+});
+
+/** Listes officielles d'une langue : extensions (bloc, nom, ordre) et leurs versions de cartes. */
+async function officialLists(lang, site) {
+  const index = await getText(`${site}/cardlist/`);
+  const series = index ? parseSeries(index) : [];
+  if (!series.length) { console.warn(`One Piece ${lang} : liste des extensions illisible`); return []; }
+  const sets = [];
+  await pool(series, 3, async (s) => {
+    await sleep(200);
+    const html = await getText(`${site}/cardlist/?series=${s.value}`);
+    const entries = html ? parseCards(html, site).map(toEntry) : [];
+    if (!entries.length) return;
+    const bloc = BLOCS.find((b) => b.test.test(s.label))?.id ?? 'other';
+    sets.push({ id: setId(s.code), code: s.code, name: setName(s.label) || s.label, bloc, order: Number(s.value), entries });
+  });
+  return sets;
+}
+
 export async function buildOnePiece() {
-  // Prix TCGplayer (anglais) par identifiant d'image.
-  const priceLists = await Promise.all(['allSetCards', 'allSTCards'].map((p) => getJson(`https://optcgapi.com/api/${p}/`)));
-  const prices = new Map();
-  for (const c of priceLists.flat().filter(Boolean)) {
-    const v = Number(c.market_price);
-    if (v > 0) prices.set(c.card_image_id ?? c.card_set_id, v);
+  const [products, guide] = await Promise.all([getJson(CM_PRODUCTS), getJson(CM_PRICES)]);
+  const byExp = indexProducts(products?.products ?? []);
+  const prices = { prices: new Map((guide?.priceGuides ?? []).map((x) => [x.idProduct, x])) };
+  if (!byExp.size) console.warn('One Piece : fiches Cardmarket indisponibles');
+
+  const lists = {};
+  for (const [lang, site] of Object.entries(SITES)) lists[lang] = await officialLists(lang, site);
+
+  // Fiches Cardmarket : choisies une fois par extension, d'après la liste anglaise (sinon française, japonaise) ;
+  // les ids officiels sont les mêmes dans toutes les langues.
+  const productIds = new Map();
+  const taken = new Set();
+  const seen = new Set();
+  for (const lang of ['en', 'fr', 'ja']) {
+    for (const s of lists[lang]) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      const cards = groupVersions(s.entries);
+      const exp = pickExpansion(cards, byExp, taken);
+      if (!exp) { console.warn(`One Piece : pas d'extension Cardmarket pour ${s.id}`); continue; }
+      taken.add(exp);
+      for (const [o, id] of matchVersions(cards, byExp.get(exp))) productIds.set(o, id);
+    }
   }
 
-  for (const [lang, site] of Object.entries(SITES)) {
-    const index = await getText(`${site}/cardlist/`);
-    const series = index ? parseSeries(index) : [];
-    if (!series.length) { console.warn(`One Piece ${lang} : liste des extensions illisible`); continue; }
-    const blocs = BLOCS.map((b) => ({ id: b.id, name: b.name[lang], sets: [] }));
-    const other = { id: 'other', name: 'Other', sets: [] };
-    let total = 0;
-    await pool(series, 3, async (s) => {
-      await sleep(200);
-      const html = await getText(`${site}/cardlist/?series=${s.value}`);
-      if (!html) return;
-      const cards = parseCards(html, site).map((c) => ({
-        id: c.id,
-        localId: c.number.split('-').pop(),
-        number: c.number,
-        name: c.name,
-        image: c.image,
-        rarity: c.rarity,
-        price: lang === 'en' && prices.has(c.id) ? { value: prices.get(c.id), currency: 'USD', source: 'tcgplayer' } : undefined,
-        facets: { color: c.colors, category: c.category ? [c.category] : [] },
-        attrs: Object.keys(c.attrs ?? {}).length ? c.attrs : undefined,
-      }));
-      if (!cards.length) return;
-      total += cards.length;
-      const id = setId(s.code);
-      writeJson(`cards/onepiece-${lang}/${id}.json`, cards);
-      const name = setName(s.label);
-      const bloc = blocs.find((b) => BLOCS.find((x) => x.id === b.id).test.test(s.label)) ?? other;
-      bloc.sets.push({ id, code: s.code, name: name || s.label, count: cards.length, order: Number(s.value) });
-    });
-    for (const b of [...blocs, other]) b.sets.sort((a, b2) => b2.order - a.order);
-    // Logos : Scrydex (nom de l'extension stylisé), puis pages produits officielles (logo, sinon bannière).
-    const all = [...blocs, other].flatMap((b) => b.sets);
-    const logos = await saveLogos(all, `onepiece-${lang}`, async (x) => {
-      const candidates = [await productPageLogo(SITES[lang], x.id), ...logoCandidates(SITES[lang], x.id)].filter(Boolean);
-      let official;
-      for (const url of candidates) {
-        const r = await fetch(url, { method: 'HEAD' }).catch(() => null);
-        if (r?.ok) { official = url; break; }
+  // Noms de chaque carte (id de sa première version) et de chaque extension, dans chaque langue.
+  const cardNames = new Map();
+  const setNames = new Map();
+  for (const [lang, sets] of Object.entries(lists)) {
+    for (const s of sets) {
+      setNames.set(s.id, { ...(setNames.get(s.id) ?? {}), [lang]: s.name });
+      for (const e of s.entries) cardNames.set(e.id, { ...(cardNames.get(e.id) ?? {}), [lang]: e.name });
+    }
+  }
+
+  const logos = {};
+  for (const lang of ['en', 'ja', 'fr']) {
+    const sets = lists[lang];
+    if (!sets.length) continue;
+    let total = 0, priced = 0;
+    for (const s of sets) {
+      const cards = groupVersions(s.entries);
+      applyProductIds(cards, productIds);
+      priced += applyCardmarketPrices(cards, prices);
+      for (const c of cards) {
+        const names = cardNames.get(c.id) ?? {};
+        if (lang !== 'en' && names.en) c.nameEn = names.en;
+        if (lang !== 'fr' && names.fr) c.nameFr = names.fr;
+        const other = Object.fromEntries(Object.entries(names).filter(([l, n]) => l !== lang && l !== 'en' && l !== 'fr' && n !== c.name));
+        if (Object.keys(other).length) c.n = other;
       }
-      const banner = official && /mv_01\.jpg/.test(official);
-      // Japonais : logo Scrydex japonais, logo officiel (en japonais), puis logo anglais ; la bannière en dernier.
-      return lang === 'en'
-        ? [scrydexLogo(x.id, 'onepiece'), official]
-        : [scrydexLogo(`${x.id}_ja`, 'onepiece'), banner ? null : official, scrydexLogo(x.id, 'onepiece'), official];
+      total += cards.length;
+      writeJson(`cards/onepiece-${lang}/${s.id}.json`, cards);
+    }
+
+    // Logos : l'anglais pour toutes les langues ; le français prend son logo officiel quand il existe ;
+    // une extension sans version anglaise (EB04 japonais…) garde le sien.
+    const official = async (x) => {
+      for (const url of [await productPageLogo(SITES[lang], x.id).catch(() => undefined), ...logoCandidates(SITES[lang], x.id)].filter(Boolean)) {
+        const r = await fetch(url, { method: 'HEAD' }).catch(() => null);
+        if (r?.ok) return /mv_01\.jpg/.test(url) ? { banner: url } : { logo: url };
+      }
+      return {};
+    };
+    const mine = await saveLogos(sets, `onepiece-${lang}`, async (x) => {
+      if (lang === 'en') { const o = await official(x); return [scrydexLogo(x.id, 'onepiece'), o.logo, o.banner]; }
+      if (lang === 'fr') return [(await official(x)).logo];
+      if (logos.en?.has(x.id)) return [];
+      const o = await official(x);
+      return [scrydexLogo(`${x.id}_ja`, 'onepiece'), o.logo, scrydexLogo(x.id, 'onepiece'), o.banner];
     });
-    for (const x of all) x.logo = logos.get(x.id) ?? ownLogo(`onepiece-${lang}`, x.id);
-    console.log(`One Piece ${lang} : logos ${logos.size}/${all.length}`);
-    writeJson(`sets/onepiece-${lang}.json`, { built: new Date().toISOString(), blocs: [...blocs, other].filter((b) => b.sets.length) });
-    console.log(`One Piece ${lang} : ${series.length} extensions, ${total} cartes`);
+    logos[lang] = mine;
+
+    const blocs = [...BLOCS.map((b) => b.id), 'other'].map((id) => ({
+      id, name: BLOC_NAMES[id].en, names: BLOC_NAMES[id],
+      sets: sets.filter((s) => s.bloc === id).sort((a, b) => b.order - a.order).map((s) => {
+        const logo = (lang === 'ja' ? logos.en?.get(s.id) : undefined) ?? mine.get(s.id) ?? logos.en?.get(s.id) ?? ownLogo(`onepiece-${lang}`, s.id);
+        const releaseDate = RELEASES[lang]?.[s.id] ?? (lang === 'fr' ? RELEASES.en[s.id] : undefined);
+        return {
+          id: s.id, code: s.code, name: s.name, names: setNames.get(s.id), count: groupVersions(s.entries).length,
+          ...(releaseDate ? { releaseDate } : {}), ...(logo ? { logo } : {}),
+        };
+      }),
+    })).filter((b) => b.sets.length);
+    writeJson(`sets/onepiece-${lang}.json`, { built: new Date().toISOString(), blocs });
+    console.log(`One Piece ${lang} : ${sets.length} extensions, ${total} cartes (${sets.reduce((n, s) => n + s.entries.length, 0)} versions), ${priced} avec prix Cardmarket, logos ${[...blocs.flatMap((b) => b.sets)].filter((x) => x.logo).length}`);
   }
 }
