@@ -43,6 +43,8 @@ export const ja: Partial<Record<Key, string>> = {
   "sort.price-desc": "価格の高い順",
   "sort.price-asc": "価格の安い順",
   "ext.none": "この言語の拡張パックはまだありません。",
+  "ext.search": "拡張パックを検索",
+  "ext.noMatch": "拡張パックが見つかりません",
   "set.summary": "{code} · {n}枚 · {owned}枚所持",
   "setStats.title": "統計",
   "setStats.progress": "進捗",

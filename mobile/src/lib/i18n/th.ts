@@ -43,6 +43,8 @@ export const th: Partial<Record<Key, string>> = {
   "sort.price-desc": "ราคาสูงไปต่ำ",
   "sort.price-asc": "ราคาต่ำไปสูง",
   "ext.none": "ยังไม่มีชุดการ์ดในภาษานี้",
+  "ext.search": "ค้นหาชุดการ์ด",
+  "ext.noMatch": "ไม่พบชุดการ์ด",
   "set.summary": "{code} · {n} ใบ · มีแล้ว {owned} ใบ",
   "setStats.title": "สถิติ",
   "setStats.progress": "ความคืบหน้า",

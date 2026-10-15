@@ -43,6 +43,8 @@ export const zhCn: Partial<Record<Key, string>> = {
   "sort.price-desc": "价格由高到低",
   "sort.price-asc": "价格由低到高",
   "ext.none": "此语言目前还没有扩充包。",
+  "ext.search": "搜索扩充包",
+  "ext.noMatch": "找不到扩充包",
   "set.summary": "{code} · {n} 张卡牌 · 已拥有 {owned} 张",
   "setStats.title": "统计",
   "setStats.progress": "进度",

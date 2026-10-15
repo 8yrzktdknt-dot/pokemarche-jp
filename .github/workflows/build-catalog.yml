@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       steps:
-        description: "Étapes (pokemon-ja, pokemon-intl, pokemon-cards, pokemon-details, pokemon-zh, onepiece, riftbound, visual, assets), séparées par des virgules ; vide = toutes"
+        description: "Étapes (pokemon-ja, pokemon-intl, pokemon-cards, pokemon-details, pokemon-zh, onepiece, riftbound, visual, assets, prices), séparées par des virgules ; vide = toutes"
         default: ""
         required: false
       visual:
@@ -20,9 +20,11 @@ on:
         default: ""
         required: false
   schedule:
-    # Tout le catalogue chaque lundi ; les prix et détails Pokémon chaque jour.
+    # Tout le catalogue chaque lundi ; les prix et détails Pokémon chaque jour ;
+    # toutes les heures, les prix Cardmarket dès qu'un nouveau guide des prix est publié.
     - cron: "17 3 * * 1"
     - cron: "41 4 * * 0,2-6"
+    - cron: "23 * * * *"
   push:
     branches: [main]
     paths:
@@ -57,6 +59,8 @@ jobs:
           cache-dependency-path: tools/catalog/package-lock.json
 
       - name: Cache du modèle IA
+        # Inutile au passage horaire des prix.
+        if: github.event.schedule != '23 * * * *'
         uses: actions/cache@v4
         with:
           path: tools/catalog/node_modules/@xenova/transformers/.cache
@@ -69,7 +73,7 @@ jobs:
       - name: Construire le catalogue
         working-directory: tools/catalog
         env:
-          STEPS: ${{ github.event.inputs.steps || (github.event.schedule == '41 4 * * 0,2-6' && 'pokemon-details,pokemon-zh') || '' }}
+          STEPS: ${{ github.event.inputs.steps || (github.event.schedule == '41 4 * * 0,2-6' && 'pokemon-details,pokemon-zh') || (github.event.schedule == '23 * * * *' && 'prices') || '' }}
           VISUAL_TARGETS: ${{ github.event.inputs.visual || '' }}
           GRAB_URLS: ${{ github.event.inputs.grab || '' }}
         run: npm test && npm run build

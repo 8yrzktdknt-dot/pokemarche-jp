@@ -96,7 +96,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // Prix du jour pour les cartes de la collection (au lancement puis toutes les 6 h) : la valeur de la collection
+  // Prix à jour pour les cartes de la collection (au lancement puis toutes les heures) : la valeur de la collection
   // et des extensions suit l'évolution des cotes Cardmarket.
   useEffect(() => {
     if (!ready) return;
@@ -116,7 +116,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
     };
     run();
-    const timer = setInterval(run, 6 * 3600 * 1000);
+    const timer = setInterval(run, 3600 * 1000);
     return () => { alive = false; clearInterval(timer); };
   }, [ready]);
 

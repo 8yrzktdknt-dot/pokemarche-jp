@@ -43,6 +43,8 @@ export const ko: Partial<Record<Key, string>> = {
   "sort.price-desc": "높은 가격순",
   "sort.price-asc": "낮은 가격순",
   "ext.none": "이 언어의 확장팩이 아직 없습니다.",
+  "ext.search": "확장팩 검색",
+  "ext.noMatch": "확장팩을 찾을 수 없습니다",
   "set.summary": "{code} · 카드 {n}장 · {owned}장 보유",
   "setStats.title": "통계",
   "setStats.progress": "진행도",
