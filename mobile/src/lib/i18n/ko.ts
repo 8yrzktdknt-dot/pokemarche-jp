@@ -243,4 +243,5 @@ export const ko: Partial<Record<Key, string>> = {
   "set.empty": "일치하는 카드가 없습니다.",
   "setStats.masterHint": "모든 카드와 모든 버전",
   "price.cm.offers": "판매 등록가 · 거래 없음",
+  "price.cm.lowest": "최저 판매 등록가 · 거래 없음",
 };

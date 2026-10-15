@@ -243,4 +243,5 @@ export const it: Partial<Record<Key, string>> = {
   "set.empty": "Nessuna carta corrispondente.",
   "setStats.masterHint": "Tutte le carte e le loro varianti",
   "price.cm.offers": "Prezzo delle offerte · nessuna vendita",
+  "price.cm.lowest": "Offerta più bassa · nessuna vendita",
 };

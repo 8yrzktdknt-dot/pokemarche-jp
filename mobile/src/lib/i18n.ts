@@ -133,6 +133,7 @@ const fr = {
   'price.cm.avg': 'Moyenne des ventes · toutes périodes',
   'price.cm.trend': 'Tendance',
   'price.cm.offers': "Prix des offres · jamais vendue",
+  'price.cm.lowest': "Offre la plus basse · jamais vendue",
   'price.cm.low': 'À partir de',
 
   'scan.frame': 'Place toute la carte dans le cadre',
@@ -388,6 +389,7 @@ const en: Record<Key, string> = {
   'price.cm.avg': 'Sales average · all time',
   'price.cm.trend': 'Trend',
   'price.cm.offers': "Listing price · never sold",
+  'price.cm.lowest': "Lowest listing · never sold",
   'price.cm.low': 'From',
 
   'scan.frame': 'Fit the whole card in the frame',

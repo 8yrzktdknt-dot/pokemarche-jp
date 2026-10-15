@@ -243,4 +243,5 @@ export const th: Partial<Record<Key, string>> = {
   "set.empty": "ไม่พบการ์ดที่ตรงกัน",
   "setStats.masterHint": "การ์ดทุกใบทุกรูปแบบ",
   "price.cm.offers": "ราคาที่ประกาศขาย · ยังไม่มีการขาย",
+  "price.cm.lowest": "ราคาเสนอขายต่ำสุด · ยังไม่มีการขาย",
 };

@@ -243,4 +243,5 @@ export const zhCn: Partial<Record<Key, string>> = {
   "set.empty": "没有符合的卡牌。",
   "setStats.masterHint": "所有卡牌及其版本",
   "price.cm.offers": "挂牌价格・尚无成交",
+  "price.cm.lowest": "最低挂牌价・尚无成交",
 };

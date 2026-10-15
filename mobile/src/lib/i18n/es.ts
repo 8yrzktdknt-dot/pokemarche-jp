@@ -243,4 +243,5 @@ export const es: Partial<Record<Key, string>> = {
   "set.empty": "Ninguna carta coincide.",
   "setStats.masterHint": "Todas las cartas y sus variantes",
   "price.cm.offers": "Precio de las ofertas · sin ventas",
+  "price.cm.lowest": "Oferta más baja · sin ventas",
 };
