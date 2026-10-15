@@ -84,8 +84,11 @@ export const japaneseBase = (rarity) => (!rarity || /^(C|U|Common|Uncommon|Commu
 
 const FOIL_KEYS = /^(reverse|pokeball|masterball|quickball|friendball|greatball|ultraball|loveball|duskball)/;
 
-/** Prix affichés, dans l'ordre : moyenne des ventes sur 7 jours, 30 jours, toutes les ventes, puis prix des offres. */
-export const TIERS = ['avg7', 'avg30', 'avg', 'trend'];
+/**
+ * Prix affichés, dans l'ordre : moyenne des ventes sur 7 jours, 30 jours, toutes les ventes ; carte jamais vendue :
+ * prix des offres (« trend »), sinon l'offre la plus basse (« low »).
+ */
+export const TIERS = ['avg7', 'avg30', 'avg', 'trend', 'low'];
 
 /**
  * Valeur d'une période pour une variante. Les variantes brillantes vendues sur la fiche de la carte normale
@@ -121,10 +124,10 @@ export function applyCardmarketPrices(cards, files) {
       const g = files.prices.get(id);
       const pick = (t) => (g ? (base ? tierValue(g, base.k, false, t) : g[t] || g[`${t}-holo`] || undefined) : undefined);
       // Prix de la carte = celui de sa variante de base (une carte normale ne prend pas le prix du reverse).
-      const cm = { id, avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg'), trend: pick('trend') };
+      const cm = { id, avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg'), trend: pick('trend'), low: pick('low') };
       for (const k of Object.keys(cm)) if (cm[k] === undefined) delete cm[k];
       c.cm = c.cm?.f ? { ...cm, f: 1 } : cm;
-      if (cm.avg7 || cm.avg30 || cm.avg || cm.trend) n++;
+      if (TIERS.some((t) => cm[t])) n++;
     }
     for (const v of c.v ?? []) {
       // Variantes japonaises sans fiche propre (reverse) : celle de la carte.

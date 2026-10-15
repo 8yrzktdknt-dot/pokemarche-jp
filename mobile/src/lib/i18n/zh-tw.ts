@@ -243,4 +243,5 @@ export const zhTw: Partial<Record<Key, string>> = {
   "set.empty": "沒有符合的卡片。",
   "setStats.masterHint": "所有卡片及其版本",
   "price.cm.offers": "刊登價格・尚無成交",
+  "price.cm.lowest": "最低刊登價・尚無成交",
 };

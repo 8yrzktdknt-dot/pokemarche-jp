@@ -243,4 +243,5 @@ export const ja: Partial<Record<Key, string>> = {
   "set.empty": "該当するカードがありません。",
   "setStats.masterHint": "全カード・全バリエーション",
   "price.cm.offers": "出品価格・取引なし",
+  "price.cm.lowest": "最安出品価格・取引なし",
 };

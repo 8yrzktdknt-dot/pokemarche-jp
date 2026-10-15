@@ -80,7 +80,7 @@ export interface StaticCard {
   /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
   cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; avg?: number; trend?: number; low?: number };
   /** Variantes : clé, n° produit Cardmarket, moyenne 7 jours (tools/catalog/variants.mjs). */
-  v?: { k: string; id?: number; p?: number; tp?: number; t?: 'avg30' | 'avg' | 'trend' }[];
+  v?: { k: string; id?: number; p?: number; tp?: number; t?: 'avg30' | 'avg' | 'trend' | 'low' }[];
   /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
   cmPath?: string;
 }
@@ -182,7 +182,7 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
 
 /** Prix du catalogue, toujours Cardmarket : moyenne des ventes sur 7 jours, sinon 30 jours, sinon toutes les ventes. */
 function staticPrices(c: StaticCard | StaticRow): Price[] {
-  const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ [c.eurDays === 30 ? 'avg30' : c.eurDays === 0 ? 'avg' : c.eurDays === -1 ? 'trend' : 'avg7']: c.eur }) : undefined;
+  const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ [c.eurDays === 30 ? 'avg30' : c.eurDays === 0 ? 'avg' : c.eurDays === -1 ? 'trend' : c.eurDays === -2 ? 'low' : 'avg7']: c.eur }) : undefined;
   return main ? [main] : [];
 }
 
@@ -192,7 +192,7 @@ function variantsOf(c: StaticCard | StaticRow): CardVariant[] | undefined {
   return list?.length
     ? list.map(([key, id, p, tp, t]) => ({
       key, ...(id ? { cardmarket: id } : {}), ...(p ? { price: p } : {}), ...(tp ? { tcgplayer: tp } : {}),
-      ...(t === 'avg30' || t === 'avg' || t === 'trend' ? { priceTier: t } : {}),
+      ...(t === 'avg30' || t === 'avg' || t === 'trend' || t === 'low' ? { priceTier: t } : {}),
     }))
     : undefined;
 }

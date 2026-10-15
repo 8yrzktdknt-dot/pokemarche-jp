@@ -92,10 +92,13 @@ test('prix : 7 jours, sinon 30 jours, toutes les ventes, puis offres (cartes jam
   const prices = new Map([
     [1, { idProduct: 1, avg7: null, avg30: 12, avg: 11, trend: 10 }],
     [2, { idProduct: 2, avg7: null, avg30: null, avg: null, trend: 2500, 'trend-holo': null }],
+    [3, { idProduct: 3, avg7: null, avg30: null, avg: null, trend: null, low: 1500 }],
   ]);
   const a = { v: [{ k: 'holo', id: 1 }] };
   const b = { v: [{ k: 'holo', id: 2 }] };
-  applyCardmarketPrices([a, b], { prices });
+  const c = { v: [{ k: 'holo', id: 3 }] };
+  applyCardmarketPrices([a, b, c], { prices });
+  assert.deepEqual(c.v[0], { k: 'holo', id: 3, p: 1500, t: 'low' });
   assert.deepEqual(a.v[0], { k: 'holo', id: 1, p: 12, t: 'avg30' });
   assert.deepEqual(b.v[0], { k: 'holo', id: 2, p: 2500, t: 'trend' });
   assert.deepEqual(b.cm, { id: 2, trend: 2500 });

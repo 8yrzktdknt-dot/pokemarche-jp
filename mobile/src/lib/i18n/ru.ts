@@ -243,4 +243,5 @@ export const ru: Partial<Record<Key, string>> = {
   "set.empty": "Нет подходящих карт.",
   "setStats.masterHint": "Все карты во всех вариантах",
   "price.cm.offers": "Цена предложений · продаж не было",
+  "price.cm.lowest": "Самое дешёвое предложение · продаж не было",
 };
