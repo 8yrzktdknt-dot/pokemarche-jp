@@ -1,5 +1,6 @@
 // Traduction des noms de cartes japonais → anglais / français, à partir des noms officiels des Pokémon (PokeAPI).
 import { getText } from './lib.mjs';
+import { manualName } from './names-manual.mjs';
 
 const CSV = 'https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/pokemon_species_names.csv';
 // Identifiants de langue PokeAPI.
@@ -170,4 +171,100 @@ export async function buildSpeciesNames(writeJson) {
   const names = speciesTable(csv);
   writeJson('names/species.json', { langs: SPECIES_LANGS, names });
   console.log(`Noms d'espèces pour l'app : ${Object.keys(names).length}`);
+}
+
+/**
+ * Nom anglais et français d'une carte Pokémon d'après son nom dans sa langue (« 蜥蜴王GX » → Sceptile GX /
+ * Jungko-GX) : espèce seule, avec Méga, forme régionale et suffixe. null si le nom contient autre chose.
+ * `table` : catalog/names/species.json.
+ */
+const LOCAL = {
+  'zh-tw': { mega: '超級', regions: { 阿羅拉: 'Alolan', 伽勒爾: 'Galarian', 洗翠: 'Hisuian', 帕底亞: 'Paldean' } },
+  'zh-cn': { mega: '超级', regions: { 阿罗拉: 'Alolan', 伽勒尔: 'Galarian', 洗翠: 'Hisuian', 帕底亚: 'Paldean' } },
+  ja: { mega: 'メガ', regions: { アローラ: 'Alolan', ガラル: 'Galarian', ヒスイ: 'Hisuian', パルデア: 'Paldean' } },
+  ko: { mega: '메가', regions: { 알로라: 'Alolan', 가라르: 'Galarian', 히스이: 'Hisuian', 팔데아: 'Paldean' } },
+  fr: { mega: 'Méga-', regions: { "d'Alola": 'Alolan', 'de Galar': 'Galarian', 'de Hisui': 'Hisuian', 'de Paldea': 'Paldean' } },
+};
+const FR_REGION = { Alolan: "d'Alola", Galarian: 'de Galar', Hisuian: 'de Hisui', Paldean: 'de Paldea' };
+export function namesFromLocal(name, lang, table) {
+  const cfg = LOCAL[lang];
+  const i = table?.langs.indexOf(lang);
+  if (!cfg || i < 0) return null;
+  const reverse = (table._rev ??= {})[lang] ??= new Map(Object.entries(table.names).map(([en, l]) => [l[i], en]).filter(([k]) => k));
+  let rest = name.trim().normalize('NFC');
+  const suffix = rest.match(/[\s-]*(ex|EX|GX|VMAX|VSTAR|V-UNION|V|BREAK)$/)?.[1];
+  if (suffix) rest = rest.slice(0, rest.length - rest.match(/[\s-]*(ex|EX|GX|VMAX|VSTAR|V-UNION|V|BREAK)$/)[0].length);
+  let mega = false, region;
+  if (rest.startsWith(cfg.mega)) { mega = true; rest = rest.slice(cfg.mega.length).trim(); }
+  for (const [r, en] of Object.entries(cfg.regions)) {
+    if (lang === 'fr' ? rest.endsWith(` ${r}`) : rest.startsWith(r)) {
+      region = en;
+      rest = (lang === 'fr' ? rest.slice(0, -r.length) : rest.slice(r.length)).trim();
+    }
+  }
+  // Méga X / Y (« 超級噴火龍X »).
+  let xy = '';
+  if (!reverse.get(rest)) {
+    const m = rest.match(/\s*([XYＸＹ])$/);
+    if (m) { xy = m[1].normalize('NFKC'); rest = rest.slice(0, rest.length - m[0].length); }
+  }
+  const en = reverse.get(rest);
+  if (!en) return null;
+  const fr = table.names[en][0];
+  const enName = [mega ? 'Mega' : '', region ?? '', en, xy, suffix ?? ''].filter(Boolean).join(' ');
+  let frName = region ? `${fr} ${FR_REGION[region]}` : fr;
+  if (mega) frName = `Méga-${frName}`;
+  if (xy) frName += ` ${xy}`;
+  if (suffix) frName += `-${suffix}`;
+  return [enName, frName];
+}
+
+/**
+ * Cartes encore sans nom anglais (tous catalogues) : nom d'une carte de même nom déjà traduite (Dresseurs, Objets…,
+ * y compris d'un chinois à l'autre via `toOther`), sinon traduction par l'espèce depuis leur nom d'origine,
+ * sinon table manuelle des promos et Dresseurs propres à l'Asie (names-manual.mjs, marquée provisoire).
+ */
+export function fillNamesFromSpecies(readJson, writeJson, listFiles, toOther = {}) {
+  const table = readJson('names/species.json');
+  if (!table?.names) return 0;
+  const LANGS = ['zh-tw', 'zh-cn', 'ja', 'fr'];
+  // Noms déjà traduits, par langue : nom d'origine → [anglais, français].
+  const known = Object.fromEntries(LANGS.map((l) => [l, new Map()]));
+  for (const lang of LANGS) {
+    for (const f of listFiles(`cards/pokemon-${lang}`)) {
+      for (const c of readJson(`cards/pokemon-${lang}/${f}`) ?? []) {
+        if (c.nameEn && !c.tr && !known[lang].has(c.name)) known[lang].set(c.name, [c.nameEn, c.nameFr ?? (lang === 'fr' ? c.name : undefined)]);
+      }
+    }
+  }
+  const sameName = (name, lang) => {
+    const own = known[lang].get(name);
+    if (own) return own;
+    for (const [other, conv] of Object.entries(toOther[lang] ?? {})) {
+      const t = known[other]?.get(conv(name));
+      if (t) return t;
+    }
+    return null;
+  };
+  let n = 0;
+  for (const lang of LANGS) {
+    for (const f of listFiles(`cards/pokemon-${lang}`)) {
+      const cards = readJson(`cards/pokemon-${lang}/${f}`);
+      let changed = false;
+      for (const c of cards ?? []) {
+        if (c.nameEn) continue;
+        const found = sameName(c.name, lang) ?? namesFromLocal(c.name, lang, table);
+        const t = found ?? manualName(c.name, toOther[lang]?.['zh-tw']);
+        if (!t) continue;
+        c.nameEn = t[0];
+        if (!found) c.tr = 1;
+        if (!c.nameFr && lang !== 'fr' && t[1]) c.nameFr = t[1];
+        changed = true;
+        n++;
+      }
+      if (changed) writeJson(`cards/pokemon-${lang}/${f}`, cards);
+    }
+  }
+  console.log(`Noms traduits par l'espèce (cartes sans version liée) : ${n}`);
+  return n;
 }

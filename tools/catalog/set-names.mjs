@@ -5,11 +5,11 @@
 //    et chinois simplifié converti depuis le traditionnel (OpenCC) ;
 //  - extensions chinoises simplifiées : chinois simplifié, et traditionnel converti.
 // L'app affiche names[langue de l'app], sinon l'anglais, sinon le nom de la source.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as OpenCC from 'opencc-js';
 import { CATALOG, getJson, writeJson } from './lib.mjs';
-import { buildSpeciesNames } from './names.mjs';
+import { buildSpeciesNames, fillNamesFromSpecies } from './names.mjs';
 
 const INTL = ['en', 'fr', 'de', 'es', 'it', 'pt'];
 const EXTRA = ['nl', 'ru'];
@@ -41,11 +41,16 @@ const clean = (o) => {
   return Object.keys(out).length ? out : undefined;
 };
 
+const t2s = OpenCC.Converter({ from: 'tw', to: 'cn' });
+const s2t = OpenCC.Converter({ from: 'cn', to: 'tw' });
+
 export async function buildSetNames({ online = true } = {}) {
   if (online) await buildSpeciesNames(writeJson).catch((e) => console.warn('Noms d\'espèces :', e.message));
+  // Cartes sans nom anglais (extensions propres à Taïwan, promos…) : traduites par l'espèce.
+  const readJson = (rel) => (existsSync(join(CATALOG, rel)) ? JSON.parse(readFileSync(join(CATALOG, rel), 'utf8')) : null);
+  const listFiles = (rel) => (existsSync(join(CATALOG, rel)) ? readdirSync(join(CATALOG, rel)).filter((f) => f.endsWith('.json')) : []);
+  fillNamesFromSpecies(readJson, writeJson, listFiles, { 'zh-tw': { 'zh-cn': t2s }, 'zh-cn': { 'zh-tw': s2t } });
   const files = Object.fromEntries(['en', 'fr', 'de', 'es', 'it', 'pt', 'ja', 'zh-tw', 'zh-cn'].map((l) => [l, read(l)]));
-  const t2s = OpenCC.Converter({ from: 'tw', to: 'cn' });
-  const s2t = OpenCC.Converter({ from: 'cn', to: 'tw' });
 
   // Extensions et blocs internationaux : id → nom, par langue.
   const sets = {}, blocs = {};
