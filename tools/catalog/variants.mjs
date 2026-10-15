@@ -1,7 +1,7 @@
 // Variantes des cartes Pokémon (normale, holo, reverse, Poké Ball, Master Ball, tampons…) et leurs prix Cardmarket.
 //  - internationales : fiche TCGdex « variants_detailed » (type, motif, tampon, n° produit Cardmarket de la variante) ;
 //  - japonaises : produits PokemonWizard de même numéro (« Cynthia's Roserade (Poke Ball Pattern) ») ;
-//  - prix : uniquement la moyenne des ventes sur 7 jours des fichiers publics Cardmarket (guide des prix).
+//  - prix : fichiers publics Cardmarket (guide des prix) : ventes sur 7 jours, sinon 30 jours, toutes les ventes, offres.
 // Sur la carte : v = [{ k: 'normal', id: 851072, p: 0.06 }, { k: 'reverse', id: 851072, p: 0.17 }, …].
 
 /** Motifs TCGdex → clé de variante (les autres motifs gardent leur nom : « reverse-cosmos »). */
@@ -84,20 +84,33 @@ export const japaneseBase = (rarity) => (!rarity || /^(C|U|Common|Uncommon|Commu
 
 const FOIL_KEYS = /^(reverse|pokeball|masterball|quickball|friendball|greatball|ultraball|loveball|duskball)/;
 
+/** Prix affichés, dans l'ordre : moyenne des ventes sur 7 jours, 30 jours, toutes les ventes, puis prix des offres. */
+export const TIERS = ['avg7', 'avg30', 'avg', 'trend'];
+
 /**
- * Moyenne des ventes sur 7 jours d'une variante. Les variantes brillantes vendues sur la fiche de la carte
- * normale (reverse) ont leur propre champ « -holo » ; une fiche à part (Poké Ball…) n'a souvent que celui-là.
+ * Valeur d'une période pour une variante. Les variantes brillantes vendues sur la fiche de la carte normale
+ * (reverse) ont leur propre champ « -holo » ; une fiche à part (Poké Ball…) n'a souvent que celui-là.
  */
+function tierValue(g, k, shared, t) {
+  if (FOIL_KEYS.test(k)) return (shared ? g[`${t}-holo`] : g[`${t}-holo`] || g[t]) || undefined;
+  // Carte normale : son propre champ ; carte holo (sans version normale) : l'un ou l'autre.
+  return (k.startsWith('normal') ? g[t] : g[t] || g[`${t}-holo`]) || undefined;
+}
+
+/** Prix d'une variante : la première période qui a une valeur ({ p, t } ; t absent pour 7 jours). */
 export function variantPrice(g, k, shared) {
   if (!g) return undefined;
-  if (FOIL_KEYS.test(k)) return (shared ? g['avg7-holo'] : g['avg7-holo'] || g.avg7) || undefined;
-  // Carte normale : son propre champ ; carte holo (sans version normale) : l'un ou l'autre.
-  return (k.startsWith('normal') ? g.avg7 : g.avg7 || g['avg7-holo']) || undefined;
+  for (const t of TIERS) {
+    const p = tierValue(g, k, shared, t);
+    if (p) return t === 'avg7' ? { p } : { p, t };
+  }
+  return undefined;
 }
 
 /**
  * Prix Cardmarket de toutes les cartes d'une extension depuis les fichiers Cardmarket (aucun prix de TCGdex) :
- * carte (cm, moyennes 7 / 30 jours / toutes ventes) et chaque variante (p, 7 jours). `files.prices` : n° produit → prix.
+ * carte (cm : 7 jours, 30 jours, toutes ventes, offres) et chaque variante (p, et t quand ce n'est pas 7 jours).
+ * `files.prices` : n° produit → prix.
  */
 export function applyCardmarketPrices(cards, files) {
   let n = 0;
@@ -106,19 +119,20 @@ export function applyCardmarketPrices(cards, files) {
     const id = c.cm?.id ?? base?.id;
     if (id) {
       const g = files.prices.get(id);
-      const pick = (k) => g?.[k] || g?.[`${k}-holo`] || undefined;
+      const pick = (t) => (g ? (base ? tierValue(g, base.k, false, t) : g[t] || g[`${t}-holo`] || undefined) : undefined);
       // Prix de la carte = celui de sa variante de base (une carte normale ne prend pas le prix du reverse).
-      const avg7 = base ? variantPrice(g, base.k, false) : pick('avg7');
-      const cm = { id, avg7, avg30: pick('avg30'), avg: pick('avg') };
+      const cm = { id, avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg'), trend: pick('trend') };
       for (const k of Object.keys(cm)) if (cm[k] === undefined) delete cm[k];
       c.cm = c.cm?.f ? { ...cm, f: 1 } : cm;
-      if (cm.avg7) n++;
+      if (cm.avg7 || cm.avg30 || cm.avg || cm.trend) n++;
     }
     for (const v of c.v ?? []) {
       // Variantes japonaises sans fiche propre (reverse) : celle de la carte.
       const vid = v.id ?? (v.k === 'reverse' || v === base ? c.cm?.id : undefined);
-      const p = vid ? variantPrice(files.prices.get(vid), v.k, vid === (base?.id ?? c.cm?.id) && v !== base) : undefined;
-      if (p) v.p = p; else delete v.p;
+      const r = vid ? variantPrice(files.prices.get(vid), v.k, vid === (base?.id ?? c.cm?.id) && v !== base) : undefined;
+      delete v.p;
+      delete v.t;
+      if (r) Object.assign(v, r);
     }
   }
   return n;
@@ -134,7 +148,8 @@ export const ALL_HOLO = new Set(['30th', '30th-c', 'M6a', 'MF', '30thC', '30thDC
 export function forceHolo(cards) {
   for (const c of cards) {
     if (!c.v?.length) {
-      c.v = [{ k: 'holo', ...(c.cm?.id ? { id: c.cm.id } : {}), ...(c.cm?.avg7 ? { p: c.cm.avg7 } : {}) }];
+      const tier = TIERS.find((t) => c.cm?.[t]);
+      c.v = [{ k: 'holo', ...(c.cm?.id ? { id: c.cm.id } : {}), ...(tier ? { p: c.cm[tier], ...(tier !== 'avg7' ? { t: tier } : {}) } : {}) }];
       continue;
     }
     if (c.v[0].k === 'normal') c.v[0] = { ...c.v[0], k: 'holo' };

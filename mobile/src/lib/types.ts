@@ -51,8 +51,10 @@ export interface CardVariant {
   key: string;
   /** N° produit Cardmarket de la variante (souvent celui de la carte ; à part pour Poké Ball, Master Ball…). */
   cardmarket?: number;
-  /** Moyenne des ventes Cardmarket sur 7 jours (EUR). */
+  /** Prix Cardmarket (EUR) : moyenne des ventes sur 7 jours, sinon la période indiquée par `priceTier`. */
   price?: number;
+  /** Période du prix quand ce n'est pas 7 jours : 30 jours, toutes les ventes, ou prix des offres (jamais vendue). */
+  priceTier?: 'avg30' | 'avg' | 'trend';
   /** N° produit TCGplayer de la variante quand elle a sa propre photo (Poké Ball, Master Ball, motifs japonais). */
   tcgplayer?: number;
 }

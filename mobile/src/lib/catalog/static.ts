@@ -80,7 +80,7 @@ export interface StaticCard {
   /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
   cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; avg?: number; trend?: number; low?: number };
   /** Variantes : clé, n° produit Cardmarket, moyenne 7 jours (tools/catalog/variants.mjs). */
-  v?: { k: string; id?: number; p?: number; tp?: number }[];
+  v?: { k: string; id?: number; p?: number; tp?: number; t?: 'avg30' | 'avg' | 'trend' }[];
   /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
   cmPath?: string;
 }
@@ -142,7 +142,7 @@ export interface StaticRow {
   /** Période du prix : 7 ou 30 jours, 0 = toutes les ventes (absente des anciens fichiers : 7). */
   eurDays?: number;
   /** Variantes [clé, n° produit Cardmarket, moyenne 7 jours]. */
-  variants?: [string, number, number, number?][];
+  variants?: [string, number, number, number?, (string | 0)?][];
   cardmarket?: number;
   cmPath?: string;
 }
@@ -182,15 +182,18 @@ export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string
 
 /** Prix du catalogue, toujours Cardmarket : moyenne des ventes sur 7 jours, sinon 30 jours, sinon toutes les ventes. */
 function staticPrices(c: StaticCard | StaticRow): Price[] {
-  const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ [c.eurDays === 30 ? 'avg30' : c.eurDays === 0 ? 'avg' : 'avg7']: c.eur }) : undefined;
+  const main = 'cm' in c && c.cm ? cardmarketPrice(c.cm) : 'eur' in c && c.eur ? cardmarketPrice({ [c.eurDays === 30 ? 'avg30' : c.eurDays === 0 ? 'avg' : c.eurDays === -1 ? 'trend' : 'avg7']: c.eur }) : undefined;
   return main ? [main] : [];
 }
 
 /** Variantes du catalogue (fiche d'extension ou ligne de recherche) au format de l'app. */
 function variantsOf(c: StaticCard | StaticRow): CardVariant[] | undefined {
-  const list = 'v' in c && c.v ? c.v.map((v) => [v.k, v.id ?? 0, v.p ?? 0, v.tp ?? 0] as const) : 'variants' in c && c.variants ? c.variants : undefined;
+  const list = 'v' in c && c.v ? c.v.map((v) => [v.k, v.id ?? 0, v.p ?? 0, v.tp ?? 0, v.t ?? 0] as const) : 'variants' in c && c.variants ? c.variants : undefined;
   return list?.length
-    ? list.map(([key, id, p, tp]) => ({ key, ...(id ? { cardmarket: id } : {}), ...(p ? { price: p } : {}), ...(tp ? { tcgplayer: tp } : {}) }))
+    ? list.map(([key, id, p, tp, t]) => ({
+      key, ...(id ? { cardmarket: id } : {}), ...(p ? { price: p } : {}), ...(tp ? { tcgplayer: tp } : {}),
+      ...(t === 'avg30' || t === 'avg' || t === 'trend' ? { priceTier: t } : {}),
+    }))
     : undefined;
 }
 

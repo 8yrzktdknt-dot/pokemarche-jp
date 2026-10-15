@@ -100,9 +100,10 @@ const cardOrder = (c) => {
 export function priceOf(g) {
   if (!g) return undefined;
   const pick = (k) => g[k] || g[`${k}-holo`] || undefined;
-  const out = { id: g.idProduct, avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg') };
+  // « trend » : prix des offres, pour les cartes encore jamais vendues.
+  const out = { id: g.idProduct, avg7: pick('avg7'), avg30: pick('avg30'), avg: pick('avg'), trend: pick('trend') };
   for (const k of Object.keys(out)) if (out[k] === undefined) delete out[k];
-  return out.avg7 || out.avg30 || out.avg ? out : undefined;
+  return out.avg7 || out.avg30 || out.avg || out.trend ? out : undefined;
 }
 
 /**

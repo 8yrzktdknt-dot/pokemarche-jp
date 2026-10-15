@@ -15,7 +15,7 @@ import { DEFAULT_SET_VIEW, setView, type SetSort, type SetState, type SetViewOpt
 import { useStore } from '../../../lib/store';
 import type { TKey } from '../../../lib/i18n';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
-import { collectionKey, needsSheen, variantLabel } from '../../../lib/variants';
+import { collectionKey, needsSheen, variantLabel, variantOwnership } from '../../../lib/variants';
 
 /** Affichage choisi (empiler, tri, état), gardé d'une extension à l'autre pendant la session. */
 let lastView: SetViewOptions = DEFAULT_SET_VIEW;
@@ -58,7 +58,8 @@ export default function SetScreen() {
     [collection, game, lang],
   );
   const ownedCount = cards?.filter((c) => owned.has(c.id)).length ?? 0;
-  const stats = useMemo(() => (cards ? setStats(cards, (c) => owned.has(c.id), toCurrency) : null), [cards, owned, toCurrency]);
+  const variantOwned = useMemo(() => variantOwnership(collection), [collection]);
+  const stats = useMemo(() => (cards ? setStats(cards, (c) => owned.has(c.id), toCurrency, variantOwned) : null), [cards, owned, toCurrency, variantOwned]);
   // Exemplaires possédés par carte et par variante.
   const quantities = useMemo(() => new Map(collection.map((e) => [collectionKey(e.card), e.quantity])), [collection]);
   const tiles = useMemo(

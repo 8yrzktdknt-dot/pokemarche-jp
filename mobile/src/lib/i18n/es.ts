@@ -241,4 +241,6 @@ export const es: Partial<Record<Key, string>> = {
   "set.state.owned": "En la colección",
   "set.state.missing": "Faltan",
   "set.empty": "Ninguna carta coincide.",
+  "setStats.masterHint": "Todas las cartas y sus variantes",
+  "price.cm.offers": "Precio de las ofertas · sin ventas",
 };

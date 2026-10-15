@@ -78,6 +78,7 @@ const fr = {
   'setStats.progress': 'Progression',
   'setStats.base': 'Set complet',
   'setStats.master': 'Master Set',
+  'setStats.masterHint': "Toutes les cartes et leurs variantes",
   'setStats.extra': 'Cartes secrètes',
   'setStats.of': ' / {n}',
   'setStats.value': 'Valeur du set',
@@ -131,6 +132,7 @@ const fr = {
   'price.cm.avg30': 'Moyenne des ventes · 30 jours',
   'price.cm.avg': 'Moyenne des ventes · toutes périodes',
   'price.cm.trend': 'Tendance',
+  'price.cm.offers': "Prix des offres · jamais vendue",
   'price.cm.low': 'À partir de',
 
   'scan.frame': 'Place toute la carte dans le cadre',
@@ -331,6 +333,7 @@ const en: Record<Key, string> = {
   'setStats.progress': 'Progress',
   'setStats.base': 'Base set',
   'setStats.master': 'Master Set',
+  'setStats.masterHint': "Every card in every variant",
   'setStats.extra': 'Secret cards',
   'setStats.of': ' / {n}',
   'setStats.value': 'Set value',
@@ -384,6 +387,7 @@ const en: Record<Key, string> = {
   'price.cm.avg30': 'Sales average · 30 days',
   'price.cm.avg': 'Sales average · all time',
   'price.cm.trend': 'Trend',
+  'price.cm.offers': "Listing price · never sold",
   'price.cm.low': 'From',
 
   'scan.frame': 'Fit the whole card in the frame',

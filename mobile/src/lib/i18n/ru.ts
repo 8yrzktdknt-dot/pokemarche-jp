@@ -241,4 +241,6 @@ export const ru: Partial<Record<Key, string>> = {
   "set.state.owned": "Есть",
   "set.state.missing": "Нет",
   "set.empty": "Нет подходящих карт.",
+  "setStats.masterHint": "Все карты во всех вариантах",
+  "price.cm.offers": "Цена предложений · продаж не было",
 };

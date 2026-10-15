@@ -63,7 +63,8 @@ export function SetOverview({ stats, game, id, lang }: { stats: SetStats; game: 
   const goTo = (i: number) => { scroller.current?.scrollTo({ x: i * w, animated: true }); setPage(i); };
   const money = (v: number) => formatMoney(v, settings.currency, locale);
   const open = () => router.push({ pathname: '/set-stats/[game]/[id]', params: { game, id, lang } });
-  const pct = percent(stats.base);
+  // Chiffre principal : le Master Set (toutes les cartes et leurs variantes), détaillé en dessous.
+  const pct = percent(stats.master);
   const fan = stats.top.slice(0, 2).filter((x) => x.card.imageSmall);
 
   return (
@@ -83,17 +84,18 @@ export function SetOverview({ stats, game, id, lang }: { stats: SetStats; game: 
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={st.kicker}>{t('setStats.progress')}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-                  <Text style={st.big}>{stats.base.owned}</Text>
-                  <Text style={st.bigSub}>/ {stats.base.total}</Text>
+                  <Text style={st.big}>{stats.master.owned}</Text>
+                  <Text style={st.bigSub}>/ {stats.master.total}</Text>
                 </View>
-                <Text style={st.caption}>{t('setStats.base')}</Text>
+                <Text style={st.caption}>{t('setStats.master')}</Text>
+                <Text style={[st.caption, { fontSize: 11 }]}>{t('setStats.masterHint')}</Text>
               </View>
-              <Ring value={stats.base.total ? stats.base.owned / stats.base.total : 0}>
+              <Ring value={stats.master.total ? stats.master.owned / stats.master.total : 0}>
                 <Text style={st.ringText}>{pct}%</Text>
               </Ring>
             </View>
             <View style={{ gap: 10 }}>
-              <Bar label={t('setStats.master')} p={stats.master} />
+              <Bar label={t('setStats.base')} p={stats.base} />
               <Bar label={t('setStats.extra')} p={stats.extra} />
             </View>
           </Pressable>

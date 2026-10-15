@@ -241,4 +241,6 @@ export const de: Partial<Record<Key, string>> = {
   "set.state.owned": "Im Besitz",
   "set.state.missing": "Nicht im Besitz",
   "set.empty": "Keine passenden Karten.",
+  "setStats.masterHint": "Alle Karten in allen Varianten",
+  "price.cm.offers": "Angebotspreis · noch nie verkauft",
 };
