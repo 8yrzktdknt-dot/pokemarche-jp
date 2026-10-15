@@ -116,6 +116,7 @@ export function toBlocs(blocs: StaticBloc[]): Bloc[] {
       symbol: assetUrl(x.symbol),
       count: x.count,
       blocId: b.id,
+      releaseDate: x.releaseDate,
     })),
   }));
 }

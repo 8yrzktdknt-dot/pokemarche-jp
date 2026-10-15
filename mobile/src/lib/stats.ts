@@ -1,6 +1,9 @@
 import { rarityAbbr } from './catalog/pokemonNames.ts';
 import type { Card, CardLang, GameId } from './types.ts';
 
+/** Tranches de prix (devise choisie). */
+export const PRICE_BUCKETS = [0, 1, 5, 20, 50, 100];
+
 export interface Entry {
   card: Card;
   quantity: number;
@@ -28,6 +31,20 @@ export interface CollectionStats {
   /** `unit` : prix unitaire dans la devise choisie. */
   top: { card: Card; unit: number; quantity: number }[];
   recent: Entry[];
+  /** Exemplaires par tranche de prix (bornes dans la devise choisie : 0, 1, 5, 20, 50, 100). */
+  buckets: { min: number; max?: number; count: number }[];
+  /** Extensions de la collection, de la plus fournie à la moins fournie. */
+  sets: CollectionSet[];
+}
+
+export interface CollectionSet {
+  game: GameId;
+  lang: CardLang;
+  setId: string;
+  setName?: string;
+  /** Cartes différentes possédées et exemplaires. */
+  unique: number;
+  copies: number;
 }
 
 /**
@@ -44,6 +61,8 @@ export function collectionStats(
   const langs = new Map<CardLang, number>();
   const rarities = new Map<string, number>();
   const top: CollectionStats['top'] = [];
+  const buckets = PRICE_BUCKETS.map((min, i) => ({ min, max: PRICE_BUCKETS[i + 1], count: 0 }));
+  const sets = new Map<string, CollectionSet>();
   let count = 0;
   let unpriced = 0;
 
@@ -58,9 +77,17 @@ export function collectionStats(
       const r = rarityAbbr(e.card.rarity);
       rarities.set(r, (rarities.get(r) ?? 0) + e.quantity);
     }
+    if (e.card.setId) {
+      const k = `${e.card.game}:${e.card.lang}:${e.card.setId}`;
+      const x = sets.get(k) ?? { game: e.card.game, lang: e.card.lang, setId: e.card.setId, setName: e.card.setName, unique: 0, copies: 0 };
+      sets.set(k, x);
+      x.unique++;
+      x.copies += e.quantity;
+    }
     const p = e.card.prices[0];
     if (p) {
       const unit = toCurrency(p.value, p.currency);
+      (buckets.findLast((b) => unit >= b.min) ?? buckets[0]).count += e.quantity;
       value += unit * e.quantity;
       g.value += unit * e.quantity;
       top.push({ card: e.card, unit, quantity: e.quantity });
@@ -80,5 +107,7 @@ export function collectionStats(
     rarities: [...rarities].map(([rarity, n]) => ({ rarity, count: n })).sort(byCount).slice(0, 8),
     top: top.sort((a, b) => b.unit - a.unit).slice(0, 5),
     recent: [...entries].sort((a, b) => b.addedAt - a.addedAt).slice(0, 5),
+    buckets,
+    sets: [...sets.values()].sort((a, b) => b.unique - a.unique || b.copies - a.copies),
   };
 }

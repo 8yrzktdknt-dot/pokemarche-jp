@@ -97,6 +97,8 @@ export interface SetInfo {
   symbol?: string;
   count?: number;
   blocId?: string;
+  /** Date de sortie (« 2026-09-16 »), quand elle est connue. */
+  releaseDate?: string;
   /** Nom par langue de l'app (« fr », « ja », « zh-tw »…), quand il est connu. */
   names?: Record<string, string>;
 }

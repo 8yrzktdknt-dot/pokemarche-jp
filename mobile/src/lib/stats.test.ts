@@ -37,3 +37,13 @@ test('raretés abrégées, langues, top et récents', () => {
   assert.equal(s.top[0].card.name, 'Luffy');
   assert.deepEqual(s.recent.map((e) => e.card.name), ['Pikachu ex', 'Luffy', 'Rondoudou']);
 });
+
+test('tranches de prix et extensions de la collection', () => {
+  const s = collectionStats([
+    { card: card({ setId: 'M6', prices: eur(0.5) }), quantity: 3, addedAt: 1 },
+    { card: card({ setId: 'M6', prices: eur(30) }), quantity: 1, addedAt: 2 },
+    { card: card({ setId: 'M5', prices: eur(150) }), quantity: 1, addedAt: 3 },
+  ]);
+  assert.deepEqual(s.buckets.map((b) => b.count), [3, 0, 0, 1, 0, 1]);
+  assert.deepEqual(s.sets.map((x) => [x.setId, x.unique, x.copies]), [['M6', 2, 4], ['M5', 1, 1]]);
+});
