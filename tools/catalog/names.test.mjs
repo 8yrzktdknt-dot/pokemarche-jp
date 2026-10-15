@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as names from './names.mjs';
+import { manualName } from './names-manual.mjs';
 
 test('traductions japonais → anglais / français', async (t) => {
   const csv = [
@@ -45,4 +46,24 @@ test('noms spéciaux des cartes M6a (après chargement des espèces)', () => {
   assert.deepEqual(names.translateJa('ピカチュウ&ゼクロムGX'), ['Pikachu & Zekrom GX', 'Pikachu & Zekrom-GX']);
   assert.deepEqual(names.translateJa('ダークライ＆クレセリアLEGEND (上)'), ['Darkrai & Cresselia LEGEND (Top)', 'Darkrai & Cresselia-LEGEND (Haut)']);
   assert.deepEqual(names.translateJa('カスミ'), ['Misty', 'Ondine']);
+});
+
+test('nom anglais et français depuis le nom d\'origine (espèce)', () => {
+  const table = { langs: ['fr', 'de', 'es', 'it', 'ja', 'ko', 'zh-tw', 'zh-cn'], names: {
+    Charizard: ['Dracaufeu', 'Glurak', 'Charizard', 'Charizard', 'リザードン', '리자몽', '噴火龍', '喷火龙'],
+    Vulpix: ['Goupix', 'Vulpix', 'Vulpix', 'Vulpix', 'ロコン', '식스테일', '六尾', '六尾'],
+  } };
+  assert.deepEqual(names.namesFromLocal('噴火龍VMAX', 'zh-tw', table), ['Charizard VMAX', 'Dracaufeu-VMAX']);
+  assert.deepEqual(names.namesFromLocal('超級噴火龍X', 'zh-tw', table), ['Mega Charizard X', 'Méga-Dracaufeu X']);
+  assert.deepEqual(names.namesFromLocal('阿羅拉六尾', 'zh-tw', table), ['Alolan Vulpix', "Goupix d'Alola"]);
+  assert.deepEqual(names.namesFromLocal("Goupix d'Alola", 'fr', table), ['Alolan Vulpix', "Goupix d'Alola"]);
+  assert.equal(names.namesFromLocal('船长 噴火龍', 'zh-tw', table), null);
+});
+
+test('table manuelle : promos et Dresseurs asiatiques', () => {
+  assert.deepEqual(manualName('ルカリオソウルリンク'), ['Lucario Spirit Link', 'Lien Spirituel Lucario']);
+  assert.deepEqual(manualName('ヒロシマのピカチュウ'), ["Hiroshima's Pikachu", 'Pikachu de Hiroshima']);
+  assert.deepEqual(manualName('‌寶可夢中心的姐姐')[0], 'Pokémon Center Lady');
+  assert.equal(manualName('船长 皮卡丘', (s) => s.replace('长', '長'))[0], 'Captain Pikachu');
+  assert.equal(manualName('inconnu'), undefined);
 });
