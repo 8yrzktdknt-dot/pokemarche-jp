@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
 import { ReverseSheen } from '../../../components/ReverseSheen';
@@ -14,6 +14,10 @@ import { assetUrl } from '../../../lib/catalog/static';
 import { GAMES } from '../../../lib/games';
 import type { TKey } from '../../../lib/i18n';
 import { marketLinks, type MarketplaceId } from '../../../lib/prices/marketplaces';
+import { PriceChange } from '../../../components/PriceChange';
+import { PriceChart } from '../../../components/PriceChart';
+import { addDays, dayChange } from '../../../lib/priceHistory';
+import { usePriceHistory } from '../../../lib/usePriceHistory';
 import { baseVariant } from '../../../lib/setView';
 import { useStore } from '../../../lib/store';
 import { collectionKey, needsSheen, withVariant } from '../../../lib/variants';
@@ -202,6 +206,11 @@ export default function CardScreen() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  // Historique des prix de la carte (toutes ses variantes : même fichier d'extension).
+  const histCards = useMemo(() => (card ? [card] : []), [card]);
+  const points = usePriceHistory(histCards);
+  const [range, setRange] = useState<number>(0);
+
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!card) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
   // Images des cartes voisines préchargées : le passage d'une carte à l'autre est instantané.
@@ -220,6 +229,15 @@ export default function CardScreen() {
     return tr === k ? p.label : tr;
   };
   const [main, ...others] = view.prices;
+  const allPoints = points(view);
+  const change = dayChange(allPoints);
+  const lastDay = allPoints[allPoints.length - 1]?.d;
+  const shortDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  const since = change && lastDay && addDays(change.since, 1) === lastDay ? t('price.sinceYesterday') : change ? t('dash.periodSince', { d: shortDate(change.since) }) : '';
+  // Périodes proposées quand l'historique est assez long (30 jours, 3 mois, 1 an, tout).
+  const spanDays = allPoints.length > 1 ? (Date.parse(lastDay!) - Date.parse(allPoints[0].d)) / 86400000 : 0;
+  const ranges = [30, 90, 365].filter((n) => spanDays > n);
+  const shown = range && lastDay ? allPoints.filter((p) => p.d >= addDays(lastDay, -range)) : allPoints;
   const hasCmSales = view.prices.some((p) => p.label.startsWith('cm.avg'));
 
   return (
@@ -276,6 +294,7 @@ export default function CardScreen() {
         <View style={st.mainPrice}>
           <Text style={st.attrLabel}>{SOURCE_LABEL[main.source]} · {priceLabel(main)}</Text>
           <Text style={st.mainValue}>{money(main.value, main.currency)}</Text>
+          <PriceChange change={change} currency={main.currency} size={14} suffix={since} />
         </View>
       )}
       {others.map((p, i) => (
@@ -285,6 +304,29 @@ export default function CardScreen() {
         </View>
       ))}
       {hasCmSales && <Text style={[s.muted, { fontSize: 12 }]}>{t('card.salesNote')}</Text>}
+
+      {!!main && (
+        <>
+          <Text style={s.h2}>{t('card.history')}</Text>
+          <View style={st.chartBox}>
+            {ranges.length > 0 && (
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {[...ranges, 0].map((n) => (
+                  <Pressable key={n} onPress={() => setRange(n)} style={[st.rangeBtn, range === n && st.rangeOn]} accessibilityState={{ selected: range === n }}>
+                    <Text style={[st.rangeText, range === n && { color: colors.bg }]}>{n ? t(`card.range.${n}` as TKey) : t('common.all')}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {shown.length > 1 ? (
+              <PriceChart points={shown} format={(v) => money(v, main.currency)} locale={locale} />
+            ) : (
+              <Text style={s.muted}>{t('card.historyEmpty')}</Text>
+            )}
+            {allPoints.length > 0 && <Text style={[s.muted, { fontSize: 12 }]}>{t('card.historyNote', { d: shortDate(allPoints[0].d) })}</Text>}
+          </View>
+        </>
+      )}
 
       <Text style={s.h2}>{t('card.seeOn')}</Text>
       {marketLinks(view, appLang).map((l) => (
@@ -330,6 +372,10 @@ const st = StyleSheet.create({
   regBox: { width: 30, height: 30, borderRadius: 6, borderWidth: 2, borderColor: colors.text, alignItems: 'center', justifyContent: 'center' },
   regText: { color: colors.text, fontFamily: fonts.heavy, fontSize: 16 },
   typeDot: { width: 30, height: 30, borderRadius: 15, borderWidth: 3, borderColor: 'rgba(255,255,255,0.25)' },
+  chartBox: { backgroundColor: colors.card, borderRadius: 16, padding: 14, gap: 10 },
+  rangeBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.line },
+  rangeOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  rangeText: { color: colors.text, fontFamily: fonts.bold, fontSize: 12 },
   mainPrice: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.accent, padding: 16, gap: 4 },
   mainValue: { color: colors.accent, fontFamily: fonts.heavy, fontSize: 30 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 },

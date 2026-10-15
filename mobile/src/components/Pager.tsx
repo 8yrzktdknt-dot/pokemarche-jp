@@ -13,7 +13,16 @@ export function Pager({ tabs, initial = 0, children }: { tabs: { label: string; 
   const [w, setW] = useState(0);
   const [page, setPage] = useState(initial);
   const scroller = useRef<ScrollView>(null);
-  const goTo = (i: number) => { scroller.current?.scrollTo({ x: i * w, animated: true }); setPage(i); };
+  // Page visée par un appui sur un onglet : les pages traversées pendant l'animation ne s'allument pas.
+  const target = useRef<number | null>(null);
+  const goTo = (i: number) => { target.current = i; setPage(i); scroller.current?.scrollTo({ x: i * w, animated: true }); };
+  const onScroll = (x: number, settled = false) => {
+    if (target.current !== null) {
+      if (Math.abs(x - target.current * w) > 2 && !settled) return;
+      target.current = null;
+    }
+    setPage(Math.round(x / w));
+  };
 
   return (
     <View style={{ flex: 1 }} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
@@ -33,8 +42,8 @@ export function Pager({ tabs, initial = 0, children }: { tabs: { label: string; 
           showsHorizontalScrollIndicator={false}
           contentOffset={{ x: initial * w, y: 0 }}
           onLayout={() => scroller.current?.scrollTo({ x: page * w, animated: false })}
-          onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / w))}
-          onScroll={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / w))}
+          onMomentumScrollEnd={(e) => onScroll(e.nativeEvent.contentOffset.x, true)}
+          onScroll={(e) => onScroll(e.nativeEvent.contentOffset.x)}
           scrollEventThrottle={64}
           style={{ flex: 1 }}
         >

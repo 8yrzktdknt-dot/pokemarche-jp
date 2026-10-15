@@ -6,29 +6,14 @@ import { GAME_LIST } from '../lib/games';
 import { useStore } from '../lib/store';
 import { variantLabel } from '../lib/variants';
 import { cardName } from '../lib/cardNames';
+import type { Change } from '../lib/priceHistory';
+import { PriceChange } from './PriceChange';
 import { rarityAbbr, rarityName } from '../lib/catalog/pokemonNames';
 import type { AppLang } from '../lib/i18n';
 import type { Card, GameId } from '../lib/types';
+import { colors, fonts } from './theme';
 
-/** Palette « Rayquaza » (voir la direction artistique TCGMarket). */
-export const colors = {
-  bg: '#0A1F17',
-  card: '#133325',
-  line: '#2E6B4D',
-  text: '#ECF5EF',
-  muted: '#8FB3A0',
-  primary: '#1A7D4C',
-  accent: '#F5C542',
-  good: '#3CCB7F',
-  danger: '#E5484D',
-};
-
-export const fonts = {
-  body: 'Manrope_400Regular',
-  bold: 'Manrope_700Bold',
-  heavy: 'Manrope_800ExtraBold',
-  display: 'Unbounded_800ExtraBold',
-};
+export { colors, fonts } from './theme';
 
 export function Wordmark({ size = 20 }: { size?: number }) {
   return (
@@ -75,7 +60,7 @@ export function useBestPrice(): (card: Card) => string | null {
 }
 
 /** `list` : cartes affichées autour (extension, collection, recherche) pour passer de l'une à l'autre sur la fiche. */
-export function CardRow({ card, right, list }: { card: Card; right?: string; list?: Card[] }) {
+export function CardRow({ card, right, list, change }: { card: Card; right?: string; list?: Card[]; change?: Change | null }) {
   const { appLang } = useStore();
   const price = useBestPrice()(card);
   const name = displayName(card, appLang);
@@ -89,7 +74,12 @@ export function CardRow({ card, right, list }: { card: Card; right?: string; lis
           <Text style={s.meta}>{[card.number, card.setName, card.game === 'pokemon' && card.rarity ? rarityName(rarityAbbr(card.rarity), appLang) ?? card.rarity : card.rarity].filter(Boolean).join(' · ')}</Text>
           {!!card.variant && (card.variants?.length ?? 0) > 1 && <Text style={[s.meta, { color: colors.accent }]}>{variantLabel(card.variant, appLang)}</Text>}
         </View>
-        {(right ?? price) && <Text style={s.price}>{right ?? price}</Text>}
+        {(right ?? price ?? change) && (
+          <View style={{ alignItems: 'flex-end', gap: 3, maxWidth: '42%' }}>
+            {(right ?? price) && <Text style={s.price}>{right ?? price}</Text>}
+            <PriceChange change={change} currency={card.prices[0]?.currency} size={11} />
+          </View>
+        )}
       </Pressable>
     </Link>
   );

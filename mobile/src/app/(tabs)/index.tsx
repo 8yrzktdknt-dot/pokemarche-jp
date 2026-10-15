@@ -1,5 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { CollectionPage } from '../../components/dash/CollectionPage';
 import { InsightsPage } from '../../components/dash/InsightsPage';
@@ -9,9 +8,6 @@ import { Pager } from '../../components/Pager';
 import { colors, s } from '../../components/ui';
 import { collectionStats } from '../../lib/stats';
 import { useStore } from '../../lib/store';
-import { dayKey, record, type ValuePoint } from '../../lib/valueHistory';
-
-const KEY_HISTORY = 'valueHistory.v1';
 
 /**
  * Tableau de bord en quatre pages à faire glisser : la collection et sa valeur, l'avancement des extensions,
@@ -21,21 +17,6 @@ export default function Dashboard() {
   const { ready, collection, settings, t, toCurrency } = useStore();
   const st = useMemo(() => collectionStats(collection, toCurrency), [collection, toCurrency]);
   const hello = settings.profileName ? `${t('dash.hello')} ${settings.profileName}` : t('dash.hello');
-
-  // Valeur du jour enregistrée sur l'appareil (le dernier relevé de la journée l'emporte).
-  const [history, setHistory] = useState<ValuePoint[] | null>(null);
-  useEffect(() => {
-    AsyncStorage.getItem(KEY_HISTORY).then((x) => setHistory(x ? JSON.parse(x) : []), () => setHistory([]));
-  }, []);
-  useEffect(() => {
-    if (!ready || !history || !collection.length) return;
-    const today = dayKey(Date.now());
-    const v = Math.round(st.value * 100) / 100;
-    if (history.some((p) => p.d === today && p.c === settings.currency && p.v === v)) return;
-    const next = record(history, { d: today, v, c: settings.currency });
-    setHistory(next);
-    AsyncStorage.setItem(KEY_HISTORY, JSON.stringify(next)).catch(() => {});
-  }, [ready, history, st.value, settings.currency, collection.length]);
 
   if (!ready) return <View style={s.screen}><ActivityIndicator color={colors.accent} style={{ marginTop: 32 }} /></View>;
 
@@ -52,7 +33,7 @@ export default function Dashboard() {
         ]}
       >
         {[
-          <CollectionPage key="c" st={st} history={history ?? []} />,
+          <CollectionPage key="c" st={st} />,
           <SetsPage key="s" st={st} />,
           <NewsPage key="n" />,
           <InsightsPage key="i" st={st} />,
