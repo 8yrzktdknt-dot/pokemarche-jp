@@ -1,6 +1,9 @@
 // One Piece Card Game : listes officielles (anglais, japonais, français), versions regroupées en variantes
 // (normale, parallèles, réimpressions) et prix Cardmarket (jeu n° 18 : moyenne des ventes sur 7 jours, sinon 30 jours…).
-import { getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
+import sharp from 'sharp';
+import { CATALOG, getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
 import { ownLogo, saveLogos, scrydexLogo } from './logos.mjs';
 import { applyProductIds, expansionRegions, groupVersions, indexProducts, matchVersions, pickExpansion } from './onepiece-variants.mjs';
 import { applyCardmarketPrices } from './variants.mjs';
@@ -276,6 +279,13 @@ export async function buildOnePiece() {
       const o = await official(x);
       return [scrydexLogo(`${x.id}_ja`, 'onepiece'), o.logo, scrydexLogo(x.id, 'onepiece'), o.banner];
     });
+    // Un logo d'extension est en largeur : un emblème carré (« 4th Anniversary ») n'en est pas un.
+    if (lang !== 'en') {
+      for (const [id, rel] of [...mine]) {
+        const meta = await sharp(join(CATALOG, rel)).metadata().catch(() => null);
+        if (meta?.width && meta.height && meta.width / meta.height < 1.6) { mine.delete(id); rmSync(join(CATALOG, rel), { force: true }); }
+      }
+    }
     logos[lang] = mine;
 
     const blocs = [...BLOCS.map((b) => b.id), 'other'].map((id) => ({
