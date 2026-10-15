@@ -161,6 +161,7 @@ export const th: Partial<Record<Key, string>> = {
   "dash.priceRanges": "ตามช่วงราคา",
   "price.sinceYesterday": "จากเมื่อวาน",
   "card.history": "ความเคลื่อนไหวของราคา",
+  "card.zoom": "ดูการ์ดขนาดใหญ่",
   "card.historyEmpty": "ประวัติราคานี้จะเพิ่มขึ้นทุกวัน กราฟจะแสดงหลังการอัปเดตครั้งถัดไป",
   "card.historyNote": "ราคาเฉลี่ย Cardmarket บันทึกทุกวันตั้งแต่ {d}",
   "card.range.30": "1 เดือน",

@@ -161,6 +161,7 @@ export const ja: Partial<Record<Key, string>> = {
   "dash.priceRanges": "価格帯別",
   "price.sinceYesterday": "前日比",
   "card.history": "価格推移",
+  "card.zoom": "カードを拡大表示",
   "card.historyEmpty": "この価格の履歴は毎日更新されます。次回の更新後にグラフが表示されます。",
   "card.historyNote": "Cardmarket平均価格（{d}から毎日記録）",
   "card.range.30": "1か月",
