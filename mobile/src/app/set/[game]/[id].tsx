@@ -16,6 +16,11 @@ import { useStore } from '../../../lib/store';
 import type { TKey } from '../../../lib/i18n';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
 import { collectionKey, needsSheen, variantLabel, variantOwnership } from '../../../lib/variants';
+import { PriceChange } from '../../../components/PriceChange';
+import { dayChange } from '../../../lib/priceHistory';
+import { usePriceHistory } from '../../../lib/usePriceHistory';
+
+const NONE: Card[] = [];
 
 /** Affichage choisi (empiler, tri, état), gardé d'une extension à l'autre pendant la session. */
 let lastView: SetViewOptions = DEFAULT_SET_VIEW;
@@ -66,6 +71,9 @@ export default function SetScreen() {
     () => (cards ? setView(cards, view, (c) => quantities.get(collectionKey(c)) ?? 0, (c) => displayName(c, appLang)) : []),
     [cards, view, quantities, appLang],
   );
+
+  // Variation de chaque carte depuis la veille (historique des prix de l'extension).
+  const points = usePriceHistory(cards ?? NONE);
 
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!cards) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
@@ -128,7 +136,8 @@ export default function SetScreen() {
               </View>
               <Text style={st.num} numberOfLines={1}>{item.number}</Text>
               <Text style={st.name} numberOfLines={1}>{displayName(item, appLang)}</Text>
-              {view.sort === 'price' && !!item.prices[0] && <Text style={st.price}>{money(item.prices[0].value, item.prices[0].currency)}</Text>}
+              {!!item.prices[0] && <Text style={st.price}>{money(item.prices[0].value, item.prices[0].currency)}</Text>}
+              <PriceChange change={dayChange(points(item))} currency={item.prices[0]?.currency} size={10} />
             </Pressable>
           </Link>
         )}
