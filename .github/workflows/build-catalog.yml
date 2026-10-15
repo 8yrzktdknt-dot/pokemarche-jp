@@ -43,6 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Repartir du catalogue le plus récent : un passage lancé avant la fin du précédent (file d'attente)
+      # écraserait sinon son travail en publiant une version plus ancienne.
+      - name: Dernière version du dépôt
+        run: |
+          git fetch --depth=1 origin "$GITHUB_REF_NAME"
+          git reset --hard FETCH_HEAD
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
