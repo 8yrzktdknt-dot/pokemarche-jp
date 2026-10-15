@@ -1,7 +1,7 @@
 // Cache de l'app (service worker) : ce qui a déjà été vu s'affiche tout de suite, même sans réseau.
 //  - images (cartes, logos, sprites) : gardées sur le téléphone, réseau seulement la première fois ;
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
-//  - catalogue : réseau d'abord (toujours à jour), copie locale sans réseau ;
+//  - catalogue : copie locale de moins d'une heure tout de suite (mise à jour en arrière-plan), sinon réseau d'abord ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
 const VERSION = '__VERSION__';
 const BASE = '__BASE__';
@@ -66,6 +66,22 @@ async function networkFirst(req, name, timeoutMs) {
   return net;
 }
 
+/**
+ * Copie récente (moins de `freshMs`) servie tout de suite et rafraîchie en arrière-plan pour la fois suivante ;
+ * plus ancienne ou absente : réseau d'abord (copie locale si le réseau traîne). Les prix changent au plus une fois
+ * par heure : inutile d'attendre le réseau à chaque ouverture d'extension.
+ */
+async function freshOrNetwork(event, req, name, freshMs, timeoutMs) {
+  const c = await caches.open(name);
+  const hit = await c.match(req);
+  const age = hit ? Date.now() - Date.parse(hit.headers.get('date') ?? '') : Infinity;
+  if (hit && age < freshMs) {
+    event.waitUntil(fetch(req).then((res) => (res.ok ? c.put(req, res) : undefined)).catch(() => {}));
+    return hit;
+  }
+  return networkFirst(req, name, timeoutMs);
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -86,9 +102,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(req, IMAGES, trimImages));
     return;
   }
-  // Catalogue (prix du jour, liens) : réseau d'abord pour être toujours à jour ; copie locale sans réseau.
+  // Catalogue (prix, liens) : copie de moins d'une heure tout de suite, sinon réseau d'abord ; copie locale sans réseau.
   if (same && url.pathname.includes('/catalog/')) {
-    event.respondWith(networkFirst(req, DATA, 4000));
+    event.respondWith(freshOrNetwork(event, req, DATA, 3600 * 1000, 3000));
     return;
   }
   if (LIVE_HOSTS.includes(url.hostname)) {
