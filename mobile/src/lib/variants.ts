@@ -83,7 +83,7 @@ export function withVariant(card: Card, key?: string): Card {
   const base = card.variants?.[0];
   const own = v.cardmarket && v.cardmarket !== base?.cardmarket;
   // Visuel de la variante (One Piece : visuel officiel ; Pokémon : fiche TCGplayer à part) ; sinon celui de la carte de base.
-  const image = v.image ? { small: v.image, large: v.image } : v.tcgplayer ? variantImage(v.tcgplayer) : undefined;
+  const image = v.image ? { small: v.image, large: v.image.replace(/^(https:\/\/wsrv\.nl\/.*[?&]w=)\d+/, '$1900') } : v.tcgplayer ? variantImage(v.tcgplayer) : undefined;
   const baseImage = card.baseImage ?? { small: card.imageSmall, large: card.imageLarge };
   return {
     ...card,

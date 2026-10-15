@@ -42,7 +42,9 @@ function toCard(c: OptcgCard, lang: CardLang): Card {
   const prices: Price[] = [];
   const imageId = c.card_image_id ?? c.card_set_id;
   const official = OFFICIAL_IMG[lang];
-  const image = official ? `${official}/${imageId}.png` : c.card_image;
+  // Le site officiel interdit l'affichage de ses images ailleurs : proxy d'images wsrv.nl.
+  const raw = official ? `${official}/${imageId}.png` : c.card_image;
+  const image = raw ? `https://wsrv.nl/?url=${encodeURIComponent(raw.replace(/^https?:\/\//, ''))}&w=360&output=webp` : raw;
   return {
     game: 'onepiece',
     id: imageId,

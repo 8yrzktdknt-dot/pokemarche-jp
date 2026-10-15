@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { CATALOG, getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
 import { ownLogo, saveLogos, scrydexLogo } from './logos.mjs';
-import { applyProductIds, expansionRegions, groupVersions, indexProducts, matchVersions, pickExpansion } from './onepiece-variants.mjs';
+import { applyProductIds, expansionRegions, groupVersions, indexProducts, matchVersions, ownCardsFirst, pickExpansion } from './onepiece-variants.mjs';
 import { applyCardmarketPrices } from './variants.mjs';
 
 const SITES = { en: 'https://en.onepiece-cardgame.com', ja: 'https://www.onepiece-cardgame.com', fr: 'https://fr.onepiece-cardgame.com' };
@@ -148,13 +148,19 @@ export function setName(label) {
   return titleCase(core);
 }
 
+/**
+ * Visuel officiel servi par le proxy d'images wsrv.nl : le site officiel interdit l'affichage de ses images depuis
+ * un autre site (« Cross-Origin-Resource-Policy: same-site »). 360 px pour les listes ; l'app demande 900 px pour la fiche.
+ */
+export const proxiedImage = (url) => (url ? `https://wsrv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ''))}&w=360&output=webp` : url);
+
 /** Versions d'une extension (site officiel) au format du catalogue, avant regroupement. */
 const toEntry = (c) => ({
   id: c.id,
   localId: c.number.split('-').pop(),
   number: c.number,
   name: c.name,
-  image: c.image,
+  image: proxiedImage(c.image),
   rarity: c.rarity,
   facets: { color: c.colors, category: c.category ? [c.category] : [] },
   attrs: Object.keys(c.attrs ?? {}).length ? c.attrs : undefined,
@@ -247,7 +253,7 @@ export async function buildOnePiece() {
     if (!sets.length) continue;
     let total = 0, priced = 0;
     for (const s of sets) {
-      const cards = groupVersions(s.entries);
+      const cards = ownCardsFirst(groupVersions(s.entries), s.id);
       applyProductIds(cards, productIds[lang === 'ja' ? 'asia' : 'intl']);
       priced += applyCardmarketPrices(cards, prices);
       for (const c of cards) {

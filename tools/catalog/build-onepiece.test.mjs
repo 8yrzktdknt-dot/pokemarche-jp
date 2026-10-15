@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseCards, parseSeries, setName, parseProductLogo } from './build-onepiece.mjs';
+import { parseCards, parseSeries, setName, parseProductLogo, proxiedImage } from './build-onepiece.mjs';
+
+test('visuels officiels via le proxy d\'images (le site interdit l\'affichage ailleurs)', () => {
+  assert.equal(proxiedImage('https://en.onepiece-cardgame.com/images/cardlist/card/OP01-120_p1.png'), 'https://wsrv.nl/?url=en.onepiece-cardgame.com%2Fimages%2Fcardlist%2Fcard%2FOP01-120_p1.png&w=360&output=webp');
+});
 
 test('sélecteur des extensions (extraits réels)', () => {
   const html = `<option value="569105" >BOOSTER PACK &lt;br class=&quot;spInline&quot;&gt;-AWAKENING OF THE NEW ERA- [OP-05]

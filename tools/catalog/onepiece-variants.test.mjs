@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { applyProductIds, expansionRegions, groupVersions, indexProducts, matchVersions, pickExpansion, productCode, variantKey } from './onepiece-variants.mjs';
+import { applyProductIds, expansionRegions, groupVersions, ownCardsFirst, indexProducts, matchVersions, pickExpansion, productCode, variantKey } from './onepiece-variants.mjs';
 
 const e = (id, extra = {}) => ({ id, number: id.replace(/_.*$/, ''), name: 'X', image: `${id}.png`, ...extra });
 
@@ -58,4 +58,9 @@ test('région des extensions Cardmarket et choix selon la langue', () => {
   const cards = groupVersions([e('OP01-016')]);
   assert.equal(pickExpansion(cards, byExp, new Set(), (x) => (regions.get(x) ?? 'asia') === 'asia'), 5484);
   assert.equal(pickExpansion(cards, byExp, new Set(), (x) => (regions.get(x) ?? 'intl') === 'intl'), 5229);
+});
+
+test('cartes de l\'extension d\'abord, puis les cartes spéciales d\'autres extensions', () => {
+  const cards = groupVersions([e('EB04-061_p2'), e('OP17-001'), e('OP12-030_p3'), e('OP17-002')]);
+  assert.deepEqual(ownCardsFirst(cards, 'OP17').map((c) => c.number), ['OP17-001', 'OP17-002', 'EB04-061', 'OP12-030']);
 });
