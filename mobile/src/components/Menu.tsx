@@ -9,6 +9,8 @@ export interface MenuItem {
   onPress(): void;
   /** Icône pleine (favori actif…). */
   active?: boolean;
+  /** Case à cocher à droite (option qu'on coche et décoche d'un appui). */
+  checked?: boolean;
 }
 
 /** Menu d'actions ouvert par le bouton « ⋮ » en haut à droite, fermé par un appui à côté. */
@@ -23,10 +25,14 @@ export function Menu({ open, onClose, items }: { open: boolean; onClose(): void;
             key={x.label}
             style={({ pressed }) => [st.item, pressed && st.pressed]}
             onPress={() => { onClose(); x.onPress(); }}
-            accessibilityRole="menuitem"
+            accessibilityRole={x.checked !== undefined ? 'checkbox' : 'menuitem'}
+            accessibilityState={x.checked !== undefined ? { checked: x.checked } : undefined}
           >
             <Ionicons name={x.icon} size={24} color={x.active ? colors.accent : colors.text} />
             <Text style={st.label}>{x.label}</Text>
+            {x.checked !== undefined && (
+              <Ionicons name={x.checked ? 'checkbox' : 'square-outline'} size={26} color={x.checked ? colors.accent : colors.muted} />
+            )}
           </Pressable>
         ))}
       </View>
