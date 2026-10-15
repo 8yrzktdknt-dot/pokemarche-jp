@@ -255,10 +255,15 @@ export default function CardScreen() {
       {/* Visuel de la variante choisie (photo à part pour Poké Ball, Master Ball…, reflet pour le reverse). */}
       {/* Un appui sur le visuel l'affiche en grand. */}
       <Pressable onPress={() => setZoom(true)} style={{ width: (imgH * 63) / 88, height: imgH, alignSelf: 'center' }} accessibilityRole="imagebutton" accessibilityLabel={t('card.zoom')}>
-        <Image source={view.imageLarge ?? view.imageSmall} style={{ width: '100%', height: '100%', borderRadius: 12 }} contentFit="contain" transition={0} cachePolicy="memory-disk" />
+        {/* Petite image (déjà en mémoire depuis la liste) affichée tout de suite, en attendant la grande. */}
+        <Image
+          source={view.imageLarge ?? view.imageSmall}
+          placeholder={view.imageSmall && view.imageSmall !== view.imageLarge ? { uri: view.imageSmall } : undefined} placeholderContentFit="contain"
+          style={{ width: '100%', height: '100%', borderRadius: 12 }} contentFit="contain" transition={0} cachePolicy="memory-disk"
+        />
         {needsSheen(view) && <ReverseSheen radius={12} />}
       </Pressable>
-      <ImageViewer open={zoom} onClose={() => setZoom(false)} uri={view.imageLarge ?? view.imageSmall} sheen={needsSheen(view)} />
+      <ImageViewer open={zoom} onClose={() => setZoom(false)} uri={view.imageLarge ?? view.imageSmall} placeholder={view.imageSmall} sheen={needsSheen(view)} />
       {nav.total > 1 && (
         <View style={st.nav}>
           <Pressable style={[st.navBtn, !nav.prev && st.navOff]} disabled={!nav.prev} onPress={() => go(nav.prev, -1)} accessibilityLabel={t('card.prev')}>
