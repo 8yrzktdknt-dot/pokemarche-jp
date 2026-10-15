@@ -37,3 +37,13 @@ test('attributs Pokémon dans la langue de l\'app, quelle que soit la langue de 
   assert.equal(localizeAttr('category', 'Trainer · Supporter', 'zh-tw'), '訓練家 · 支援者');
   assert.equal(localizeAttr('type', 'Inconnu', 'en'), 'Inconnu');
 });
+
+test('attributs One Piece dans la langue de l\'app', async () => {
+  const { localizeAttr } = await import('./attrValues.ts');
+  assert.equal(localizeAttr('color', 'Red / Green', 'fr'), 'Rouge / Vert');
+  assert.equal(localizeAttr('color', '赤', 'en'), 'Red');
+  assert.equal(localizeAttr('category', 'PERSONNAGE', 'en'), 'Character');
+  assert.equal(localizeAttr('category', 'EVENT', 'fr'), 'Événement');
+  assert.equal(localizeAttr('category', 'ÉVÉNEMENTS', 'ja'), 'イベント');
+  assert.equal(localizeAttr('attribute', 'Slash/Wisdom', 'fr'), 'Tranche / Sagesse');
+});

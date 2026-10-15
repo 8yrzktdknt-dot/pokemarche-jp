@@ -4,7 +4,8 @@
 //    seule carte avec ses variantes (clé, n° officiel, visuel) : v = [{ k: 'normal', o: 'OP01-120', img }, { k: 'parallel', … }].
 //  - Cardmarket (jeu n° 18) a une fiche par version : « Shanks (OP01-120) » ×3 dans l'extension Romance Dawn, dans le
 //    même ordre que le site officiel (n° produit croissants). L'extension Cardmarket d'une extension du catalogue est
-//    celle qui contient le plus de ses numéros.
+//    celle qui contient le plus de ses numéros, parmi celles de la région des cartes : Cardmarket sépare les éditions
+//    internationales (anglais, français) des éditions asiatiques (japonais), aux prix bien différents.
 
 /** Clé de variante d'une version officielle : '' → normal, _p1 → parallel, _p2 → parallel-2, _r1 → reprint. */
 export function variantKey(officialId) {
@@ -65,15 +66,30 @@ export function indexProducts(products) {
 }
 
 /**
- * Extension Cardmarket d'une extension du catalogue : celle qui couvre le plus de ses numéros (au moins 60 %),
- * à égalité celle dont le nombre de fiches est le plus proche du nombre de versions. `taken` : déjà attribuées.
+ * Région des extensions Cardmarket d'après leurs produits scellés : « asia » (« … Booster Box (Non-English) »,
+ * « (Japanese) », « (Asia Region Legal) ») ou « intl » (anglais, cartes européennes) ; sans produit scellé : inconnue.
  */
-export function pickExpansion(cards, byExp, taken = new Set()) {
+export function expansionRegions(sealed) {
+  const out = new Map();
+  for (const p of sealed) {
+    const asia = /\((Non-English|Japanese|Asia Region Lega)/i.test(p.name ?? '');
+    if (asia) out.set(p.idExpansion, 'asia');
+    else if (!out.has(p.idExpansion)) out.set(p.idExpansion, 'intl');
+  }
+  return out;
+}
+
+/**
+ * Extension Cardmarket d'une extension du catalogue : celle qui couvre le plus de ses numéros (au moins 60 %),
+ * à égalité celle dont le nombre de fiches est le plus proche du nombre de versions. `taken` : déjà attribuées ;
+ * `allowed(exp)` : extensions possibles (région de la langue des cartes).
+ */
+export function pickExpansion(cards, byExp, taken = new Set(), allowed = () => true) {
   const codes = new Set(cards.map((c) => c.number));
   const versions = cards.reduce((n, c) => n + (c.v?.length ?? 1), 0);
   let best;
   for (const [exp, m] of byExp) {
-    if (taken.has(exp)) continue;
+    if (taken.has(exp) || !allowed(exp)) continue;
     let hit = 0, count = 0;
     for (const code of codes) if (m.has(code)) { hit++; count += m.get(code).length; }
     if (hit / codes.size < 0.6) continue;

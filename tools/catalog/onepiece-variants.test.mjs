@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { applyProductIds, groupVersions, indexProducts, matchVersions, pickExpansion, productCode, variantKey } from './onepiece-variants.mjs';
+import { applyProductIds, expansionRegions, groupVersions, indexProducts, matchVersions, pickExpansion, productCode, variantKey } from './onepiece-variants.mjs';
 
 const e = (id, extra = {}) => ({ id, number: id.replace(/_.*$/, ''), name: 'X', image: `${id}.png`, ...extra });
 
@@ -40,4 +40,22 @@ test('fiches Cardmarket : extension et versions', () => {
   applyProductIds(cards, ids);
   assert.equal(cards[0].cm.id, 690957);
   assert.equal(cards[0].v[2].id, 690959);
+});
+
+test('région des extensions Cardmarket et choix selon la langue', () => {
+  const regions = expansionRegions([
+    { idExpansion: 5229, name: 'Romance Dawn Booster Box' },
+    { idExpansion: 5484, name: 'Romance Dawn Booster Box (Non-English)' },
+    { idExpansion: 6478, name: 'Egghead Crisis Booster Box (Asia Region Lega)' },
+  ]);
+  assert.equal(regions.get(5229), 'intl');
+  assert.equal(regions.get(5484), 'asia');
+  assert.equal(regions.get(6478), 'asia');
+  const byExp = indexProducts([
+    { idProduct: 1, name: 'Nami (OP01-016)', idExpansion: 5229 },
+    { idProduct: 2, name: 'Nami (OP01-016)', idExpansion: 5484 },
+  ]);
+  const cards = groupVersions([e('OP01-016')]);
+  assert.equal(pickExpansion(cards, byExp, new Set(), (x) => (regions.get(x) ?? 'asia') === 'asia'), 5484);
+  assert.equal(pickExpansion(cards, byExp, new Set(), (x) => (regions.get(x) ?? 'intl') === 'intl'), 5229);
 });

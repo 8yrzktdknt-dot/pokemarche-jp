@@ -2,7 +2,7 @@
 // (normale, parallèles, réimpressions) et prix Cardmarket (jeu n° 18 : moyenne des ventes sur 7 jours, sinon 30 jours…).
 import { getJson, getText, pool, sleep, unescapeHtml, writeJson } from './lib.mjs';
 import { ownLogo, saveLogos, scrydexLogo } from './logos.mjs';
-import { applyProductIds, groupVersions, indexProducts, matchVersions, pickExpansion } from './onepiece-variants.mjs';
+import { applyProductIds, expansionRegions, groupVersions, indexProducts, matchVersions, pickExpansion } from './onepiece-variants.mjs';
 import { applyCardmarketPrices } from './variants.mjs';
 
 const SITES = { en: 'https://en.onepiece-cardgame.com', ja: 'https://www.onepiece-cardgame.com', fr: 'https://fr.onepiece-cardgame.com' };
@@ -21,7 +21,7 @@ const BLOC_NAMES = {
   other: { fr: 'Autres', en: 'Other', ja: 'その他', de: 'Andere', es: 'Otros', it: 'Altro', pt: 'Outros', 'zh-tw': '其他', 'zh-cn': '其他', ko: '기타' },
 };
 
-/** Dates de sortie des boosters (anglais et japonais) ; le français suit l'anglais quand il n'a pas la sienne. */
+/** Dates de sortie des boosters (anglais et japonais). */
 const RELEASES = {
   en: {
     OP01: '2022-12-02', OP02: '2023-03-10', OP03: '2023-06-30', OP04: '2023-09-22', OP05: '2023-12-08', OP06: '2024-03-15',
@@ -39,6 +39,7 @@ const RELEASES = {
 
 /** Fichiers publics Cardmarket du One Piece Card Game (jeu n° 18) : fiches produits et guide des prix. */
 const CM_PRODUCTS = 'https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_18.json';
+const CM_SEALED = 'https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_18.json';
 export const CM_PRICES = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_18.json';
 
 const clean = (s) => unescapeHtml(unescapeHtml(s)).replace(/<br[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -162,28 +163,33 @@ async function officialLists(lang, site) {
 }
 
 export async function buildOnePiece() {
-  const [products, guide] = await Promise.all([getJson(CM_PRODUCTS), getJson(CM_PRICES)]);
+  const [products, sealed, guide] = await Promise.all([getJson(CM_PRODUCTS), getJson(CM_SEALED), getJson(CM_PRICES)]);
   const byExp = indexProducts(products?.products ?? []);
+  const regions = expansionRegions(sealed?.products ?? []);
   const prices = { prices: new Map((guide?.priceGuides ?? []).map((x) => [x.idProduct, x])) };
   if (!byExp.size) console.warn('One Piece : fiches Cardmarket indisponibles');
 
   const lists = {};
   for (const [lang, site] of Object.entries(SITES)) lists[lang] = await officialLists(lang, site);
 
-  // Fiches Cardmarket : choisies une fois par extension, d'après la liste anglaise (sinon française, japonaise) ;
-  // les ids officiels sont les mêmes dans toutes les langues.
-  const productIds = new Map();
-  const taken = new Set();
-  const seen = new Set();
-  for (const lang of ['en', 'fr', 'ja']) {
-    for (const s of lists[lang]) {
-      if (seen.has(s.id)) continue;
-      seen.add(s.id);
-      const cards = groupVersions(s.entries);
-      const exp = pickExpansion(cards, byExp, taken);
-      if (!exp) { console.warn(`One Piece : pas d'extension Cardmarket pour ${s.id}`); continue; }
-      taken.add(exp);
-      for (const [o, id] of matchVersions(cards, byExp.get(exp))) productIds.set(o, id);
+  // Fiches Cardmarket par région : internationales (cartes anglaises et françaises, d'après la liste anglaise, sinon
+  // française) et asiatiques (cartes japonaises) ; les extensions sans produit scellé (promos) vont aux deux.
+  // Les ids officiels sont les mêmes dans toutes les langues.
+  const productIds = { intl: new Map(), asia: new Map() };
+  for (const [region, langs] of [['intl', ['en', 'fr']], ['asia', ['ja']]]) {
+    const taken = new Set();
+    const seen = new Set();
+    const allowed = (exp) => (regions.get(exp) ?? region) === region;
+    for (const lang of langs) {
+      for (const s of lists[lang]) {
+        if (seen.has(s.id)) continue;
+        seen.add(s.id);
+        const cards = groupVersions(s.entries);
+        const exp = pickExpansion(cards, byExp, taken, allowed);
+        if (!exp) { console.warn(`One Piece : pas d'extension Cardmarket (${region}) pour ${s.id}`); continue; }
+        taken.add(exp);
+        for (const [o, id] of matchVersions(cards, byExp.get(exp))) productIds[region].set(o, id);
+      }
     }
   }
 
@@ -204,7 +210,7 @@ export async function buildOnePiece() {
     let total = 0, priced = 0;
     for (const s of sets) {
       const cards = groupVersions(s.entries);
-      applyProductIds(cards, productIds);
+      applyProductIds(cards, productIds[lang === 'ja' ? 'asia' : 'intl']);
       priced += applyCardmarketPrices(cards, prices);
       for (const c of cards) {
         const names = cardNames.get(c.id) ?? {};
@@ -239,7 +245,7 @@ export async function buildOnePiece() {
       id, name: BLOC_NAMES[id].en, names: BLOC_NAMES[id],
       sets: sets.filter((s) => s.bloc === id).sort((a, b) => b.order - a.order).map((s) => {
         const logo = (lang === 'ja' ? logos.en?.get(s.id) : undefined) ?? mine.get(s.id) ?? logos.en?.get(s.id) ?? ownLogo(`onepiece-${lang}`, s.id);
-        const releaseDate = RELEASES[lang]?.[s.id] ?? (lang === 'fr' ? RELEASES.en[s.id] : undefined);
+        const releaseDate = RELEASES[lang]?.[s.id];
         return {
           id: s.id, code: s.code, name: s.name, names: setNames.get(s.id), count: groupVersions(s.entries).length,
           ...(releaseDate ? { releaseDate } : {}), ...(logo ? { logo } : {}),
