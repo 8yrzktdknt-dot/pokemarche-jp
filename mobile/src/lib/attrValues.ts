@@ -1,7 +1,7 @@
 import type { AttributeKey } from './types.ts';
 
 /**
- * Valeurs d'attributs Pokémon (type, stade, catégorie) dans la langue de l'app.
+ * Valeurs d'attributs Pokémon (type, stade, catégorie) et One Piece (couleur, catégorie, attribut) dans la langue de l'app.
  * Les sources mélangent les langues (catalogue en français, Limitless et TCGdex en anglais, TCGdex dans la langue
  * des cartes) : chaque valeur connue est ramenée à une notion, puis affichée dans la langue choisie.
  * Une valeur inconnue est affichée telle quelle.
@@ -53,8 +53,54 @@ const CATEGORIES: Record<string, Labels> = {
   specialEnergy: L('Énergie spéciale', 'Special Energy', '特殊エネルギー', '特殊能量', '特殊能量', 'Energía Especial', 'Energia speciale', 'Spezial-Energie', 'Speciale energie', 'Energia Especial', 'Особая энергия', 'พลังงานพิเศษ', '특수 에너지'),
 };
 
+/** One Piece : couleurs et attributs (catégories : avec celles de Pokémon). */
+const COLORS: Record<string, Labels> = {
+  red: L('Rouge', 'Red', '赤', '紅', '红', 'Rojo', 'Rosso', 'Rot', 'Rood', 'Vermelho', 'Красный', 'แดง', '빨강'),
+  green: L('Vert', 'Green', '緑', '綠', '绿', 'Verde', 'Verde', 'Grün', 'Groen', 'Verde', 'Зелёный', 'เขียว', '초록'),
+  blue: L('Bleu', 'Blue', '青', '藍', '蓝', 'Azul', 'Blu', 'Blau', 'Blauw', 'Azul', 'Синий', 'น้ำเงิน', '파랑'),
+  purple: L('Violet', 'Purple', '紫', '紫', '紫', 'Morado', 'Viola', 'Lila', 'Paars', 'Roxo', 'Фиолетовый', 'ม่วง', '보라'),
+  black: L('Noir', 'Black', '黒', '黑', '黑', 'Negro', 'Nero', 'Schwarz', 'Zwart', 'Preto', 'Чёрный', 'ดำ', '검정'),
+  yellow: L('Jaune', 'Yellow', '黄', '黃', '黄', 'Amarillo', 'Giallo', 'Gelb', 'Geel', 'Amarelo', 'Жёлтый', 'เหลือง', '노랑'),
+};
+const OP_ATTRS: Record<string, Labels> = {
+  slash: L('Tranche', 'Slash', '斬', '斬', '斩', 'Corte', 'Taglio', 'Hieb', 'Houw', 'Corte', 'Рубящий', 'ฟัน', '참'),
+  strike: L('Frappe', 'Strike', '打', '打', '打', 'Golpe', 'Colpo', 'Schlag', 'Slag', 'Golpe', 'Удар', 'ตี', '타'),
+  ranged: L('Distance', 'Ranged', '射', '射', '射', 'A distancia', 'Distanza', 'Fernkampf', 'Afstand', 'À distância', 'Дальний бой', 'ระยะไกล', '사격'),
+  special: L('Spécial', 'Special', '特', '特', '特', 'Especial', 'Speciale', 'Spezial', 'Speciaal', 'Especial', 'Особый', 'พิเศษ', '특수'),
+  wisdom: L('Sagesse', 'Wisdom', '知', '知', '知', 'Sabiduría', 'Saggezza', 'Weisheit', 'Wijsheid', 'Sabedoria', 'Мудрость', 'ปัญญา', '지'),
+};
+Object.assign(CATEGORIES, {
+  leader: L('Leader', 'Leader', 'リーダー', '領袖', '领袖', 'Líder', 'Leader', 'Leader', 'Leader', 'Líder', 'Лидер', 'ลีดเดอร์', '리더'),
+  character: L('Personnage', 'Character', 'キャラクター', '角色', '角色', 'Personaje', 'Personaggio', 'Charakter', 'Personage', 'Personagem', 'Персонаж', 'ตัวละคร', '캐릭터'),
+  event: L('Événement', 'Event', 'イベント', '事件', '事件', 'Evento', 'Evento', 'Ereignis', 'Gebeurtenis', 'Evento', 'Событие', 'อีเวนต์', '이벤트'),
+  opStage: L('Lieu', 'Stage', 'ステージ', '場地', '场地', 'Escenario', 'Luogo', 'Ort', 'Locatie', 'Cenário', 'Сцена', 'สเตจ', '스테이지'),
+});
+
+/** One Piece : raretés (abréviation imprimée → nom). */
+const OP_RARITIES: Record<string, Labels> = {
+  L: L('Leader', 'Leader', 'リーダー', '領袖', '领袖', 'Líder', 'Leader', 'Leader', 'Leader', 'Líder', 'Лидер', 'ลีดเดอร์', '리더'),
+  C: L('Commune', 'Common', 'コモン', '普通', '普通', 'Común', 'Comune', 'Gewöhnlich', 'Gewoon', 'Comum', 'Обычная', 'คอมมอน', '커먼'),
+  UC: L('Peu commune', 'Uncommon', 'アンコモン', '非普通', '非普通', 'Infrecuente', 'Non comune', 'Ungewöhnlich', 'Ongewoon', 'Incomum', 'Необычная', 'อันคอมมอน', '언커먼'),
+  R: L('Rare', 'Rare', 'レア', '稀有', '稀有', 'Rara', 'Rara', 'Selten', 'Zeldzaam', 'Rara', 'Редкая', 'แรร์', '레어'),
+  SR: L('Super rare', 'Super Rare', 'スーパーレア', '超稀有', '超稀有', 'Súper rara', 'Super rara', 'Super selten', 'Super zeldzaam', 'Super rara', 'Суперредкая', 'ซูเปอร์แรร์', '슈퍼 레어'),
+  SEC: L('Secrète', 'Secret Rare', 'シークレットレア', '秘密稀有', '秘密稀有', 'Secreta', 'Segreta', 'Geheim', 'Geheim', 'Secreta', 'Секретная', 'ซีเคร็ทแรร์', '시크릿 레어'),
+  SP: L('Carte SP', 'SP Card', 'SPカード', 'SP卡', 'SP卡', 'Carta SP', 'Carta SP', 'SP-Karte', 'SP-kaart', 'Carta SP', 'SP-карта', 'การ์ด SP', 'SP 카드'),
+  TR: L('Trésor rare', 'Treasure Rare', 'トレジャーレア', '寶藏稀有', '宝藏稀有', 'Tesoro rara', 'Tesoro rara', 'Schatz-Rare', 'Schat zeldzaam', 'Tesouro rara', 'Сокровище', 'เทรเชอร์แรร์', '트레저 레어'),
+  P: L('Promo', 'Promo', 'プロモ', '宣傳卡', '宣传卡', 'Promo', 'Promo', 'Promo', 'Promo', 'Promo', 'Промо', 'โปรโม', '프로모'),
+};
+
+/** Rareté One Piece affichée : « SR · Super rare » (abréviation imprimée et nom dans la langue de l'app). */
+export function opRarity(value: string, lang: string): string {
+  const v = value.trim().toUpperCase();
+  const abbr = /^SP/.test(v) ? 'SP' : v;
+  const name = OP_RARITIES[abbr]?.[(OP_RARITIES.C[lang as Lang] ? lang : 'en') as Lang];
+  return name ? (abbr === 'SP' ? name : `${value} · ${name}`) : value;
+}
+
 /** Variantes des sources qui ne sont le libellé d'aucune langue. */
-const EXTRA: Record<'type' | 'stage' | 'category', Record<string, string>> = {
+const EXTRA: Record<'type' | 'stage' | 'category' | 'color' | 'attribute', Record<string, string>> = {
+  color: {},
+  attribute: {},
   type: { normal: 'basicEnergy', 'spécial': 'specialEnergy', special: 'specialEnergy', 'électrique': 'lightning' },
   stage: {
     base: 'basic', stage1: 'stage1', stage2: 'stage2', 'mega evolution': 'mega', 'méga': 'mega', mega: 'mega', 'niveau sup': 'levelx', 'level up': 'levelx',
@@ -63,6 +109,8 @@ const EXTRA: Record<'type' | 'stage' | 'category', Record<string, string>> = {
   category: {
     pokemon: 'pokemon', outil: 'tool', tool: 'tool', 'machine technique': 'tm', 'technical machine': 'tm',
     'basic energy': 'basicEnergy', 'special energy': 'specialEnergy', 'énergie de base': 'basicEnergy', 'énergie spéciale': 'specialEnergy',
+    // One Piece (site français : « ÉVÉNEMENTS »).
+    'événements': 'event',
   },
 };
 
@@ -74,23 +122,42 @@ function index(table: Record<string, Labels>, extra: Record<string, string>) {
   for (const [v, concept] of Object.entries(extra)) out.set(norm(v), concept);
   return out;
 }
-const IDX = { type: index(TYPES, EXTRA.type), stage: index(STAGES, EXTRA.stage), category: index(CATEGORIES, EXTRA.category) };
-const TABLE = { type: TYPES, stage: STAGES, category: CATEGORIES };
+const IDX = {
+  type: index(TYPES, EXTRA.type), stage: index(STAGES, EXTRA.stage), category: index(CATEGORIES, EXTRA.category),
+  color: index(COLORS, EXTRA.color), attribute: index(OP_ATTRS, EXTRA.attribute),
+};
+const TABLE = { type: TYPES, stage: STAGES, category: CATEGORIES, color: COLORS, attribute: OP_ATTRS };
 
 /** Mots gardés tels quels (VMAX, VSTAR, V-UNION…). */
 const KEEP: Record<string, string> = { vmax: 'VMAX', vstar: 'VSTAR', vunion: 'V-UNION' };
 
-function one(kind: 'type' | 'stage' | 'category', v: string, lang: string): string {
+function one(kind: keyof typeof IDX, v: string, lang: string): string {
   const concept = IDX[kind].get(norm(v));
   if (!concept) return v;
   if (KEEP[concept]) return KEEP[concept];
   return TABLE[kind][concept]?.[lang as Lang] ?? v;
 }
 
+/** Types One Piece (équipages…) : [anglais, français, japonais], publiés avec le catalogue (names/onepiece-features.json). */
+let FEATURES: Map<string, string[]> | null = null;
+export function setOpFeatures(rows: string[][] | null): void {
+  FEATURES = new Map();
+  for (const r of rows ?? []) for (const v of r) if (v && !FEATURES.has(norm(v))) FEATURES.set(norm(v), r);
+}
+const FEATURE_LANG: Record<string, number> = { en: 0, fr: 1, ja: 2 };
+/** « Straw Hat Crew/Supernovas » dans la langue de l'app (français, japonais, sinon anglais). */
+export function opFeature(value: string, lang: string): string {
+  if (!FEATURES) return value;
+  const i = FEATURE_LANG[lang] ?? 0;
+  return value.split('/').map((v) => { const r = FEATURES!.get(norm(v)); return (r && (r[i] || r[0])) || v.trim(); }).join(' / ');
+}
+
 /** Valeur d'un attribut dans la langue de l'app (types « A / B », catégories « Dresseur · Objet »). */
 export function localizeAttr(key: AttributeKey, value: string, lang: string): string {
   if (key === 'type') return value.split(' / ').map((v) => one('type', v, lang)).join(' / ');
   if (key === 'stage') return one('stage', value, lang);
+  // One Piece : « Red / Green », « Slash/Wisdom ».
+  if (key === 'color' || key === 'attribute') return value.split(/\s*\/\s*/).map((v) => one(key, v, lang)).join(' / ');
   if (key === 'category') {
     const parts = value.split(' · ').map((v) => one('category', v, lang));
     // « Énergie · Énergie de base » → « Énergie de base » (pas de répétition).

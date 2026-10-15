@@ -96,7 +96,7 @@ export function SetOverview({ stats, game, id, lang }: { stats: SetStats; game: 
             </View>
             <View style={{ gap: 10 }}>
               <Bar label={t('setStats.base')} p={stats.base} />
-              <Bar label={t('setStats.extra')} p={stats.extra} />
+              {stats.extra.total > 0 && <Bar label={t('setStats.extra')} p={stats.extra} />}
             </View>
           </Pressable>
 

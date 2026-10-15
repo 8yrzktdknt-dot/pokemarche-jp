@@ -16,13 +16,25 @@ export async function refreshCollectionPrices<E extends Entry>(entries: E[], loa
     if (e.card.setId) groups.set(`${e.card.game}|${e.card.lang}|${e.card.setId}`, { game: e.card.game, setId: e.card.setId, lang: e.card.lang });
   }
   const fresh = new Map<string, Card>();
+  // Versions officielles (One Piece « OP01-120_p1 », autrefois une carte à part) → la carte et sa variante.
+  const versions = new Map<string, { card: Card; key: string }>();
   await Promise.all([...groups.entries()].map(async ([k, g]) => {
     const cards = await load(g.game, g.setId, g.lang).catch(() => [] as Card[]);
-    for (const c of cards) fresh.set(`${k}|${c.id}`, c);
+    for (const c of cards) {
+      fresh.set(`${k}|${c.id}`, c);
+      for (const v of c.variants ?? []) if (v.official && v.official !== c.id) versions.set(`${k}|${v.official}`, { card: c, key: v.key });
+    }
   }));
   let changed = false;
   const next = entries.map((e) => {
-    const base = fresh.get(`${e.card.game}|${e.card.lang}|${e.card.setId}|${e.card.id}`);
+    const k = `${e.card.game}|${e.card.lang}|${e.card.setId}|${e.card.id}`;
+    const old = !fresh.has(k) ? versions.get(k) : undefined;
+    if (old) {
+      changed = true;
+      const f = withVariant(old.card, old.key);
+      return { ...e, card: { ...e.card, id: f.id, variant: f.variant, variants: f.variants, prices: f.prices, marketIds: f.marketIds, imageSmall: f.imageSmall, imageLarge: f.imageLarge } };
+    }
+    const base = fresh.get(k);
     if (!base) return e;
     // Prix de la variante possédée (Reverse, Poké Ball…), pas celui de la carte de base.
     const f = withVariant(base, e.card.variant);

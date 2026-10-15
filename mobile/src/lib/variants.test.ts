@@ -47,3 +47,18 @@ test('variantOwnership : les cartes ajoutées avant les variantes comptent pour 
   assert.equal(owned(now, 'holo'), true);
   assert.equal(owned(card, 'reverse'), false);
 });
+
+test('variantes One Piece : libellés et visuel propre', async () => {
+  const { variantLabel, withVariant } = await import('./variants.ts');
+  assert.equal(variantLabel('parallel', 'fr'), 'Parallèle');
+  assert.equal(variantLabel('parallel-2', 'fr'), 'Parallèle 2');
+  assert.equal(variantLabel('reprint', 'ja'), '再録');
+  const card = {
+    game: 'onepiece' as const, id: 'OP01-120', lang: 'en' as const, name: 'Shanks', number: 'OP01-120', prices: [], imageSmall: 'a.png', imageLarge: 'a.png',
+    variants: [{ key: 'normal', cardmarket: 1, price: 5.49, image: 'a.png' }, { key: 'parallel', cardmarket: 2, price: 109.13, image: 'b.png', official: 'OP01-120_p1' }],
+  };
+  const v = withVariant(card, 'parallel');
+  assert.equal(v.imageLarge, 'b.png');
+  assert.equal(v.prices[0].value, 109.13);
+  assert.equal(v.marketIds?.cardmarket, 2);
+});

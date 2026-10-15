@@ -10,6 +10,8 @@ import type { Card, CardLang, GameId } from './types';
 import { collectionKey } from './variants';
 import { loadSpeciesNames } from './cardNames';
 import { catalogBase } from './catalog/static';
+import { setOpFeatures } from './attrValues';
+import { getJson } from './http';
 
 export interface CollectionEntry {
   card: Card;
@@ -72,7 +74,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [rates, setRates] = useState<Rates>(FALLBACK_RATES);
   // Noms des Pokémon dans toutes les langues (nom des cartes dans la langue de l'app).
   const [namesReady, setNamesReady] = useState(false);
-  useEffect(() => { loadSpeciesNames(catalogBase()).then(setNamesReady, () => {}); }, []);
+  useEffect(() => {
+    // Noms des Pokémon et types One Piece (équipages…) dans toutes les langues.
+    Promise.all([
+      loadSpeciesNames(catalogBase()),
+      getJson<{ features: string[][] }>(`${catalogBase()}/names/onepiece-features.json`).then((r) => setOpFeatures(r?.features ?? null), () => {}),
+    ]).then(([ok]) => setNamesReady(ok), () => {});
+  }, []);
   const [user, setUser] = useState<Store['user']>(null);
   const [sync, setSync] = useState<Store['sync']>('off');
   const [recovery, setRecovery] = useState(false);
@@ -105,11 +113,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCollection((current) => {
         refreshCollectionPrices(current, async (game, setId, lang) => (await GAMES[game].setCards(setId, lang)).cards).then((next) => {
           if (!alive || !next) return;
-          const fresh = new Map(next.map((e) => [keyOf(e.card), e.card]));
+          // Par clé d'origine : une ancienne carte One Piece (une version = une carte) devient une carte et sa variante.
+          const fresh = new Map(next.map((e, i) => [keyOf(current[i].card), e.card]));
           // Fusion avec l'état le plus récent (des cartes ont pu être ajoutées pendant le chargement).
           setCollection((now) => now.map((e) => {
             const f = fresh.get(keyOf(e.card));
-            return f && f !== e.card ? { ...e, card: { ...e.card, prices: f.prices, marketIds: f.marketIds, variants: f.variants } } : e;
+            return f && f !== e.card
+              ? { ...e, card: { ...e.card, id: f.id, variant: f.variant, imageSmall: f.imageSmall, imageLarge: f.imageLarge, prices: f.prices, marketIds: f.marketIds, variants: f.variants } }
+              : e;
           }));
         });
         return current;
