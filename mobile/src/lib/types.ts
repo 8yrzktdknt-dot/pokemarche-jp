@@ -23,6 +23,8 @@ export interface Card {
   nameEn?: string;
   /** Nom français quand il est connu. */
   nameFr?: string;
+  /** Noms officiels dans d'autres langues ({ de, es, it, pt, ja, 'zh-tw'… }), quand ils sont connus. */
+  names?: Partial<Record<string, string>>;
   /** Numéro imprimé : "136/189", "OP05-119", "OGN-042/298". */
   number: string;
   setId?: string;

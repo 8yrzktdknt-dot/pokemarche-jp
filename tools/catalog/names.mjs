@@ -139,3 +139,35 @@ export function translateJa(name) {
   if (!suffix) return [en, fr];
   return [`${en} ${suffix}`, suffix === 'ex' ? `${fr}-ex` : `${fr} ${suffix}`];
 }
+
+/**
+ * Noms des espèces dans les langues de l'app (catalog/names/species.json) : nom anglais → noms
+ * [fr, de, es, it, ja, ko, zh-tw, zh-cn]. L'app traduit ainsi le nom des cartes Pokémon (« Charizard ex »
+ * → « リザードンex ») ; portugais, néerlandais, russe, thaï : noms anglais (officiels dans ces pays).
+ */
+export const SPECIES_LANGS = ['fr', 'de', 'es', 'it', 'ja', 'ko', 'zh-tw', 'zh-cn'];
+const POKEAPI_LANG = { fr: '5', de: '6', es: '7', it: '8', ja: '11', ko: '3', 'zh-tw': '4', 'zh-cn': '12' };
+export function speciesTable(csv) {
+  const bySpecies = new Map();
+  for (const line of csv.split('\n').slice(1)) {
+    const [id, lang, name] = line.split(',');
+    if (!id || !name) continue;
+    if (!bySpecies.has(id)) bySpecies.set(id, {});
+    bySpecies.get(id)[lang] = name;
+  }
+  const out = {};
+  for (const n of bySpecies.values()) {
+    if (!n[EN]) continue;
+    out[n[EN]] = SPECIES_LANGS.map((l) => n[POKEAPI_LANG[l]] ?? '');
+  }
+  return out;
+}
+
+/** Écrit catalog/names/species.json (étape « set-names » du robot). */
+export async function buildSpeciesNames(writeJson) {
+  const csv = await getText(CSV);
+  if (!csv) return;
+  const names = speciesTable(csv);
+  writeJson('names/species.json', { langs: SPECIES_LANGS, names });
+  console.log(`Noms d'espèces pour l'app : ${Object.keys(names).length}`);
+}

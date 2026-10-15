@@ -95,3 +95,15 @@ test('M6a 136–165 : rareté « None »', async () => {
   applyRarityOverrides('M6a', cards);
   assert.deepEqual(cards.map((c) => c.rarity), ['FUR', 'None', 'None', 'MUR']);
 });
+
+test('noms des cartes dans les autres langues imprimées (TCGdex)', async () => {
+  const { namesFromLists } = await import('./build-pokemon-details.mjs');
+  const cards = [{ localId: '001', name: 'Bulbizarre', nameEn: 'Bulbasaur' }, { localId: '120', name: 'Mew', nameEn: 'Mew' }];
+  namesFromLists(cards, {
+    de: { cards: [{ localId: '001', name: 'Bisasam' }, { localId: '120', name: 'Mew' }] },
+    es: { cards: [{ localId: '001', name: 'Bulbasaur' }] },
+    it: null,
+  });
+  assert.deepEqual(cards[0].n, { de: 'Bisasam' });
+  assert.equal(cards[1].n, undefined);
+});

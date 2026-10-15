@@ -5,6 +5,7 @@ import { setBrowseList } from '../lib/browse';
 import { GAME_LIST } from '../lib/games';
 import { useStore } from '../lib/store';
 import { variantLabel } from '../lib/variants';
+import { cardName } from '../lib/cardNames';
 import { rarityAbbr, rarityName } from '../lib/catalog/pokemonNames';
 import type { AppLang } from '../lib/i18n';
 import type { Card, GameId } from '../lib/types';
@@ -59,12 +60,9 @@ export function GamePicker({
   );
 }
 
-/** Nom affiché selon la langue de l'app (traduction quand elle est connue). */
+/** Nom affiché selon la langue de l'app : sa langue, sinon l'anglais, sinon le nom d'origine (lib/cardNames). */
 export function displayName(card: Card, appLang: AppLang): string {
-  // Carte dans la langue de l'app : son nom imprimé ; sinon le nom traduit connu (français), puis l'anglais.
-  if (appLang === card.lang) return card.name;
-  if (appLang === 'fr') return card.nameFr ?? card.nameEn ?? card.name;
-  return card.nameEn ?? card.name;
+  return cardName(card, appLang);
 }
 
 /** Meilleur prix connu, converti dans la devise choisie. */

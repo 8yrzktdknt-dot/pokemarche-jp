@@ -12,6 +12,9 @@ import { loadCardmarketFiles, matchProducts, pickExpansion, priceOf } from './ca
 import { CATALOG, pool, sleep, sortByRelease, unescapeHtml, writeJson } from './lib.mjs';
 import { ownLogo } from './logos.mjs';
 import { ALL_HOLO, forceHolo } from './variants.mjs';
+import * as OpenCC from 'opencc-js';
+
+const t2s = OpenCC.Converter({ from: 'tw', to: 'cn' });
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
 const TW = 'https://asia.pokemon-card.com/tw';
@@ -155,6 +158,8 @@ export function twCard(code, id, d, jp) {
     name: d.n,
     nameEn: jp?.nameEn,
     nameFr: jp?.nameFr,
+    // Nom de la même carte en japonais (affiché quand l'app est en japonais).
+    ...(jp?.name ? { n: { ja: jp.name } } : {}),
     rarity: jp?.rarity,
     image: twImage(id),
     attrs: { ...attrs, ...(jp?.attrs ?? {}) },
@@ -184,20 +189,27 @@ function buildTraditional({ sets, details }) {
     const js = jaSets.get(e.code.toLowerCase());
     const jpCards = js ? readJson(`cards/pokemon-ja/${js.id}.json`, []) : [];
     const cards = [];
+    let jpChanged = false;
     for (const id of e.ids) {
       const d = details[id];
       if (!d) continue;
       const no = localOf(d.no);
       const jp = jpCards.find((c) => sameNumber(c.localId, no));
-      if (jp) linked++;
+      if (jp) {
+        linked++;
+        // Et inversement : nom chinois (traditionnel et simplifié) de la carte japonaise.
+        const n = { ...(jp.n ?? {}), 'zh-tw': d.n, 'zh-cn': t2s(d.n) };
+        if (JSON.stringify(n) !== JSON.stringify(jp.n)) { jp.n = n; jpChanged = true; }
+      }
       cards.push(twCard(js?.id ?? e.code, id, d, jp));
     }
     // Cartes ajoutées au japonais hors sources officielles (Mew RGB de M6a), absentes du site taïwanais.
     for (const jp of jpCards.filter((c) => c.extra)) {
       if (cards.some((c) => c.localId === jp.localId)) continue;
-      const { extra, nameZh, cmPath, ...rest } = jp;
-      cards.push({ ...rest, name: nameZh ?? jp.name });
+      const { extra, nameZh, cmPath, n, ...rest } = jp;
+      cards.push({ ...rest, name: nameZh ?? jp.name, n: { ja: jp.name } });
     }
+    if (jpChanged && js) writeJson(`cards/pokemon-ja/${js.id}.json`, jpCards);
     if (!cards.length) continue;
     // Doublons de numéro (réimpressions dans le même produit) : le premier garde l'identifiant.
     const seen = new Set();

@@ -79,6 +79,8 @@ export interface StaticCard {
   tcgplayer?: number;
   /** Prix Cardmarket (EUR) et n° produit, publiés chaque jour avec le catalogue. */
   cm?: { id?: number; avg7?: number; avg1?: number; avg30?: number; avg?: number; trend?: number; low?: number };
+  /** Noms dans d'autres langues (tools/catalog : TCGdex de/es/it/pt, japonais ↔ chinois traditionnel). */
+  n?: Partial<Record<string, string>>;
   /** Variantes : clé, n° produit Cardmarket, moyenne 7 jours (tools/catalog/variants.mjs). */
   v?: { k: string; id?: number; p?: number; tp?: number; t?: 'avg30' | 'avg' | 'trend' | 'low' }[];
   /** Chemin exact de la fiche Cardmarket (« Mega-Evolution/Bulbasaur-V1-MEG001 »). */
@@ -141,6 +143,8 @@ export interface StaticRow {
   eur?: number;
   /** Période du prix : 7 ou 30 jours, 0 = toutes les ventes (absente des anciens fichiers : 7). */
   eurDays?: number;
+  /** Noms dans d'autres langues. */
+  names?: Partial<Record<string, string>>;
   /** Variantes [clé, n° produit Cardmarket, moyenne 7 jours]. */
   variants?: [string, number, number, number?, (string | 0)?][];
   cardmarket?: number;
@@ -151,10 +155,10 @@ export interface StaticRow {
 export async function staticSearchRows(game: GameId, lang: CardLang): Promise<StaticRow[] | null> {
   const r = await getJson<{ columns: string[]; rows: unknown[][] }>(`${catalogBase()}/search/${game}-${lang}.json`, DAY).catch(() => null);
   if (!r?.rows?.length) return null;
-  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket, cmPath, eurDays, variants]) => ({
+  return r.rows.map(([id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd, facets, attrs, tcgplayer, eur, cardmarket, cmPath, eurDays, variants, names]) => ({
     id, setId, localId, number, name, nameEn, nameFr, rarity, image, priceUsd,
     facets: facets || undefined, attrs: attrs || undefined, tcgplayer: tcgplayer || undefined,
-    eur: eur || undefined, eurDays: eurDays ?? 7, variants: variants || undefined, cardmarket: cardmarket || undefined, cmPath: cmPath || undefined,
+    eur: eur || undefined, eurDays: eurDays ?? 7, variants: variants || undefined, names: names || undefined, cardmarket: cardmarket || undefined, cmPath: cmPath || undefined,
   }) as StaticRow);
 }
 
@@ -218,6 +222,7 @@ export function staticToCard(
     name: c.name,
     nameEn: c.nameEn || undefined,
     nameFr: c.nameFr || undefined,
+    names: ('n' in c ? c.n : 'names' in c ? c.names : undefined) || undefined,
     number: c.number,
     setId: set?.id ?? ('setId' in c ? c.setId : undefined),
     setName: set?.name,
