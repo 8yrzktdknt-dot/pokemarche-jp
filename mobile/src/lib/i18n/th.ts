@@ -241,4 +241,6 @@ export const th: Partial<Record<Key, string>> = {
   "set.state.owned": "มีแล้ว",
   "set.state.missing": "ยังไม่มี",
   "set.empty": "ไม่พบการ์ดที่ตรงกัน",
+  "setStats.masterHint": "การ์ดทุกใบทุกรูปแบบ",
+  "price.cm.offers": "ราคาที่ประกาศขาย · ยังไม่มีการขาย",
 };

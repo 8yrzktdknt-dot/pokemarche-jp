@@ -10,7 +10,7 @@ export interface Progress {
 export interface SetStats {
   /** Cartes numérotées jusqu'au total imprimé (« 001/103 » … « 103/103 »). */
   base: Progress;
-  /** Toutes les cartes de l'extension. */
+  /** Master Set : toutes les cartes de l'extension dans toutes leurs variantes (reverse, Poké Ball…). */
   master: Progress;
   /** Cartes au-delà du total imprimé (secrètes, illustrations spéciales…). */
   extra: Progress;
@@ -33,21 +33,33 @@ export interface SetStats {
   median?: number;
 }
 
-/** Total imprimé : le plus grand « /N » des numéros (« 151/103 » → 103). */
+/** Numéro de la carte dans l'extension (« 151/103 » → 151) ; undefined pour « TG01 », « SWSH001 »… */
+const numberOf = (c: Card) => {
+  const head = c.number.split('/')[0].trim();
+  return /^\d+$/.test(head) ? Number(head) : undefined;
+};
+
+/** Raretés des cartes de l'extension « normale » (les secrètes, AR, SR, SAR, UR…, sont numérotées après). */
+const BASE_RARITIES = new Set(['C', 'U', 'R', 'RR', 'RRR', 'ACE']);
+
+/**
+ * Total imprimé : le plus grand « /N » des numéros (« 151/103 » → 103). Sans « /N » (cartes japonaises,
+ * chinoises simplifiées…) : le plus grand numéro des cartes de rareté normale (communes à triple rares).
+ */
 export function printedTotal(cards: Card[]): number | undefined {
   let n = 0;
   for (const c of cards) {
     const m = c.number.match(/\/\s*(\d+)\s*$/);
     if (m) n = Math.max(n, Number(m[1]));
   }
+  if (n) return n;
+  for (const c of cards) {
+    const k = numberOf(c);
+    if (k !== undefined && c.rarity && BASE_RARITIES.has(rarityAbbr(c.rarity))) n = Math.max(n, k);
+  }
   return n || undefined;
 }
 
-/** Numéro de la carte dans l'extension (« 151/103 » → 151) ; undefined pour « TG01 », « SWSH001 »… */
-const numberOf = (c: Card) => {
-  const head = c.number.split('/')[0].trim();
-  return /^\d+$/.test(head) ? Number(head) : undefined;
-};
 
 export const BUCKETS = [0, 1, 5, 20, 50, 100];
 
@@ -59,6 +71,8 @@ export function setStats(
   cards: Card[],
   isOwned: (c: Card) => boolean,
   toCurrency: (v: number, from: string) => number = (v) => v,
+  /** Variante possédée (Master Set) ; sans elle, une carte possédée compte pour toutes ses variantes. */
+  variantOwned?: (c: Card, key: string) => boolean,
 ): SetStats {
   const printed = printedTotal(cards);
   const base: Progress = { owned: 0, total: 0 };
@@ -67,13 +81,35 @@ export function setStats(
   const buckets = BUCKETS.map((min, i) => ({ min, max: BUCKETS[i + 1], count: 0, owned: 0 }));
   const priced: { card: Card; unit: number; owned: boolean }[] = [];
   let value = 0, ownedValue = 0;
+  const master: Progress = { owned: 0, total: 0 };
 
+  // Set complet et cartes secrètes : un numéro compte une fois (réimpressions de même numéro, ex. chinois traditionnel).
+  const numbers = new Map<string, { group: Progress; owned: boolean }>();
+  // Master Set par numéro : variantes de la carte, ou cartes de même numéro quand la source les liste à part
+  // (motifs listés comme cartes sur le site taïwanais) — le plus grand des deux, sans double compte.
+  const masterByNumber = new Map<string, { cards: number; variants: number; owned: number }>();
   for (const c of cards) {
     const own = isOwned(c);
+    const keys = c.variants?.length ? c.variants.map((v) => v.key) : [undefined];
+    const ownedKeys = keys.filter((k) => (k && variantOwned ? variantOwned(c, k) : own)).length;
+    const mk = c.number.split('/')[0].trim().toUpperCase() || c.id;
+    const m = masterByNumber.get(mk) ?? { cards: 0, variants: 0, owned: 0 };
+    m.cards++;
+    m.variants = Math.max(m.variants, keys.length);
+    m.owned += ownedKeys;
+    masterByNumber.set(mk, m);
     const n = numberOf(c);
     const group = printed && (n === undefined || n > printed) ? extra : base;
-    group.total++;
-    if (own) group.owned++;
+    const key = c.number.split('/')[0].trim().toUpperCase() || c.id;
+    const seen = numbers.get(key);
+    if (!seen) {
+      numbers.set(key, { group, owned: own });
+      group.total++;
+      if (own) group.owned++;
+    } else if (own && !seen.owned) {
+      seen.owned = true;
+      seen.group.owned++;
+    }
     const r = rarityAbbr(c.rarity || 'None');
     const rr = rarities.get(r) ?? { rarity: r, owned: 0, total: 0, value: 0 };
     rarities.set(r, rr);
@@ -91,13 +127,18 @@ export function setStats(
     if (own) b.owned++;
   }
 
+  for (const m of masterByNumber.values()) {
+    const total = Math.max(m.cards, m.variants);
+    master.total += total;
+    master.owned += Math.min(total, m.owned);
+  }
   const sorted = [...priced].sort((a, b) => b.unit - a.unit);
   const units = priced.map((p) => p.unit).sort((a, b) => a - b);
   const mid = units.length >> 1;
   return {
     base,
     extra,
-    master: { owned: base.owned + extra.owned, total: base.total + extra.total },
+    master,
     printed: printed ?? cards.length,
     value,
     ownedValue,

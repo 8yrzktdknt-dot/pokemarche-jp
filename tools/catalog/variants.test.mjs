@@ -87,3 +87,16 @@ test('30 ans : toutes les cartes holo', async () => {
   assert.deepEqual(cards.map((c) => c.v), [[{ k: 'holo', id: 1, p: 0.3 }], [{ k: 'holo', id: 2, p: 5 }], [{ k: 'holo', id: 3 }, { k: 'reverse', id: 3 }]]);
   assert.ok(ALL_HOLO.has('M6a') && ALL_HOLO.has('30th-c'));
 });
+
+test('prix : 7 jours, sinon 30 jours, toutes les ventes, puis offres (cartes jamais vendues)', () => {
+  const prices = new Map([
+    [1, { idProduct: 1, avg7: null, avg30: 12, avg: 11, trend: 10 }],
+    [2, { idProduct: 2, avg7: null, avg30: null, avg: null, trend: 2500, 'trend-holo': null }],
+  ]);
+  const a = { v: [{ k: 'holo', id: 1 }] };
+  const b = { v: [{ k: 'holo', id: 2 }] };
+  applyCardmarketPrices([a, b], { prices });
+  assert.deepEqual(a.v[0], { k: 'holo', id: 1, p: 12, t: 'avg30' });
+  assert.deepEqual(b.v[0], { k: 'holo', id: 2, p: 2500, t: 'trend' });
+  assert.deepEqual(b.cm, { id: 2, trend: 2500 });
+});

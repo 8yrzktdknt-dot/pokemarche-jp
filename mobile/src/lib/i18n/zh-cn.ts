@@ -241,4 +241,6 @@ export const zhCn: Partial<Record<Key, string>> = {
   "set.state.owned": "已拥有",
   "set.state.missing": "未拥有",
   "set.empty": "没有符合的卡牌。",
+  "setStats.masterHint": "所有卡牌及其版本",
+  "price.cm.offers": "挂牌价格・尚无成交",
 };

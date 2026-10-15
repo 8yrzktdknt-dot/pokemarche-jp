@@ -241,4 +241,6 @@ export const zhTw: Partial<Record<Key, string>> = {
   "set.state.owned": "已擁有",
   "set.state.missing": "未擁有",
   "set.empty": "沒有符合的卡片。",
+  "setStats.masterHint": "所有卡片及其版本",
+  "price.cm.offers": "刊登價格・尚無成交",
 };

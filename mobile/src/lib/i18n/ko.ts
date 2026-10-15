@@ -241,4 +241,6 @@ export const ko: Partial<Record<Key, string>> = {
   "set.state.owned": "보유",
   "set.state.missing": "미보유",
   "set.empty": "일치하는 카드가 없습니다.",
+  "setStats.masterHint": "모든 카드와 모든 버전",
+  "price.cm.offers": "판매 등록가 · 거래 없음",
 };

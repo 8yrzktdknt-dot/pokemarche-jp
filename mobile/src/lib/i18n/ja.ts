@@ -241,4 +241,6 @@ export const ja: Partial<Record<Key, string>> = {
   "set.state.owned": "所持",
   "set.state.missing": "未所持",
   "set.empty": "該当するカードがありません。",
+  "setStats.masterHint": "全カード・全バリエーション",
+  "price.cm.offers": "出品価格・取引なし",
 };

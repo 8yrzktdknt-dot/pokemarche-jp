@@ -10,6 +10,7 @@ import { GAMES } from '../../../lib/games';
 import { localName } from '../../../lib/catalog/static';
 import { percent, setStats } from '../../../lib/setStats';
 import { useStore } from '../../../lib/store';
+import { variantOwnership } from '../../../lib/variants';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
 
 /** Statistiques d'une extension : avancement, valeur, raretés, tranches de prix, cartes chères et manquantes. */
@@ -32,7 +33,8 @@ export default function SetStatsScreen() {
     () => collection.filter((e) => e.card.game === game && e.card.lang === lang && e.card.setId === id).reduce((n, e) => n + e.quantity, 0),
     [collection, game, lang, id],
   );
-  const stats = useMemo(() => (cards ? setStats(cards, (c) => owned.has(c.id), toCurrency) : null), [cards, owned, toCurrency]);
+  const variantOwned = useMemo(() => variantOwnership(collection), [collection]);
+  const stats = useMemo(() => (cards ? setStats(cards, (c) => owned.has(c.id), toCurrency, variantOwned) : null), [cards, owned, toCurrency, variantOwned]);
 
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!cards || !stats) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
@@ -58,6 +60,7 @@ export default function SetStatsScreen() {
           <Text style={st.ringSmall}>{t('setStats.master')}</Text>
         </Ring>
         <View style={{ flex: 1, gap: 6 }}>
+          <Line label={t('setStats.master')} value={`${stats.master.owned} / ${stats.master.total}`} pct={percent(stats.master)} />
           <Line label={t('setStats.base')} value={`${stats.base.owned} / ${stats.base.total}`} pct={percent(stats.base)} />
           <Line label={t('setStats.extra')} value={`${stats.extra.owned} / ${stats.extra.total}`} pct={percent(stats.extra)} />
           <Line label={t('setStats.copies')} value={String(copies)} />

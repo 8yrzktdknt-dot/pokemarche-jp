@@ -74,7 +74,7 @@ export function currentVariant(card: Card): CardVariant | undefined {
 export function withVariant(card: Card, key?: string): Card {
   const v = card.variants?.find((x) => x.key === key) ?? card.variants?.[0];
   if (!v) return card;
-  const price = cardmarketPrice({ avg7: v.price });
+  const price = cardmarketPrice({ [v.priceTier ?? 'avg7']: v.price });
   const base = card.variants?.[0];
   const own = v.cardmarket && v.cardmarket !== base?.cardmarket;
   // Photo de la variante (fiche TCGplayer à part) ; sinon le visuel de la carte de base (gardé à part).
@@ -108,4 +108,10 @@ export function needsSheen(card: Card, key?: string): boolean {
 export function collectionKey(c: Card): string {
   const v = c.variant ?? c.variants?.[0]?.key;
   return `${c.game}:${c.lang}:${c.id}${v ? `#${v}` : ''}`;
+}
+
+/** Variantes possédées d'après la collection : (carte, variante) → au moins un exemplaire. */
+export function variantOwnership(entries: { card: Card; quantity: number }[]): (c: Card, key: string) => boolean {
+  const keys = new Set(entries.filter((e) => e.quantity > 0).map((e) => collectionKey(e.card)));
+  return (c, key) => keys.has(collectionKey({ ...c, variant: key }));
 }
