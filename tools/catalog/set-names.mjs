@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as OpenCC from 'opencc-js';
 import { CATALOG, getJson, writeJson } from './lib.mjs';
+import { buildSpeciesNames } from './names.mjs';
 
 const INTL = ['en', 'fr', 'de', 'es', 'it', 'pt'];
 const EXTRA = ['nl', 'ru'];
@@ -41,6 +42,7 @@ const clean = (o) => {
 };
 
 export async function buildSetNames({ online = true } = {}) {
+  if (online) await buildSpeciesNames(writeJson).catch((e) => console.warn('Noms d\'espèces :', e.message));
   const files = Object.fromEntries(['en', 'fr', 'de', 'es', 'it', 'pt', 'ja', 'zh-tw', 'zh-cn'].map((l) => [l, read(l)]));
   const t2s = OpenCC.Converter({ from: 'tw', to: 'cn' });
   const s2t = OpenCC.Converter({ from: 'cn', to: 'tw' });

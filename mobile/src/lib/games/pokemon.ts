@@ -301,7 +301,13 @@ async function withIntlCatalog(setId: string, lang: CardLang, cards: Card[], set
   const out = cards.map((c) => {
     const e = byId.get(c.id);
     return e
-      ? { ...c, prices: e.prices, variants: e.variants, marketIds: { ...Object.fromEntries(Object.entries(c.marketIds ?? {}).filter(([, v]) => v)), ...e.marketIds } }
+      ? {
+        ...c, prices: e.prices, variants: e.variants,
+        // Noms connus de la même carte, pour l'afficher dans la langue de l'app (champ à part : nameEn, utilisé
+        // par les liens Cardmarket, reste celui de la carte).
+        names: { ...(e.names ?? {}), en: e.nameEn ?? e.name, ...(e.nameFr ? { fr: e.nameFr } : {}), ...(c.names ?? {}) },
+        marketIds: { ...Object.fromEntries(Object.entries(c.marketIds ?? {}).filter(([, v]) => v)), ...e.marketIds },
+      }
       : c;
   });
   const have = new Set(out.map((c) => c.id));
@@ -368,7 +374,7 @@ async function getCardAll(id: string, lang: CardLang): Promise<Card | null> {
   const card = !live ? st : !st ? live : {
     // Prix, rareté et attributs de TCGdex ; noms traduits et images du catalogue quand TCGdex n'en a pas.
     ...live,
-    nameEn: st.nameEn, nameFr: st.nameFr, setName: st.setName ?? live.setName, rarity: st.rarity ?? live.rarity,
+    nameEn: st.nameEn, nameFr: st.nameFr, names: st.names, setName: st.setName ?? live.setName, rarity: st.rarity ?? live.rarity,
     imageSmall: live.imageSmall ?? st.imageSmall, imageLarge: live.imageLarge ?? st.imageLarge,
     // Prix et variantes du catalogue uniquement (fichiers Cardmarket du jour) ; fiches Cardmarket du catalogue
     // en priorité : TCGdex en direct peut relier une carte japonaise à la fiche d'une autre langue.

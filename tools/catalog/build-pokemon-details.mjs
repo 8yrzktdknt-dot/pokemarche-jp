@@ -231,6 +231,42 @@ async function completeIntlCardmarket(dir, files) {
   if (changed) writeJson(`sets/${basename(dir)}.json`, sets);
 }
 
+/**
+ * Noms officiels des cartes internationales dans les autres langues imprimées (TCGdex, mêmes extensions) :
+ * c.n = { de, es, it, pt } (seulement ceux qui diffèrent du nom anglais). L'app affiche le nom de sa langue.
+ */
+const NAME_LANGS = ['de', 'es', 'it', 'pt'];
+const setLists = new Map();
+const setList = (l, setId) => {
+  const k = `${l}/${setId}`;
+  if (!setLists.has(k)) setLists.set(k, getJson(`${API}/${l}/sets/${enc(setId)}`).catch(() => null));
+  return setLists.get(k);
+};
+export function namesFromLists(cards, lists) {
+  let n = 0;
+  for (const c of cards) {
+    const out = {};
+    for (const [l, list] of Object.entries(lists)) {
+      const hit = list?.cards?.find((x) => numKey(x.localId) === numKey(c.localId));
+      if (hit?.name && hit.name !== (c.nameEn ?? c.name)) out[l] = hit.name;
+    }
+    if (Object.keys(out).length) { c.n = out; n++; } else delete c.n;
+  }
+  return n;
+}
+async function addIntlNames(dir, files) {
+  let n = 0;
+  await pool(files, 4, async (f) => {
+    const setId = f.replace(/\.json$/, '');
+    const lists = Object.fromEntries(await Promise.all(NAME_LANGS.map(async (l) => [l, await setList(l, setId)])));
+    if (!Object.values(lists).some((x) => x?.cards?.length)) return;
+    const cards = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+    n += namesFromLists(cards, lists);
+    writeJson(`cards/${basename(dir)}/${f}`, cards);
+  });
+  console.log(`Noms ${NAME_LANGS.join('/')} ${basename(dir)} : ${n} cartes`);
+}
+
 /** Prix de toutes les cartes (et de leurs variantes) depuis le guide des prix Cardmarket du jour. */
 async function priceFromCardmarket(dir, files) {
   const cmf = await cardmarketFiles();
@@ -405,6 +441,7 @@ export async function buildPokemonDetails(langs = (process.env.DETAILS_LANGS || 
       writeJson(`cards/pokemon-${lang}/${f}`, cards);
     });
     if (lang !== 'ja') await completeIntlCardmarket(dir, files);
+    if (lang !== 'ja') await addIntlNames(dir, files).catch((e) => console.warn('Noms traduits :', e.message));
     if (lang === 'ja') {
       await completeJapaneseFromLimitless(dir, files);
       await completeJapaneseCardmarket(dir, files);

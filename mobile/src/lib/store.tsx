@@ -8,6 +8,8 @@ import { APP_LOCALE, deviceLang, langLabel, translate, type AppLang, type T } fr
 import { refreshCollectionPrices } from './refreshPrices';
 import type { Card, CardLang, GameId } from './types';
 import { collectionKey } from './variants';
+import { loadSpeciesNames } from './cardNames';
+import { catalogBase } from './catalog/static';
 
 export interface CollectionEntry {
   card: Card;
@@ -68,6 +70,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [collection, setCollection] = useState<CollectionEntry[]>([]);
   const [settings, setSettingsState] = useState<Settings>({ game: 'auto', lang: 'fr', appLang: 'auto', currency: 'EUR' });
   const [rates, setRates] = useState<Rates>(FALLBACK_RATES);
+  // Noms des Pokémon dans toutes les langues (nom des cartes dans la langue de l'app).
+  const [namesReady, setNamesReady] = useState(false);
+  useEffect(() => { loadSpeciesNames(catalogBase()).then(setNamesReady, () => {}); }, []);
   const [user, setUser] = useState<Store['user']>(null);
   const [sync, setSync] = useState<Store['sync']>('off');
   const [recovery, setRecovery] = useState(false);
@@ -197,7 +202,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toCurrency,
       money: (v: number, from: string) => formatMoney(toCurrency(v, from), settings.currency, locale),
     };
-  }, [settings.appLang, settings.currency, rates]);
+  }, [settings.appLang, settings.currency, rates, namesReady]);
 
   const value = useMemo(
     () => ({ ready, settings, setSettings, collection, add, remove, clear, user, sync, recovery, endRecovery, ...helpers }),
