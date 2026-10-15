@@ -8,7 +8,7 @@ import { GamePicker, colors, fonts, s } from '../../components/ui';
 import { localName } from '../../lib/catalog/static';
 import { GAMES, langFor } from '../../lib/games';
 import { useStore } from '../../lib/store';
-import type { Bloc, GameId } from '../../lib/types';
+import type { Bloc, GameId, SetInfo } from '../../lib/types';
 
 export default function Extensions() {
   const { settings, setSettings, t, langLabel, appLang } = useStore();
@@ -42,6 +42,26 @@ export default function Extensions() {
       .filter((b) => b.sets.length);
   }, [blocs, query]);
 
+  // Extensions favorites (menu « ⋮ » d'une extension) de ce jeu et de cette langue, en tête de liste.
+  const favIds = new Set((settings.favoriteSets ?? []).filter((k) => k.startsWith(`${game}:${lang}:`)).map((k) => k.split(':').slice(2).join(':')));
+  const favorites = !query && blocs ? blocs.flatMap((b) => b.sets).filter((x) => favIds.has(x.id)) : [];
+  const tileOf = (x: SetInfo) => (
+    <Link key={x.id} href={{ pathname: '/set/[game]/[id]', params: { game, id: x.id, lang } }} asChild>
+      <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${localName(x, appLang)} (${x.code})`}>
+        <View style={[st.logoBox, { height: tile * 0.62 }]}>
+          {x.logo ? (
+            <Image source={x.logo} style={st.logo} contentFit="contain" />
+          ) : (
+            <Text style={st.code}>{x.code}</Text>
+          )}
+          {x.symbol && x.symbol !== x.logo && <Image source={x.symbol} style={st.symbol} contentFit="contain" />}
+        </View>
+        <Text style={st.name} numberOfLines={2}>{localName(x, appLang)}</Text>
+        <Text style={st.meta}>{x.code}{x.count ? ` · ${x.count}` : ''}</Text>
+      </Pressable>
+    </Link>
+  );
+
   return (
     <ScrollView
       keyboardShouldPersistTaps="handled" style={s.screen} contentContainerStyle={[s.pad, { maxWidth: 900, width: '100%', alignSelf: 'center' }]}>
@@ -69,26 +89,20 @@ export default function Extensions() {
       {blocs?.length === 0 && <Text style={s.muted}>{t('ext.none')}</Text>}
       {!!blocs?.length && shown?.length === 0 && <Text style={[s.muted, { textAlign: 'center', marginTop: 16 }]}>{t('ext.noMatch')}</Text>}
 
+      {favorites.length > 0 && (
+        <View style={{ gap: 10, marginTop: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="heart" size={20} color={colors.accent} />
+            <Text style={s.h2}>{t('ext.favorites')}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>{favorites.map(tileOf)}</View>
+        </View>
+      )}
       {shown?.map((b) => (
         <View key={b.id} style={{ gap: 10, marginTop: 8 }}>
           <Text style={s.h2}>{localName(b, appLang)}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {b.sets.map((x) => (
-              <Link key={x.id} href={{ pathname: '/set/[game]/[id]', params: { game, id: x.id, lang } }} asChild>
-                <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${localName(x, appLang)} (${x.code})`}>
-                  <View style={[st.logoBox, { height: tile * 0.62 }]}>
-                    {x.logo ? (
-                      <Image source={x.logo} style={st.logo} contentFit="contain" />
-                    ) : (
-                      <Text style={st.code}>{x.code}</Text>
-                    )}
-                    {x.symbol && x.symbol !== x.logo && <Image source={x.symbol} style={st.symbol} contentFit="contain" />}
-                  </View>
-                  <Text style={st.name} numberOfLines={2}>{localName(x, appLang)}</Text>
-                  <Text style={st.meta}>{x.code}{x.count ? ` · ${x.count}` : ''}</Text>
-                </Pressable>
-              </Link>
-            ))}
+            {b.sets.map(tileOf)}
           </View>
         </View>
       ))}
