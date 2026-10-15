@@ -33,6 +33,8 @@ export interface Settings {
   scanAuto?: boolean;
   /** Extensions favorites (« pokemon:fr:sv10 »), en tête de l'onglet Extensions. */
   favoriteSets?: string[];
+  /** Cartes ajoutées par « Marquer le Master Set comme possédé », par extension : décocher les retire. */
+  masterMarks?: Record<string, string[]>;
 }
 
 interface Store {

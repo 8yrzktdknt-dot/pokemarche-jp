@@ -21,7 +21,7 @@ import { dayChange } from '../../../lib/priceHistory';
 import { usePriceHistory } from '../../../lib/usePriceHistory';
 import { Menu, MenuButton } from '../../../components/Menu';
 import { catalogBase } from '../../../lib/catalog/static';
-import { favoriteKey, missingMaster, setCsv } from '../../../lib/setActions';
+import { favoriteKey, masterCards, missingMaster, setCsv } from '../../../lib/setActions';
 import { askConfirm, saveTextFile, shareLink } from '../../../lib/share';
 
 const NONE: Card[] = [];
@@ -118,12 +118,26 @@ export default function SetScreen() {
     });
     saveTextFile(`${game}-${lang}-${id}.csv`.replace(/[^\w.-]+/g, '_'), csv).catch(() => {});
   };
-  const markMaster = async () => {
-    const missing = missingMaster(cards, (k) => quantities.has(k));
-    if (!missing.length) { say(t('set.masterAlready')); return; }
-    if (!(await askConfirm(t('set.markMasterConfirm', { n: missing.length }), t('set.markMasterOk'), t('common.cancel')))) return;
-    addMany(missing, true);
-    say(t('set.added', { n: missing.length }));
+  // Master Set coché quand toutes ses cartes et variantes sont possédées. Cocher ajoute ce qui manque (et le retient) ;
+  // décocher retire ce que la case avait ajouté, ou, sans trace, un exemplaire de chaque carte après confirmation.
+  const missing = missingMaster(cards, (k) => quantities.has(k));
+  const masterOwned = missing.length === 0;
+  const toggleMaster = async () => {
+    const marks = settings.masterMarks ?? {};
+    if (!masterOwned) {
+      addMany(missing, true);
+      setSettings({ masterMarks: { ...marks, [favKey]: [...(marks[favKey] ?? []), ...missing.map(collectionKey)] } });
+      say(t('set.added', { n: missing.length }));
+      return;
+    }
+    const added = new Set(marks[favKey] ?? []);
+    const all = masterCards(cards);
+    const toRemove = added.size ? all.filter((c) => added.has(collectionKey(c))) : all;
+    if (!added.size && !(await askConfirm(t('set.unmarkMasterConfirm', { n: toRemove.length }), t('set.removeSelected'), t('common.cancel')))) return;
+    removeMany(toRemove);
+    const { [favKey]: _, ...rest } = marks;
+    setSettings({ masterMarks: rest });
+    say(t('set.removed', { n: toRemove.length }));
   };
   const selectedCards = tiles.filter((x) => selected.has(x.key)).map((x) => x.card);
   const toggle = (key: string) => setSelected((prev) => {
@@ -143,7 +157,7 @@ export default function SetScreen() {
           { icon: favorite ? 'heart' : 'heart-outline', active: favorite, label: t(favorite ? 'set.fav.remove' : 'set.fav.add'), onPress: toggleFavorite },
           { icon: 'share-outline', label: t('set.share'), onPress: share },
           { icon: 'document-text-outline', label: t('set.csv'), onPress: exportCsv },
-          { icon: 'star-outline', label: t('set.markMaster'), onPress: markMaster },
+          { icon: masterOwned ? 'star' : 'star-outline', active: masterOwned, checked: masterOwned, label: t('set.markMaster'), onPress: toggleMaster },
           { icon: 'checkmark-done-outline', label: t('set.select'), onPress: () => { setSelecting(true); setSelected(new Set()); } },
         ]}
       />
