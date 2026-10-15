@@ -26,6 +26,11 @@ test('traductions japonais → anglais / français', async (t) => {
   assert.deepEqual(names.translateJa('メガレックウザex'), ['Mega Rayquaza ex', 'Méga-Rayquaza-ex']);
   assert.deepEqual(names.translateJa('メガリザードンYex'), ['Mega Charizard Y ex', 'Méga-Dracaufeu Y-ex']);
   assert.deepEqual(names.translateJa('リーリエのピッピex'), ["Lillie's Clefairy ex", 'Mélofée de Lilie-ex']);
+  // Formes au nom propre et Pikachu de Sacha.
+  assert.deepEqual(names.translateJa('ヒートロトムex'), ['Heat Rotom ex', 'Motisma Chaleur-ex']);
+  assert.deepEqual(names.translateJa('オリジンパルキアVSTAR'), ['Origin Forme Palkia VSTAR', 'Palkia Originel VSTAR']);
+  assert.deepEqual(names.translateJa('ネクロズマ あかつきのつばさGX'), ['Dawn Wings Necrozma GX', "Necrozma Ailes de l'Aurore GX"]);
+  assert.deepEqual(names.translateJa('サトシのピカチュウ'), ["Ash's Pikachu", 'Pikachu de Sacha']);
   assert.deepEqual(names.translateJa('エリカのモンジャラ'), ["Erika's Tangela", "Saquedeneu d'Érika"]);
   assert.deepEqual(names.translateJa('アローラロコン'), ['Alolan Vulpix', "Goupix d'Alola"]);
   assert.equal(names.translateJa('ボスの指令'), null);
