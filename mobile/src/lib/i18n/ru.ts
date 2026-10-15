@@ -161,6 +161,7 @@ export const ru: Partial<Record<Key, string>> = {
   "dash.priceRanges": "По ценовым диапазонам",
   "price.sinceYesterday": "со вчера",
   "card.history": "Динамика цены",
+  "card.zoom": "Показать карту крупно",
   "card.historyEmpty": "История этой цены пополняется каждый день: график появится после следующего обновления.",
   "card.historyNote": "Средняя цена Cardmarket, записывается ежедневно с {d}",
   "card.range.30": "1 месяц",

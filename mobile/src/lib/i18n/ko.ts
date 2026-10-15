@@ -161,6 +161,7 @@ export const ko: Partial<Record<Key, string>> = {
   "dash.priceRanges": "가격대별",
   "price.sinceYesterday": "어제 대비",
   "card.history": "가격 변동",
+  "card.zoom": "카드 크게 보기",
   "card.historyEmpty": "이 가격의 기록은 매일 채워집니다. 다음 업데이트 후 그래프가 표시됩니다.",
   "card.historyNote": "{d}부터 매일 기록한 Cardmarket 평균",
   "card.range.30": "1개월",

@@ -161,6 +161,7 @@ export const zhCn: Partial<Record<Key, string>> = {
   "dash.priceRanges": "按价格区间",
   "price.sinceYesterday": "较昨日",
   "card.history": "价格走势",
+  "card.zoom": "放大显示卡牌",
   "card.historyEmpty": "此价格的记录每天更新：下次更新后即会显示走势图。",
   "card.historyNote": "自 {d} 起每日记录的 Cardmarket 平均价",
   "card.range.30": "1 个月",

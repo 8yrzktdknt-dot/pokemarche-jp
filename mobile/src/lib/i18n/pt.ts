@@ -161,6 +161,7 @@ export const pt: Partial<Record<Key, string>> = {
   "dash.priceRanges": "Por faixa de preço",
   "price.sinceYesterday": "desde ontem",
   "card.history": "Evolução do preço",
+  "card.zoom": "Ver a carta em grande",
   "card.historyEmpty": "O histórico deste preço é preenchido todos os dias: o gráfico aparecerá após a próxima atualização.",
   "card.historyNote": "Média do Cardmarket registada diariamente desde {d}",
   "card.range.30": "1 mês",

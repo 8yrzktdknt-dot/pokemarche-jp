@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
 import { ReverseSheen } from '../../../components/ReverseSheen';
+import { ImageViewer } from '../../../components/ImageViewer';
 import { VariantPicker } from '../../../components/VariantPicker';
 import { browseCard, neighbors } from '../../../lib/browse';
 import { rarityAbbr, rarityName } from '../../../lib/catalog/pokemonNames';
@@ -212,6 +213,7 @@ export default function CardScreen() {
   const histCards = useMemo(() => (card ? [card] : []), [card]);
   const points = usePriceHistory(histCards);
   const [range, setRange] = useState<number>(0);
+  const [zoom, setZoom] = useState(false);
 
   if (error) return <View style={[s.screen, s.pad]}><Text style={{ color: colors.danger }}>{error}</Text></View>;
   if (!card) return <View style={[s.screen, s.pad]}><ActivityIndicator color={colors.accent} /></View>;
@@ -251,10 +253,12 @@ export default function CardScreen() {
       contentContainerStyle={[s.pad, { maxWidth: 700, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: displayName(card, appLang) }} />
       {/* Visuel de la variante choisie (photo à part pour Poké Ball, Master Ball…, reflet pour le reverse). */}
-      <View style={{ width: (imgH * 63) / 88, height: imgH, alignSelf: 'center' }}>
+      {/* Un appui sur le visuel l'affiche en grand. */}
+      <Pressable onPress={() => setZoom(true)} style={{ width: (imgH * 63) / 88, height: imgH, alignSelf: 'center' }} accessibilityRole="imagebutton" accessibilityLabel={t('card.zoom')}>
         <Image source={view.imageLarge ?? view.imageSmall} style={{ width: '100%', height: '100%', borderRadius: 12 }} contentFit="contain" transition={0} cachePolicy="memory-disk" />
         {needsSheen(view) && <ReverseSheen radius={12} />}
-      </View>
+      </Pressable>
+      <ImageViewer open={zoom} onClose={() => setZoom(false)} uri={view.imageLarge ?? view.imageSmall} sheen={needsSheen(view)} />
       {nav.total > 1 && (
         <View style={st.nav}>
           <Pressable style={[st.navBtn, !nav.prev && st.navOff]} disabled={!nav.prev} onPress={() => go(nav.prev, -1)} accessibilityLabel={t('card.prev')}>

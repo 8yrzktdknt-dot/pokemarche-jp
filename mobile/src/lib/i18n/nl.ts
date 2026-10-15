@@ -161,6 +161,7 @@ export const nl: Partial<Record<Key, string>> = {
   "dash.priceRanges": "Per prijsklasse",
   "price.sinceYesterday": "sinds gisteren",
   "card.history": "Prijsverloop",
+  "card.zoom": "Kaart groot weergeven",
   "card.historyEmpty": "De geschiedenis van deze prijs wordt elke dag aangevuld: de grafiek verschijnt na de volgende update.",
   "card.historyNote": "Cardmarket-gemiddelde, dagelijks vastgelegd sinds {d}",
   "card.range.30": "1 maand",
