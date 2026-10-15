@@ -43,6 +43,8 @@ export const ru: Partial<Record<Key, string>> = {
   "sort.price-desc": "Сначала дорогие",
   "sort.price-asc": "Сначала дешёвые",
   "ext.none": "Выпусков на этом языке пока нет.",
+  "ext.search": "Поиск выпуска",
+  "ext.noMatch": "Выпуск не найден",
   "set.summary": "{code} · карт: {n} · в коллекции: {owned}",
   "setStats.title": "Статистика",
   "setStats.progress": "Прогресс",

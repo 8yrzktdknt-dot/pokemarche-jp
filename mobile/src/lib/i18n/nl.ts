@@ -43,6 +43,8 @@ export const nl: Partial<Record<Key, string>> = {
   "sort.price-desc": "Prijs: hoog naar laag",
   "sort.price-asc": "Prijs: laag naar hoog",
   "ext.none": "Nog geen uitbreidingen in deze taal.",
+  "ext.search": "Zoek een uitbreiding",
+  "ext.noMatch": "Geen uitbreiding gevonden",
   "set.summary": "{code} · {n} kaarten · {owned} in bezit",
   "setStats.title": "Statistieken",
   "setStats.progress": "Voortgang",

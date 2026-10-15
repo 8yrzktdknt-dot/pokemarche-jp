@@ -73,6 +73,8 @@ const fr = {
   'sort.price-asc': 'Prix croissant',
 
   'ext.none': 'Aucune extension dans cette langue pour le moment.',
+  'ext.search': "Rechercher une extension",
+  'ext.noMatch': "Aucune extension trouvée",
   'set.summary': '{code} · {n} cartes · {owned} possédée(s)',
   'setStats.title': 'Statistiques',
   'setStats.progress': 'Progression',
@@ -353,6 +355,8 @@ const en: Record<Key, string> = {
   'sort.price-asc': 'Price: low to high',
 
   'ext.none': 'No set in this language yet.',
+  'ext.search': "Search a set",
+  'ext.noMatch': "No set found",
   'set.summary': '{code} · {n} cards · {owned} owned',
   'setStats.title': 'Statistics',
   'setStats.progress': 'Progress',

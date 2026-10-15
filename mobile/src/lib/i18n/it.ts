@@ -43,6 +43,8 @@ export const it: Partial<Record<Key, string>> = {
   "sort.price-desc": "Prezzo decrescente",
   "sort.price-asc": "Prezzo crescente",
   "ext.none": "Ancora nessuna espansione in questa lingua.",
+  "ext.search": "Cerca un'espansione",
+  "ext.noMatch": "Nessuna espansione trovata",
   "set.summary": "{code} · {n} carte · {owned} possedute",
   "setStats.title": "Statistiche",
   "setStats.progress": "Progressi",

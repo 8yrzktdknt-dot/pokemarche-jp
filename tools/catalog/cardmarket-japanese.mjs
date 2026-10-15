@@ -8,7 +8,7 @@
 import { getJson } from './lib.mjs';
 
 const PRODUCTS = 'https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json';
-const PRICES = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_6.json';
+export const PRICES = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_6.json';
 
 /**
  * Extensions dont le choix est confirmé à la main (code du catalogue → n° d'extension Cardmarket).

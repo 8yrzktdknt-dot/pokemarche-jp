@@ -43,6 +43,8 @@ export const zhTw: Partial<Record<Key, string>> = {
   "sort.price-desc": "價格由高到低",
   "sort.price-asc": "價格由低到高",
   "ext.none": "此語言目前還沒有擴充包。",
+  "ext.search": "搜尋擴充包",
+  "ext.noMatch": "找不到擴充包",
   "set.summary": "{code} · {n} 張卡牌 · 已擁有 {owned} 張",
   "setStats.title": "統計",
   "setStats.progress": "進度",
