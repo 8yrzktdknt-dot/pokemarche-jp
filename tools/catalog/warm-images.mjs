@@ -1,5 +1,5 @@
 /**
- * Préchauffe le relais d'images wsrv.nl : les visuels One Piece (et chinois traditionnels) ne peuvent pas être
+ * Préchauffe les relais d'images (wsrv.nl, et le CDN de Riot qui réduit les visuels Riftbound) : les visuels One Piece (et chinois traditionnels) ne peuvent pas être
  * affichés directement depuis le site officiel ; wsrv.nl va les chercher au Japon/à Taïwan à la première demande
  * (≈ 2 s par image), puis les garde un an. En les demandant tous ici, en petite (360 px) et grande taille (900 px),
  * l'utilisateur les reçoit tout de suite depuis le cache, comme les visuels Pokémon servis par des CDN rapides.
@@ -18,9 +18,9 @@ const LIMIT_MS = Number(process.env.WARM_MINUTES || 300) * 60_000;
 
 export const large = (u) => u.replace(/([?&]w=)\d+/, '$1900');
 
-/** Toutes les adresses wsrv.nl citées par le catalogue publié, en petite et grande taille. */
+/** Toutes les adresses relayées (wsrv.nl, visuels Riftbound réduits) citées par le catalogue publié, en petite et grande taille. */
 export function collectUrls(text, into = new Set()) {
-  for (const m of text.matchAll(/https:\/\/wsrv\.nl\/\?url=[^"\s]+/g)) {
+  for (const m of text.matchAll(/https:\/\/(?:wsrv\.nl\/\?url=|cmsassets\.rgpub\.io\/[^"\s]*[?&]w=)[^"\s]+/g)) {
     const u = m[0].replace(/\\u0026/g, '&');
     into.add(u);
     into.add(large(u));

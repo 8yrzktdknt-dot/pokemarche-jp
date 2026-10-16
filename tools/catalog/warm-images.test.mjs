@@ -8,3 +8,9 @@ test('collectUrls relève petite et grande taille', () => {
   assert.deepEqual([...set], [u, large(u)]);
   assert.match(large(u), /&w=900&/);
 });
+
+test('collectUrls relève les visuels Riftbound réduits', () => {
+  const u = 'https://cmsassets.rgpub.io/sanity/images/x/a-744x1039.png?accountingTag=RB&w=360&fm=webp';
+  const set = collectUrls(JSON.stringify([{ image: u }, { image: 'https://cmsassets.rgpub.io/sanity/images/x/logo.png' }]));
+  assert.deepEqual([...set], [u, u.replace('w=360', 'w=900')]);
+});
