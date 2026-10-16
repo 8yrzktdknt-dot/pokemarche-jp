@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AccountSection } from '../../components/AccountPanel';
+import { Avatar } from '../../components/Avatar';
+import { AvatarPicker } from '../../components/AvatarPicker';
 import { signOut } from '../../lib/cloud/supabase';
 import { Dropdown } from '../../components/Dropdown';
 import { Panel } from '../../components/Stats';
@@ -28,15 +30,20 @@ function confirm(message: string, onYes: () => void, cancel = 'Cancel') {
 export default function Account() {
   const { settings, setSettings, collection, clear, t, langLabel, user, username } = useStore();
   const [name, setName] = useState(settings.profileName ?? '');
+  const [picking, setPicking] = useState(false);
   const count = collection.reduce((n, e) => n + e.quantity, 0);
   const saveName = () => setSettings({ profileName: name.trim() || undefined });
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 14, maxWidth: 700, width: '100%', alignSelf: 'center', paddingBottom: 48 }]}>
       <View style={{ alignItems: 'center', gap: 8, paddingVertical: 8 }}>
-        <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name="person" size={44} color="#fff" />
-        </View>
+        <Pressable onPress={() => setPicking(true)} accessibilityRole="button" accessibilityLabel={t('acc.photoChange')}>
+          <Avatar value={settings.avatar} size={96} />
+          <View style={{ position: 'absolute', right: -2, bottom: -2, width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="camera" size={15} color={colors.bg} />
+          </View>
+        </Pressable>
+        <AvatarPicker visible={picking} onClose={() => setPicking(false)} />
         <Text style={s.h2}>{settings.profileName || (username ? `@${username}` : t('acc.trainer'))}</Text>
         {!!username && !!settings.profileName && <Text style={[s.meta, { color: colors.accent }]}>@{username}</Text>}
         <Text style={s.muted}>{t('acc.inCollection', { n: count })}</Text>

@@ -24,6 +24,8 @@ export interface Settings {
   lang: CardLang;
   /** Pseudo affiché sur la page Compte (en attendant les vrais comptes). */
   profileName?: string;
+  /** Photo de profil : une des images par défaut (« flame »…) ou une photo importée (data URL JPEG 256 px). */
+  avatar?: string;
   /** Langue de l'interface et des noms traduits ; « auto » : celle de l'appareil. */
   appLang: AppLang | 'auto';
   currency: Currency;
