@@ -1,0 +1,44 @@
+# Préchauffe le relais d'images wsrv.nl (visuels One Piece et chinois traditionnels) pour qu'ils s'affichent
+# aussi vite que les visuels Pokémon. Lancement : après chaque mise à jour du catalogue, ou à la main.
+name: Préchauffage des visuels
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Catalogue de cartes"]
+    types: [completed]
+
+concurrency:
+  group: warm-images
+  cancel-in-progress: false
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Liste des visuels déjà préchauffés : seuls les nouveaux sont demandés.
+      - uses: actions/cache/restore@v4
+        with:
+          path: .warm-images
+          key: warm-images-${{ github.run_id }}
+          restore-keys: warm-images-
+
+      - name: Préchauffer
+        run: node tools/catalog/warm-images.mjs
+        env:
+          WARM_MINUTES: "300"
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .warm-images
+          key: warm-images-${{ github.run_id }}
