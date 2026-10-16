@@ -97,6 +97,7 @@ export const ko: Partial<Record<Key, string>> = {
   "attr.domain": "도메인",
   "attr.energy": "에너지",
   "attr.might": "위력",
+  "attr.powerCost": "파워 비용",
   "price.cm.avg7": "평균 거래가 · 7일",
   "price.cm.avg1": "평균 거래가 · 24시간",
   "price.cm.avg30": "평균 거래가 · 30일",

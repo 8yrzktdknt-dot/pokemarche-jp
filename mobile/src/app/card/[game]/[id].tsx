@@ -353,7 +353,7 @@ export default function CardScreen() {
         <>
           <Text style={s.h2}>{t('card.attributes')}</Text>
           {card.attributes.map((a) => (
-            <AttributeRow key={a.key} a={a} game={card.game} appLang={appLang} locale={locale} label={t(`attr.${a.key}` as TKey)} />
+            <AttributeRow key={a.key} a={a} game={card.game} appLang={appLang} locale={locale} label={t((card.game === 'riftbound' && a.key === 'power' ? 'attr.powerCost' : `attr.${a.key}`) as TKey)} />
           ))}
         </>
       )}

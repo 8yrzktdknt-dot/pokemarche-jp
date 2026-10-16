@@ -33,10 +33,14 @@ export interface SetStats {
   median?: number;
 }
 
-/** Numéro de la carte dans l'extension (« 151/103 » → 151) ; undefined pour « TG01 », « SWSH001 »… */
+/**
+ * Numéro de la carte dans l'extension (« 151/103 » → 151, Riftbound « OGN-030/298 » → 30) ; undefined pour « TG01 »,
+ * « SWSH001 », les illustrations alternatives « OGN-030a/298 » et les signées « OGN-301* / 298 »…
+ */
 const numberOf = (c: Card) => {
   const head = c.number.split('/')[0].trim();
-  return /^\d+$/.test(head) ? Number(head) : undefined;
+  const m = c.number.includes('/') ? head.match(/^(?:[A-Za-z]+\d*-)?(\d+)$/) : head.match(/^(\d+)$/);
+  return m ? Number(m[1]) : undefined;
 };
 
 /**

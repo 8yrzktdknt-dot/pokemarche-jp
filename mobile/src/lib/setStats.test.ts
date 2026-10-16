@@ -59,3 +59,12 @@ test('total imprimé sans « /N » : d\'après les raretés ; un numéro compté
   assert.deepEqual(s.base, { owned: 1, total: 3 });
   assert.deepEqual(s.extra, { owned: 0, total: 2 });
 });
+
+test('Riftbound : numéros préfixés, alternatives et signées à part', () => {
+  const mk = (number: string) => ({ game: 'riftbound', id: number, lang: 'en', name: number, number, prices: [] }) as unknown as Card;
+  const cards = ['OGN-001/298', 'OGN-298/298', 'OGN-030a/298', 'OGN-299/298', 'OGN-301*/298'].map(mk);
+  const s = setStats(cards, () => false);
+  assert.equal(printedTotal(cards), 298);
+  assert.equal(s.base.total, 2);
+  assert.equal(s.extra.total, 3);
+});

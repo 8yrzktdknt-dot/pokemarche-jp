@@ -97,6 +97,7 @@ export const th: Partial<Record<Key, string>> = {
   "attr.domain": "โดเมน",
   "attr.energy": "พลังงาน",
   "attr.might": "ความแข็งแกร่ง",
+  "attr.powerCost": "ค่าพลัง",
   "price.cm.avg7": "ราคาขายเฉลี่ย · 7 วัน",
   "price.cm.avg1": "ราคาขายเฉลี่ย · 24 ชม.",
   "price.cm.avg30": "ราคาขายเฉลี่ย · 30 วัน",

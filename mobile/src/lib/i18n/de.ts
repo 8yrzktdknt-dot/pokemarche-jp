@@ -97,6 +97,7 @@ export const de: Partial<Record<Key, string>> = {
   "attr.domain": "Domäne",
   "attr.energy": "Energie",
   "attr.might": "Macht",
+  "attr.powerCost": "Machtkosten",
   "price.cm.avg7": "Verkaufsdurchschnitt · 7 Tage",
   "price.cm.avg1": "Verkaufsdurchschnitt · 24 Std.",
   "price.cm.avg30": "Verkaufsdurchschnitt · 30 Tage",

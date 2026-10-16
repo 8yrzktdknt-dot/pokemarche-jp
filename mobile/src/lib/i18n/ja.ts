@@ -97,6 +97,7 @@ export const ja: Partial<Record<Key, string>> = {
   "attr.domain": "ドメイン",
   "attr.energy": "エネルギー",
   "attr.might": "マイト",
+  "attr.powerCost": "パワーコスト",
   "price.cm.avg7": "平均販売価格 · 7日間",
   "price.cm.avg1": "平均販売価格 · 24時間",
   "price.cm.avg30": "平均販売価格 · 30日間",
