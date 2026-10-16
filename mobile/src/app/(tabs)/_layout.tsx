@@ -30,7 +30,7 @@ export default function TabsLayout() {
         headerTintColor: colors.text,
         headerTitleStyle: { fontFamily: fonts.bold },
         headerShadowVisible: false,
-        headerTitle: () => <Wordmark />,
+        headerTitle: () => <Wordmark logo />,
         sceneStyle: { backgroundColor: colors.bg },
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.line, height: 64, paddingTop: 6 },
         tabBarActiveTintColor: colors.accent,
