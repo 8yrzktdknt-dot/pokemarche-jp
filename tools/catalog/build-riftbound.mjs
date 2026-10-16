@@ -69,12 +69,14 @@ export function championNames(cards) {
   const out = new Map();
   for (const c of cards) {
     const tag = c.tags?.tags?.[0];
-    if (tag && c.subtitle && (c.cardType?.superType ?? []).some((s) => s.id === 'champion') && !out.has(tag)) out.set(tag, c.name);
+    if (!tag || !c.subtitle || !(c.cardType?.superType ?? []).some((s) => s.id === 'champion')) continue;
+    // Nom traduit de préférence (certaines cartes de la galerie restent en anglais).
+    if (!out.has(tag) || (out.get(tag) === tag && c.name !== tag)) out.set(tag, c.name);
   }
   return out;
 }
 
-/** Version imprimée d'après le numéro : 0 normale, 1 illustration alternative (« 030a »), 2 hors série (« 301* »). */
+/** Version imprimée d'après le numéro : 0 normale (et hors série « 301 »), 1 illustration alternative (« 030a »), 2 signée (« 301* »). */
 export const printRank = (code = '') => (/\*/.test(code) ? 2 : /\d[a-z](\/|$)/i.test(code) ? 1 : 0);
 
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
@@ -106,8 +108,8 @@ export function pickExpansion(names, byExp, taken) {
 
 /**
  * Fiches Cardmarket des cartes d'une extension : pour un même nom, les fiches (par ordre de création) vont aux cartes
- * normales, puis aux illustrations alternatives, puis aux hors série ; une fiche de plus est la version signée
- * de la dernière. Renvoie id de carte → { id, signature? }.
+ * normales, puis aux illustrations alternatives, puis aux hors série et à leur version signée (« 301* ») ; les fiches
+ * en trop (réimpressions, promos sans carte dans la galerie) sont ignorées. Renvoie id de carte → { id }.
  */
 export function matchProducts(cards, names) {
   const groups = new Map();
@@ -122,7 +124,6 @@ export function matchProducts(cards, names) {
     if (!ids?.length) continue;
     list.sort((a, b) => printRank(a.number) - printRank(b.number) || Number(a.localId) - Number(b.localId) || a.number.localeCompare(b.number));
     list.forEach((c, i) => { if (ids[i]) out.set(c.id, { id: ids[i] }); });
-    if (ids.length > list.length) out.get(list[list.length - 1].id).signature = ids[list.length];
   }
   return out;
 }
@@ -133,7 +134,6 @@ export function variantsFor(rarityId, product) {
   const v = rarityId === 'common' || rarityId === 'uncommon'
     ? [{ k: 'normal', id: product.id }, { k: 'foil', id: product.id }]
     : [{ k: 'foil', id: product.id }];
-  if (product.signature) v.push({ k: 'signature', id: product.signature });
   return v;
 }
 
