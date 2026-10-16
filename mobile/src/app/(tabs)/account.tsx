@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AccountSection } from '../../components/AccountPanel';
+import { signOut } from '../../lib/cloud/supabase';
 import { Dropdown } from '../../components/Dropdown';
 import { Panel } from '../../components/Stats';
 import { colors, fonts, s } from '../../components/ui';
@@ -99,6 +100,17 @@ export default function Account() {
           <Text style={[s.ghostText, { color: colors.danger, fontFamily: fonts.bold }]}>{t('acc.clear')}</Text>
         </Pressable>
       </Panel>
+
+      {!!user && (
+        <Pressable
+          style={[s.ghost, { borderColor: colors.danger, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
+          onPress={() => confirm(t('auth.signOutConfirm'), () => { signOut(); router.replace('/'); }, t('common.cancel'))}
+          accessibilityRole="button"
+        >
+          <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+          <Text style={[s.ghostText, { color: colors.danger, fontFamily: fonts.bold }]}>{t('auth.signOut')}</Text>
+        </Pressable>
+      )}
 
       <Text style={[s.muted, { fontSize: 12, textAlign: 'center' }]}>{t('acc.footer')}</Text>
       {!!APP_VERSION && (

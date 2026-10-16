@@ -205,6 +205,7 @@ export const zhCn: Partial<Record<Key, string>> = {
   "auth.apple": "使用 Apple 继续",
   "auth.appleSoon": "Apple：即将推出",
   "auth.signOut": "退出登录",
+  "auth.signOutConfirm": "要退出登录吗？将返回欢迎界面，你的收藏仍保存在账号中。",
   "auth.connected": "已登录",
   "auth.syncing": "储存中…",
   "auth.synced": "收藏已储存到你的账号",

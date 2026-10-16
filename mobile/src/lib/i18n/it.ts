@@ -205,6 +205,7 @@ export const it: Partial<Record<Key, string>> = {
   "auth.apple": "Continua con Apple",
   "auth.appleSoon": "Apple: in arrivo",
   "auth.signOut": "Esci",
+  "auth.signOutConfirm": "Uscire? Tornerai alla schermata di benvenuto; la tua collezione resta salvata nel tuo account.",
   "auth.connected": "Accesso effettuato",
   "auth.syncing": "Salvataggio…",
   "auth.synced": "Collezione salvata nel tuo account",

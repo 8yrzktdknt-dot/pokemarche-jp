@@ -205,6 +205,7 @@ export const th: Partial<Record<Key, string>> = {
   "auth.apple": "ดำเนินการต่อด้วย Apple",
   "auth.appleSoon": "Apple: เร็ว ๆ นี้",
   "auth.signOut": "ออกจากระบบ",
+  "auth.signOutConfirm": "ออกจากระบบ? คุณจะกลับไปที่หน้าต้อนรับ คอลเลกชันยังคงบันทึกไว้ในบัญชีของคุณ",
   "auth.connected": "เข้าสู่ระบบแล้ว",
   "auth.syncing": "กำลังบันทึก…",
   "auth.synced": "บันทึกคอลเลกชันลงบัญชีแล้ว",
