@@ -6,7 +6,7 @@ import { useStore } from '../lib/store';
 import { Avatar } from './Avatar';
 import { colors, fonts } from './theme';
 
-/** Choix de la photo de profil : 6 images par défaut, une photo de l'appareil, ou aucune. */
+/** Choix de la photo de profil : 9 images par défaut, une photo de l'appareil, ou aucune. */
 export function AvatarPicker({ visible, onClose }: { visible: boolean; onClose(): void }) {
   const { t, settings, setSettings } = useStore();
   const insets = useSafeAreaInsets();
@@ -53,7 +53,7 @@ const st = StyleSheet.create({
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14, maxWidth: 700, alignSelf: 'center', width: '100%' },
   handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: colors.line, alignSelf: 'center' },
   title: { color: colors.text, fontFamily: fonts.heavy, fontSize: 18, textAlign: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, maxWidth: 300, alignSelf: 'center' },
   choice: { padding: 4, borderRadius: 44, borderWidth: 3, borderColor: 'transparent' },
   choiceOn: { borderColor: colors.accent },
   action: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 14, borderWidth: 1, borderColor: colors.line, paddingVertical: 13 },
