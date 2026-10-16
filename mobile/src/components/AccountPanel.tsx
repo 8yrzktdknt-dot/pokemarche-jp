@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PROVIDERS, cloudEnabled } from '../lib/cloud/config';
 import { sendPasswordReset, signInWith, signInWithPassword, signOut, signUpWithPassword, updatePassword } from '../lib/cloud/supabase';
+import { strongPassword } from '../lib/cloud/password';
 import { useStore } from '../lib/store';
+import { PasswordRules } from './PasswordRules';
 import { Panel } from './Stats';
 import { colors, fonts, s } from './ui';
 
@@ -32,7 +34,8 @@ export function AccountPanel() {
       <View style={{ gap: 10 }}>
         <Text style={[s.muted, { fontSize: 13 }]}>{t('auth.newPassword')}</Text>
         <TextInput style={s.input} placeholder={t('auth.password')} placeholderTextColor={colors.muted} value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
-        <Pressable style={[s.button, (password.length < 6 || busy) && { opacity: 0.5 }]} disabled={password.length < 6 || busy}
+        <PasswordRules password={password} />
+        <Pressable style={[s.button, (!strongPassword(password) || busy) && { opacity: 0.5 }]} disabled={!strongPassword(password) || busy}
           onPress={() => run(async () => { await updatePassword(password); setPassword(''); endRecovery(); })}>
           {busy ? <ActivityIndicator color={colors.bg} /> : <Text style={s.buttonText}>{t('auth.savePassword')}</Text>}
         </Pressable>

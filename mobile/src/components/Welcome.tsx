@@ -2,10 +2,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { saveUsername, sendPasswordReset, signInWithPassword, signOut, signUpWithPassword, usernameAvailable } from '../lib/cloud/supabase';
+import { PROVIDERS } from '../lib/cloud/config';
+import { strongPassword } from '../lib/cloud/password';
+import { saveUsername, sendPasswordReset, signInWith, signInWithPassword, signOut, signUpWithPassword, usernameAvailable } from '../lib/cloud/supabase';
 import { normalizeUsername, validUsername } from '../lib/cloud/username';
 import { useStore } from '../lib/store';
 import { authError } from './AccountPanel';
+import { PasswordRules } from './PasswordRules';
 import { colors, fonts, s, Wordmark } from './ui';
 
 type Mode = 'signup' | 'signin' | 'reset';
@@ -45,6 +48,32 @@ function Field({ icon, prefix, secure, ...props }: React.ComponentProps<typeof T
   );
 }
 
+/** Boutons Google et Apple (Apple : bientôt, abonnement Apple Developer requis). */
+function SocialButtons({ onError }: { onError(e: unknown): void }) {
+  const { t } = useStore();
+  if (!PROVIDERS.google && !PROVIDERS.apple) return null;
+  const go = (p: 'google' | 'apple') => signInWith(p).catch(onError);
+  return (
+    <>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+        <Text style={s.meta}>{t('auth.or')}</Text>
+        <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+      </View>
+      {PROVIDERS.google && (
+        <Pressable style={[st.social, { backgroundColor: '#fff' }]} onPress={() => go('google')}>
+          <Ionicons name="logo-google" size={18} color="#1f1f1f" />
+          <Text style={[st.socialText, { color: '#1f1f1f' }]}>{t('auth.google')}</Text>
+        </Pressable>
+      )}
+      <Pressable style={[st.social, { backgroundColor: '#000', borderWidth: 1, borderColor: '#333' }, !PROVIDERS.apple && { opacity: 0.45 }]} onPress={() => go('apple')} disabled={!PROVIDERS.apple}>
+        <Ionicons name="logo-apple" size={19} color="#fff" />
+        <Text style={[st.socialText, { color: '#fff' }]}>{PROVIDERS.apple ? t('auth.apple') : t('auth.appleSoon')}</Text>
+      </Pressable>
+    </>
+  );
+}
+
 /** Mise en page commune : marque, titre, puis le formulaire dans une carte. */
 function Frame({ title, text, children }: { title: string; text: string; children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -65,7 +94,8 @@ function Frame({ title, text, children }: { title: string; text: string; childre
 
 /**
  * Écran d'arrivée : un compte est obligatoire pour garder la collection en mémoire. Création avec pseudo unique
- * (« @… »), e-mail et mot de passe ; connexion par e-mail et mot de passe. La session reste ensuite ouverte.
+ * (« @… »), e-mail et mot de passe fort, ou Google (pseudo choisi ensuite) ; connexion par e-mail et mot de passe,
+ * ou Google. La session reste ensuite ouverte.
  */
 export function Welcome() {
   const { t } = useStore();
@@ -80,7 +110,9 @@ export function Welcome() {
   const avail = useAvailability(mode === 'signup' ? username : '');
 
   const validEmail = /^\S+@\S+\.\S+$/.test(email.trim());
-  const ready = validEmail && (mode === 'reset' || password.length >= 6) && (mode !== 'signup' || (validUsername(username) && avail.free !== false));
+  // Nouveaux comptes : mot de passe fort ; connexion : n'importe quel mot de passe (comptes plus anciens).
+  const ready = validEmail && (mode === 'reset' || (mode === 'signup' ? strongPassword(password) : password.length > 0))
+    && (mode !== 'signup' || (validUsername(username) && avail.free !== false));
   const switchTo = (m: Mode) => { setMode(m); setError(null); setInfo(null); };
 
   const submit = async () => {
@@ -133,7 +165,7 @@ export function Welcome() {
           onChangeText={setPassword} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} onSubmitEditing={submit}
         />
       )}
-      {mode === 'signup' && password.length > 0 && password.length < 6 && <Text style={[st.hint, { color: colors.muted }]}>{t('auth.errPassword')}</Text>}
+      {mode === 'signup' && <PasswordRules password={password} />}
       <Pressable style={[s.button, (!ready || busy) && { opacity: 0.5 }]} disabled={!ready || busy} onPress={submit}>
         {busy ? <ActivityIndicator color={colors.bg} /> : <Text style={s.buttonText}>{t(mode === 'signin' ? 'auth.signIn' : mode === 'signup' ? 'auth.create' : 'auth.sendReset')}</Text>}
       </Pressable>
@@ -144,6 +176,7 @@ export function Welcome() {
       )}
       {!!info && <Text style={[st.hint, { color: colors.good, fontSize: 13 }]}>{info}</Text>}
       {!!error && <Text style={[st.hint, { color: colors.danger, fontSize: 13 }]}>{error}</Text>}
+      {mode !== 'reset' && <SocialButtons onError={(e) => setError(authError(e, t))} />}
     </Frame>
   );
 }
@@ -204,5 +237,7 @@ const st = StyleSheet.create({
   field: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bg, borderRadius: 14, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, minHeight: 50 },
   prefix: { color: colors.accent, fontFamily: fonts.heavy, fontSize: 16, marginRight: -6 },
   fieldInput: { flex: 1, color: colors.text, fontFamily: fonts.body, fontSize: 16, paddingVertical: 12, outlineStyle: 'none' } as object,
+  social: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, borderRadius: 14, minHeight: 50 },
+  socialText: { fontFamily: fonts.bold, fontSize: 15 },
   hint: { fontFamily: fonts.bold, fontSize: 12, paddingHorizontal: 4 },
 });
