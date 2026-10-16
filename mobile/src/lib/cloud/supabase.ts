@@ -29,11 +29,16 @@ function returnUrl(page = 'account'): string | undefined {
   return `${window.location.origin}${i >= 0 ? window.location.pathname.slice(0, i) : ''}/app/${page}`;
 }
 
-/** Création de compte par e-mail et mot de passe ; true si un e-mail de confirmation doit d'abord être validé. */
-export async function signUpWithPassword(email: string, password: string): Promise<boolean> {
+/**
+ * Création de compte par e-mail, mot de passe et pseudo (enregistré par la base à la création du compte, voir
+ * supabase/schema.sql) ; true si un e-mail de confirmation doit d'abord être validé.
+ */
+export async function signUpWithPassword(email: string, password: string, username?: string): Promise<boolean> {
   const sb = supabase();
   if (!sb) throw new Error('cloud');
-  const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl('confirm') } });
+  const { data, error } = await sb.auth.signUp({
+    email, password, options: { emailRedirectTo: returnUrl('confirm'), ...(username ? { data: { username } } : {}) },
+  });
   if (error) throw error;
   return !data.session;
 }
@@ -84,5 +89,30 @@ export async function saveRemote(userId: string, entries: SyncEntry[], settings:
   const sb = supabase();
   if (!sb) return;
   const { error } = await sb.from('collections').upsert({ user_id: userId, data: entries, settings, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+/** Pseudo libre ? null si la vérification est impossible (base pas encore à jour, hors ligne). */
+export async function usernameAvailable(name: string): Promise<boolean | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc('username_available', { name });
+  return error || typeof data !== 'boolean' ? null : data;
+}
+
+/** Pseudo du compte : chaîne vide s'il n'en a pas encore, null si la base ne gère pas encore les pseudos. */
+export async function loadUsername(userId: string): Promise<string | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data, error } = await sb.from('profiles').select('username').eq('user_id', userId).maybeSingle();
+  if (error) return null;
+  return (data?.username as string | undefined) ?? '';
+}
+
+/** Choix du pseudo d'un compte qui n'en a pas (comptes créés avant les pseudos). */
+export async function saveUsername(userId: string, username: string) {
+  const sb = supabase();
+  if (!sb) throw new Error('cloud');
+  const { error } = await sb.from('profiles').insert({ user_id: userId, username });
   if (error) throw error;
 }

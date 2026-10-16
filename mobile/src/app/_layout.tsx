@@ -1,7 +1,10 @@
 import { Manrope_400Regular, Manrope_700Bold, Manrope_800ExtraBold } from '@expo-google-fonts/manrope';
 import { Unbounded_800ExtraBold } from '@expo-google-fonts/unbounded';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
+import { View } from 'react-native';
+import { ChooseUsername, Welcome } from '../components/Welcome';
+import { cloudEnabled } from '../lib/cloud/config';
 import { StatusBar } from 'expo-status-bar';
 import { colors, fonts } from '../components/ui';
 import { useEffect } from 'react';
@@ -22,7 +25,15 @@ export default function Layout() {
 }
 
 function AppStack() {
-  const { t } = useStore();
+  const { t, authReady, user, username, recovery } = useStore();
+  const path = usePathname();
+  // Compte obligatoire : écran de connexion tant qu'on n'est pas connecté (sauf la page ouverte par le lien de
+  // confirmation de l'e-mail), puis choix du pseudo pour les comptes qui n'en ont pas. La session reste ouverte.
+  if (cloudEnabled() && !path.startsWith('/confirm')) {
+    if (!authReady) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+    if (!user) return <Welcome />;
+    if (username === '' && !recovery) return <ChooseUsername />;
+  }
   return (
     <Stack
         screenOptions={{

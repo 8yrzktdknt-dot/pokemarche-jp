@@ -9,7 +9,7 @@ import { colors, fonts, s } from './ui';
 
 /** Connexion (e-mail et mot de passe, Google, Apple) et état de la sauvegarde de la collection sur le compte. */
 export function AccountPanel() {
-  const { t, user, sync, recovery, endRecovery } = useStore();
+  const { t, user, username, sync, recovery, endRecovery } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
@@ -49,6 +49,7 @@ export function AccountPanel() {
           <Ionicons name={user.provider === 'google' ? 'logo-google' : user.provider === 'apple' ? 'logo-apple' : 'mail'} size={20} color={colors.text} />
           <Text style={[s.name, { flex: 1 }]} numberOfLines={1}>{user.email ?? t('auth.connected')}</Text>
         </View>
+        {!!username && <Text style={[s.meta, { color: colors.accent }]}>@{username}</Text>}
         {!!label && (
           <Text style={[s.meta, { color: sync === 'error' ? colors.danger : sync === 'ok' ? colors.good : colors.muted }]}>
             {sync === 'ok' ? '✓ ' : ''}{label}
@@ -121,7 +122,7 @@ export function AccountPanel() {
 }
 
 /** Messages d'erreur Supabase les plus courants, traduits. */
-function authError(e: unknown, t: ReturnType<typeof useStore>['t']): string {
+export function authError(e: unknown, t: ReturnType<typeof useStore>['t']): string {
   const m = e instanceof Error ? e.message : '';
   if (/invalid login credentials/i.test(m)) return t('auth.errCredentials');
   if (/email not confirmed/i.test(m)) return t('auth.errNotConfirmed');

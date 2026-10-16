@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
 import { mergeCollections } from './cloud/merge';
-import { loadRemote, saveRemote, supabase } from './cloud/supabase';
+import { loadRemote, loadUsername, saveRemote, supabase } from './cloud/supabase';
 import { GAMES } from './games';
 import { APP_LOCALE, deviceLang, langLabel, translate, type AppLang, type T } from './i18n';
 import { refreshCollectionPrices } from './refreshPrices';
@@ -62,6 +62,11 @@ interface Store {
   toCurrency(value: number, from: string): number;
   /** Compte connecté (null : collection sur cet appareil seulement). */
   user: { id: string; email?: string; provider?: string } | null;
+  /** Session lue sur l'appareil (avant : on ne sait pas encore s'il faut afficher l'écran de connexion). */
+  authReady: boolean;
+  /** Pseudo du compte : undefined en cours de lecture, '' à choisir, null si la base ne gère pas les pseudos. */
+  username: string | null | undefined;
+  setUsername(name: string): void;
   /** État de la sauvegarde en ligne. */
   sync: 'off' | 'syncing' | 'ok' | 'error';
   /** Arrivée par le lien « mot de passe oublié » : choisir un nouveau mot de passe. */
@@ -90,6 +95,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ]).then(([ok]) => setNamesReady(ok), () => {});
   }, []);
   const [user, setUser] = useState<Store['user']>(null);
+  const [authReady, setAuthReady] = useState(!supabase());
+  const [username, setUsernameState] = useState<string | null | undefined>(undefined);
+  const setUsername = useCallback((name: string) => setUsernameState(name), []);
   const [sync, setSync] = useState<Store['sync']>('off');
   const [recovery, setRecovery] = useState(false);
   const endRecovery = useCallback(() => setRecovery(false), []);
@@ -149,13 +157,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!sb) return;
     const apply = (u: { id: string; email?: string; app_metadata?: { provider?: string } } | null | undefined) =>
       setUser(u ? { id: u.id, email: u.email, provider: u.app_metadata?.provider } : null);
-    sb.auth.getSession().then(({ data }) => apply(data.session?.user));
+    sb.auth.getSession().then(({ data }) => apply(data.session?.user)).finally(() => setAuthReady(true));
     const { data } = sb.auth.onAuthStateChange((event, session) => {
       apply(session?.user);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Pseudo du compte connecté.
+  useEffect(() => {
+    setUsernameState(undefined);
+    if (!user) return;
+    let alive = true;
+    loadUsername(user.id).then((u) => alive && setUsernameState(u), () => alive && setUsernameState(null));
+    return () => { alive = false; };
+  }, [user?.id]);
 
   // À la connexion : collection du compte fusionnée avec celle de l'appareil, réglages du compte repris.
   useEffect(() => {
@@ -250,8 +267,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [settings.appLang, settings.currency, rates, namesReady]);
 
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, sync, recovery, endRecovery, ...helpers }),
-    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, sync, recovery, endRecovery, helpers],
+    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, authReady, username, setUsername, sync, recovery, endRecovery, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, authReady, username, setUsername, sync, recovery, endRecovery, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
