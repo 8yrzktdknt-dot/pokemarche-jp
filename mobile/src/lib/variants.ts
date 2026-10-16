@@ -23,6 +23,8 @@ const PARTS: Record<string, Labels> = {
   ultraball: L('Hyper Ball Holo', 'Ultra Ball Holo', 'ハイパーボール柄', '高級球紋', '高级球纹', 'Holo Ultra Ball', 'Holo Ultra Ball', 'Hyperball-Holo', 'Ultra Ball-holo', 'Holo Ultra Bola', 'Голо Ультра-бол', 'โฮโลไฮเปอร์บอล', '하이퍼볼 홀로'),
   '1st-edition': L('1re édition', '1st Edition', '初版', '初版', '初版', '1.ª edición', '1ª edizione', '1. Edition', '1e editie', '1ª edição', '1-е издание', 'พิมพ์ครั้งแรก', '초판'),
   shadowless: L('Sans ombre', 'Shadowless', 'シャドウレス', '無陰影', '无阴影', 'Sin sombra', 'Senza ombra', 'Ohne Schatten', 'Zonder schaduw', 'Sem sombra', 'Без тени', 'ไม่มีเงา', '섀도리스'),
+  foil: L('Foil', 'Foil', 'フォイル', '閃卡', '闪卡', 'Foil', 'Foil', 'Foil', 'Foil', 'Foil', 'Фольга', 'ฟอยล์', '포일'),
+  signature: L('Signature', 'Signature', 'サイン入り', '簽名版', '签名版', 'Firmada', 'Firmata', 'Signiert', 'Gesigneerd', 'Assinada', 'С подписью', 'ลายเซ็น', '사인'),
   parallel: L('Parallèle', 'Parallel', 'パラレル', '平行卡', '平行卡', 'Paralela', 'Parallela', 'Parallel', 'Parallel', 'Paralela', 'Параллельная', 'พาราเรล', '패럴렐'),
   reprint: L('Réimpression', 'Reprint', '再録', '再錄', '再录', 'Reimpresión', 'Ristampa', 'Neudruck', 'Herdruk', 'Reimpressão', 'Переиздание', 'พิมพ์ซ้ำ', '재록'),
   stamp: L('tampon', 'stamp', 'スタンプ', '印章', '印章', 'sello', 'timbro', 'Stempel', 'stempel', 'carimbo', 'штамп', 'ตราประทับ', '스탬프'),
@@ -62,7 +64,8 @@ export function variantLabel(key: string, lang: string): string {
 export function variantIcon(key: string): 'ellipse-outline' | 'sparkles' | 'sparkles-outline' | 'radio-button-on' | 'ribbon-outline' {
   const k = key.split('|')[0];
   if (k === 'normal') return key.includes('|') ? 'ribbon-outline' : 'ellipse-outline';
-  if (k === 'holo') return key.includes('|') ? 'ribbon-outline' : 'sparkles';
+  if (k === 'holo' || k === 'foil') return key.includes('|') ? 'ribbon-outline' : 'sparkles';
+  if (k === 'signature') return 'ribbon-outline';
   if (k.endsWith('ball')) return 'radio-button-on';
   return 'sparkles-outline';
 }

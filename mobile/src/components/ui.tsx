@@ -9,6 +9,7 @@ import { cardName } from '../lib/cardNames';
 import type { Change } from '../lib/priceHistory';
 import { PriceChange } from './PriceChange';
 import { rarityAbbr, rarityName } from '../lib/catalog/pokemonNames';
+import { facetValueLabel } from '../lib/attrValues';
 import type { AppLang } from '../lib/i18n';
 import type { Card, GameId } from '../lib/types';
 import { colors, fonts } from './theme';
@@ -71,7 +72,7 @@ export function CardRow({ card, right, list, change }: { card: Card; right?: str
         <View style={{ flex: 1 }}>
           <Text style={s.name} numberOfLines={2}>{name}</Text>
           {name !== card.name && <Text style={s.meta} numberOfLines={1}>{card.name}</Text>}
-          <Text style={s.meta}>{[card.number, card.setName, card.game === 'pokemon' && card.rarity ? rarityName(rarityAbbr(card.rarity), appLang) ?? card.rarity : card.rarity].filter(Boolean).join(' · ')}</Text>
+          <Text style={s.meta}>{[card.number, card.setName, card.game === 'pokemon' && card.rarity ? rarityName(rarityAbbr(card.rarity), appLang) ?? card.rarity : card.rarity ? facetValueLabel(card.game, 'rarity', card.rarity, appLang) : card.rarity].filter(Boolean).join(' · ')}</Text>
           {!!card.variant && (card.variants?.length ?? 0) > 1 && <Text style={[s.meta, { color: colors.accent }]}>{variantLabel(card.variant, appLang)}</Text>}
         </View>
         {(right ?? price ?? change) && (

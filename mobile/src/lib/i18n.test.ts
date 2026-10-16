@@ -47,3 +47,14 @@ test('attributs One Piece dans la langue de l\'app', async () => {
   assert.equal(localizeAttr('category', 'ÉVÉNEMENTS', 'ja'), 'イベント');
   assert.equal(localizeAttr('attribute', 'Slash/Wisdom', 'fr'), 'Tranche / Sagesse');
 });
+
+test('Riftbound : raretés, types et domaines traduits', async () => {
+  const { rbLabel, facetValueLabel } = await import('./attrValues.ts');
+  assert.equal(rbLabel('rarity', 'common', 'fr'), 'Commun');
+  assert.equal(rbLabel('rarity', 'Epic', 'ja'), 'エピック');
+  assert.equal(rbLabel('category', 'champion / unit', 'fr'), 'Champion / Unité');
+  assert.equal(rbLabel('category', 'Unité (Unit)', 'en'), 'Unit');
+  assert.equal(rbLabel('domain', 'Sans couleur', 'de'), 'Farblos');
+  assert.equal(facetValueLabel('riftbound', 'domain', 'fury', 'ko'), '분노');
+  assert.equal(facetValueLabel('riftbound', 'rarity', 'inconnue', 'fr'), 'inconnue');
+});

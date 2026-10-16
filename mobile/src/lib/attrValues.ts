@@ -168,3 +168,70 @@ export function localizeAttr(key: AttributeKey, value: string, lang: string): st
 
 /** Notion d'un type (pour sa couleur) : « Plante », « Grass », « 草 »… → « grass ». */
 export const typeConcept = (value: string) => IDX.type.get(norm(value.split(' / ')[0]));
+
+/** Riftbound : raretés, types (et surtypes) et domaines ; le catalogue donne leurs identifiants anglais (« common »). */
+const RB_RARITIES: Record<string, Labels> = {
+  common: L('Commun', 'Common', 'コモン', '普通', '普通', 'Común', 'Comune', 'Gewöhnlich', 'Gewoon', 'Comum', 'Обычная', 'ทั่วไป', '일반'),
+  uncommon: L('Peu commun', 'Uncommon', 'アンコモン', '非普通', '非普通', 'Poco común', 'Non comune', 'Ungewöhnlich', 'Ongewoon', 'Incomum', 'Необычная', 'ไม่ธรรมดา', '특별'),
+  rare: L('Rare', 'Rare', 'レア', '稀有', '稀有', 'Rara', 'Rara', 'Selten', 'Zeldzaam', 'Rara', 'Редкая', 'หายาก', '희귀'),
+  epic: L('Épique', 'Epic', 'エピック', '史詩', '史诗', 'Épica', 'Epica', 'Episch', 'Episch', 'Épica', 'Эпическая', 'มหากาพย์', '서사'),
+  showcase: L('Showcase', 'Showcase', 'ショーケース', 'Showcase', 'Showcase', 'Showcase', 'Showcase', 'Showcase', 'Showcase', 'Showcase', 'Showcase', 'Showcase', 'Showcase'),
+};
+const RB_TYPES: Record<string, Labels> = {
+  unit: L('Unité', 'Unit', 'ユニット', '單位', '单位', 'Unidad', 'Unità', 'Einheit', 'Eenheid', 'Unidade', 'Юнит', 'ยูนิต', '유닛'),
+  spell: L('Sort', 'Spell', 'スペル', '法術', '法术', 'Hechizo', 'Incantesimo', 'Zauber', 'Spreuk', 'Feitiço', 'Заклинание', 'คาถา', '주문'),
+  gear: L('Équipement', 'Gear', 'ギア', '裝備', '装备', 'Equipo', 'Equipaggiamento', 'Ausrüstung', 'Uitrusting', 'Equipamento', 'Снаряжение', 'อุปกรณ์', '장비'),
+  rune: L('Rune', 'Rune', 'ルーン', '符文', '符文', 'Runa', 'Runa', 'Rune', 'Rune', 'Runa', 'Руна', 'รูน', '룬'),
+  legend: L('Légende', 'Legend', 'レジェンド', '傳奇', '传奇', 'Leyenda', 'Leggenda', 'Legende', 'Legende', 'Lenda', 'Легенда', 'ตำนาน', '전설'),
+  battlefield: L('Champ de bataille', 'Battlefield', 'バトルフィールド', '戰場', '战场', 'Campo de batalla', 'Campo di battaglia', 'Schlachtfeld', 'Slagveld', 'Campo de batalha', 'Поле боя', 'สนามรบ', '전장'),
+  champion: L('Champion', 'Champion', 'チャンピオン', '英雄', '英雄', 'Campeón', 'Campione', 'Champion', 'Kampioen', 'Campeão', 'Чемпион', 'แชมเปียน', '챔피언'),
+  signature: L('Signature', 'Signature', 'シグネチャー', '招牌', '招牌', 'Distintiva', 'Distintiva', 'Signatur', 'Kenmerkend', 'Assinatura', 'Фирменная', 'ซิกเนเจอร์', '시그니처'),
+  token: L('Jeton', 'Token', 'トークン', '衍生物', '衍生物', 'Ficha', 'Segnalino', 'Spielmarke', 'Token', 'Ficha', 'Жетон', 'โทเคน', '토큰'),
+  basic: L('De base', 'Basic', '基本', '基本', '基本', 'Básica', 'Base', 'Standard', 'Basis', 'Básica', 'Базовая', 'พื้นฐาน', '기본'),
+};
+const RB_DOMAINS: Record<string, Labels> = {
+  fury: L('Fureur', 'Fury', '憤怒', '熾烈', '炽烈', 'Furia', 'Furia', 'Zorn', 'Woede', 'Fúria', 'Ярость', 'ความเดือดดาล', '분노'),
+  calm: L('Calme', 'Calm', '平静', '平靜', '平静', 'Calma', 'Calma', 'Ruhe', 'Kalmte', 'Calma', 'Спокойствие', 'ความสงบ', '평정'),
+  mind: L('Esprit', 'Mind', '精神', '心靈', '心灵', 'Mente', 'Mente', 'Geist', 'Geest', 'Mente', 'Разум', 'จิตใจ', '정신'),
+  body: L('Corps', 'Body', '肉体', '體魄', '体魄', 'Cuerpo', 'Corpo', 'Körper', 'Lichaam', 'Corpo', 'Тело', 'ร่างกาย', '육체'),
+  chaos: L('Chaos', 'Chaos', '混沌', '混沌', '混沌', 'Caos', 'Caos', 'Chaos', 'Chaos', 'Caos', 'Хаос', 'ความโกลาหล', '혼돈'),
+  order: L('Ordre', 'Order', '秩序', '秩序', '秩序', 'Orden', 'Ordine', 'Ordnung', 'Orde', 'Ordem', 'Порядок', 'ระเบียบ', '질서'),
+  colorless: L('Incolore', 'Colorless', '無色', '無色', '无色', 'Sin color', 'Incolore', 'Farblos', 'Kleurloos', 'Incolor', 'Бесцветный', 'ไร้สี', '무색'),
+};
+/** Ordre des raretés Riftbound (filtres, statistiques). */
+export const RB_RARITY_ORDER = Object.keys(RB_RARITIES);
+
+const RB_TABLE = { rarity: RB_RARITIES, category: RB_TYPES, domain: RB_DOMAINS };
+// Identifiants et libellés de toutes les langues (anciens catalogues : « Unité (Unit) », « Sans couleur »).
+const RB_IDX = Object.fromEntries(Object.entries(RB_TABLE).map(([k, table]) => {
+  const extra = Object.fromEntries(Object.keys(table).map((id) => [id, id]));
+  if (k === 'domain') Object.assign(extra, { 'sans couleur': 'colorless', 'sin colores': 'colorless', 'senza colore': 'colorless' });
+  return [k, index(table, extra)];
+})) as Record<keyof typeof RB_TABLE, Map<string, string>>;
+
+/** Identifiant Riftbound d'une valeur (« Unité (Unit) » → « unit ») ; undefined si inconnue. */
+export function rbConcept(kind: keyof typeof RB_TABLE, value: string): string | undefined {
+  return RB_IDX[kind].get(norm(value.replace(/\s*\([^)]*\)\s*$/, '')));
+}
+
+/** Valeur Riftbound dans la langue de l'app : « common » → « Commun », « champion / unit » → « Champion / Unité ». */
+export function rbLabel(kind: keyof typeof RB_TABLE, value: string, lang: string): string {
+  const l = (RB_RARITIES.common[lang as Lang] ? lang : 'en') as Lang;
+  return value.split(/\s*\/\s*/).map((v) => { const c = rbConcept(kind, v); return c ? RB_TABLE[kind][c][l] : v; }).join(' / ');
+}
+
+/** Valeur d'un filtre ou d'un attribut, quel que soit le jeu, dans la langue de l'app. */
+export function facetValueLabel(game: string, key: string, value: string, lang: string): string {
+  if (game === 'riftbound') {
+    if (key === 'rarity') return rbLabel('rarity', value, lang);
+    if (key === 'type' || key === 'category') return rbLabel('category', value, lang);
+    if (key === 'domain') return rbLabel('domain', value, lang);
+    return value;
+  }
+  if (game === 'onepiece') {
+    if (key === 'rarity') return opRarity(value, lang);
+    if (key === 'feature') return opFeature(value, lang);
+    if (key === 'color' || key === 'category' || key === 'attribute') return localizeAttr(key, value, lang);
+  }
+  return value;
+}

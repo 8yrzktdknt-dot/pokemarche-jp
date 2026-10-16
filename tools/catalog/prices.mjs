@@ -1,17 +1,18 @@
 // Mise à jour rapide des prix (lancée toutes les heures) : quand Cardmarket publie un nouveau guide des prix
-// (environ une fois par jour), les prix de toutes les cartes Pokémon et One Piece et de leurs variantes sont recalculés
+// (environ une fois par jour), les prix de toutes les cartes Pokémon, One Piece et Riftbound et de leurs variantes sont recalculés
 // (moyenne des ventes sur 7 jours, sinon 30 jours, toutes les ventes, offres), sans refaire le reste du catalogue.
 // Rien n'est réécrit quand le guide n'a pas changé depuis le dernier passage.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PRICES } from './cardmarket-japanese.mjs';
 import { CM_PRICES } from './build-onepiece.mjs';
+import { CM_PRICES as RB_PRICES, foilAsHolo } from './build-riftbound.mjs';
 import { CATALOG, getJson, writeJson } from './lib.mjs';
 import { applyCardmarketPrices } from './variants.mjs';
 
 const STATE = 'prices-state.json';
 /** Jeux suivis : dossiers de cartes et guide des prix Cardmarket. */
-const GAMES = [{ game: 'pokemon', url: PRICES }, { game: 'onepiece', url: CM_PRICES }];
+const GAMES = [{ game: 'pokemon', url: PRICES }, { game: 'onepiece', url: CM_PRICES }, { game: 'riftbound', url: RB_PRICES }];
 
 /** Date du guide des prix (champ « createdAt » de Cardmarket, sinon une empreinte de son contenu). */
 export function guideStamp(g) {
@@ -23,7 +24,8 @@ export function guideStamp(g) {
 
 /** Prix de toutes les cartes d'un jeu depuis son guide ; renvoie le nombre de fichiers modifiés. */
 export function applyGuide(guide, game = 'pokemon', catalog = CATALOG) {
-  const files = { prices: new Map((guide.priceGuides ?? []).map((x) => [x.idProduct, x])) };
+  // Riftbound : prix foil dans les champs « -foil » (« -holo » pour les autres jeux).
+  const files = { prices: new Map((guide.priceGuides ?? []).map((x) => [x.idProduct, foilAsHolo(x)])) };
   let changed = 0;
   const cardsDir = join(catalog, 'cards');
   for (const dir of readdirSync(cardsDir).filter((d) => d.startsWith(`${game}-`))) {

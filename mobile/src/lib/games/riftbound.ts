@@ -130,7 +130,7 @@ const withStatic = {
 export const riftbound: GameProvider = {
   id: 'riftbound',
   label: 'Riftbound',
-  langs: ['en', 'fr', 'zh-cn'],
+  langs: ['en', 'fr', 'zh-cn', 'zh-tw', 'ko'],
   ...withStatic,
   resolveScan,
 };
