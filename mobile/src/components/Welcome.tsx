@@ -1,4 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
+import { LOGO_SVG } from './logoSvg';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -81,7 +83,7 @@ function Frame({ title, text, children }: { title: string; text: string; childre
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={[st.page, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled">
         <View style={st.logo}>
-          <View style={st.badge}><Ionicons name="albums" size={34} color={colors.bg} /></View>
+          <Image source={{ uri: LOGO_SVG }} style={{ width: 84, height: 84 }} accessibilityIgnoresInvertColors />
           <Wordmark size={30} />
         </View>
         <Text style={st.title}>{title}</Text>
@@ -226,7 +228,6 @@ export function ChooseUsername() {
 const st = StyleSheet.create({
   page: { flexGrow: 1, paddingHorizontal: 20, gap: 14, width: '100%', maxWidth: 480, alignSelf: 'center' },
   logo: { alignItems: 'center', gap: 12, marginBottom: 6 },
-  badge: { width: 64, height: 64, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }] },
   title: { color: colors.text, fontFamily: fonts.heavy, fontSize: 24, textAlign: 'center' },
   text: { color: colors.muted, fontFamily: fonts.body, fontSize: 15, textAlign: 'center', lineHeight: 21, marginBottom: 6 },
   card: { backgroundColor: colors.card, borderRadius: 22, padding: 18, gap: 12, borderWidth: 1, borderColor: colors.line },

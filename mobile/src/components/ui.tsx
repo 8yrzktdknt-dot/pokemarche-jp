@@ -13,14 +13,23 @@ import { facetValueLabel } from '../lib/attrValues';
 import type { AppLang } from '../lib/i18n';
 import type { Card, GameId } from '../lib/types';
 import { colors, fonts } from './theme';
+import { LOGO_SVG } from './logoSvg';
 
 export { colors, fonts } from './theme';
 
-export function Wordmark({ size = 20 }: { size?: number }) {
-  return (
+/** Nom TCGMarket, avec le logo devant (`logo`). */
+export function Wordmark({ size = 20, logo }: { size?: number; logo?: boolean }) {
+  const name = (
     <Text style={{ fontFamily: fonts.display, fontSize: size, color: colors.text }}>
       TCG<Text style={{ color: colors.accent }}>Market</Text>
     </Text>
+  );
+  if (!logo) return name;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.4 }}>
+      <Image source={{ uri: LOGO_SVG }} style={{ width: size * 1.5, height: size * 1.5 }} />
+      {name}
+    </View>
   );
 }
 

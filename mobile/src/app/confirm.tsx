@@ -20,7 +20,7 @@ export default function Confirm() {
   return (
     <View style={[s.screen, { alignItems: 'center', justifyContent: 'center', padding: 24, gap: 18 }]}>
       <Stack.Screen options={{ title: t('confirm.title') }} />
-      <Wordmark size={30} />
+      <Wordmark size={30} logo />
       <View style={{ width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: failed ? colors.danger : colors.good }}>
         <Ionicons name={failed ? 'close' : 'checkmark'} size={52} color={colors.bg} />
       </View>
