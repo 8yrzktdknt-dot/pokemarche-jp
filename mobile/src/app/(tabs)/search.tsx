@@ -8,6 +8,7 @@ import { GAMES, langFor } from '../../lib/games';
 import type { TKey } from '../../lib/i18n';
 import { hasCriteria } from '../../lib/search';
 import { useStore } from '../../lib/store';
+import { facetValueLabel } from '../../lib/attrValues';
 import type { Card, CardLang, FilterOptions, GameId, SearchFilters, SortKey } from '../../lib/types';
 
 const PAGE = 40;
@@ -99,7 +100,7 @@ function GameSearch({ game, picker }: { game: GameId; picker: React.ReactNode })
   }, [options, filters.blocId, appLang]);
   const rarityValues = options?.facets.find((f) => f.key === 'rarity')?.values ?? [];
   const rarityOpts: Option[] =
-    game === 'pokemon' ? rarityOptions(rarityValues, appLang) : rarityValues.map((v) => ({ value: v, label: v }));
+    game === 'pokemon' ? rarityOptions(rarityValues, appLang) : rarityValues.map((v) => ({ value: v, label: facetValueLabel(game, 'rarity', v, appLang) }));
   // Pokémon : Blocs / Extensions / Raretés. Les autres jeux gardent leurs filtres propres.
   const extraFacets = game === 'pokemon' ? [] : (options?.facets ?? []).filter((f) => f.key !== 'rarity' && f.values.length);
   const setFacet = (key: string, v?: string) => setFilters({ ...filters, facets: { ...filters.facets, [key]: v ?? '' } });
@@ -158,7 +159,7 @@ function GameSearch({ game, picker }: { game: GameId; picker: React.ReactNode })
             style={half}
             label={t(`facet.${f.key}` as TKey)}
             value={filters.facets[f.key]}
-            options={f.values.map((v) => ({ value: v, label: v }))}
+            options={f.values.map((v) => ({ value: v, label: facetValueLabel(game, f.key, v, appLang) }))}
             allLabel={t('common.all')}
             onChange={(v) => setFacet(f.key, v)}
           />

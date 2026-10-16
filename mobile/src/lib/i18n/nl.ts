@@ -97,6 +97,7 @@ export const nl: Partial<Record<Key, string>> = {
   "attr.domain": "Domein",
   "attr.energy": "Energie",
   "attr.might": "Macht",
+  "attr.powerCost": "Krachtkosten",
   "price.cm.avg7": "Verkoopgemiddelde · 7 dagen",
   "price.cm.avg1": "Verkoopgemiddelde · 24 u",
   "price.cm.avg30": "Verkoopgemiddelde · 30 dagen",

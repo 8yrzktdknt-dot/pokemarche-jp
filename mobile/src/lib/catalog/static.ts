@@ -37,6 +37,8 @@ export function largeImage(u?: string): string | undefined {
   if (u.endsWith('/low.webp')) return u.replace(/\/low\.webp$/, '/high.webp');
   // Visuels chinois traditionnels réduits par wsrv.nl : grande taille à 900 px.
   if (u.startsWith('https://wsrv.nl/')) return u.replace(/([?&]w=)\d+/, '$1900');
+  // Riftbound : visuel réduit par le CDN de Riot (360 px) ; grande taille à 900 px.
+  if (u.startsWith('https://cmsassets.rgpub.io/')) return u.replace(/([?&]w=)\d+/, '$1900');
   if (/images\.pokemontcg\.io\/.+\/[^/_]+\.png$/.test(u)) return u.replace(/\.png$/, '_hires.png');
   return u;
 }

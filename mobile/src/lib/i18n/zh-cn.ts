@@ -97,6 +97,7 @@ export const zhCn: Partial<Record<Key, string>> = {
   "attr.domain": "领域",
   "attr.energy": "能量",
   "attr.might": "威力",
+  "attr.powerCost": "能量消耗",
   "price.cm.avg7": "平均成交价 · 7 天",
   "price.cm.avg1": "平均成交价 · 24 小时",
   "price.cm.avg30": "平均成交价 · 30 天",

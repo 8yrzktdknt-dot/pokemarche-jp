@@ -82,7 +82,8 @@ export function fixJapaneseBall(list) {
 /** Carte japonaise de base : holo à partir de « R » (les communes et peu communes ne le sont pas). */
 export const japaneseBase = (rarity) => (!rarity || /^(C|U|Common|Uncommon|Commune|Peu commune)$/i.test(rarity) ? 'normal' : 'holo');
 
-const FOIL_KEYS = /^(reverse|pokeball|masterball|quickball|friendball|greatball|ultraball|loveball|duskball)/;
+// Riftbound : « foil » et la version signée (foil).
+const FOIL_KEYS = /^(reverse|foil|signature|pokeball|masterball|quickball|friendball|greatball|ultraball|loveball|duskball)/;
 
 /**
  * Prix affichés, dans l'ordre : moyenne des ventes sur 7 jours, 30 jours, toutes les ventes ; carte jamais vendue :

@@ -10,6 +10,7 @@ import { GAMES } from '../../../lib/games';
 import { localName } from '../../../lib/catalog/static';
 import { percent, setStats } from '../../../lib/setStats';
 import { useStore } from '../../../lib/store';
+import { facetValueLabel } from '../../../lib/attrValues';
 import { variantOwnership } from '../../../lib/variants';
 import type { Card, CardLang, GameId, SetInfo } from '../../../lib/types';
 
@@ -94,7 +95,7 @@ export default function SetStatsScreen() {
       )}
 
       <Panel title={t('setStats.rarities')}>
-        <BarList rows={stats.rarities.map((r) => ({ label: r.rarity, value: r.total, detail: t('setStats.rarityDetail', { owned: r.owned, v: money(r.value) }) }))} />
+        <BarList rows={stats.rarities.map((r) => ({ label: facetValueLabel(game, 'rarity', r.rarity, appLang), value: r.total, detail: t('setStats.rarityDetail', { owned: r.owned, v: money(r.value) }) }))} />
       </Panel>
 
       {stats.priced > 0 && (

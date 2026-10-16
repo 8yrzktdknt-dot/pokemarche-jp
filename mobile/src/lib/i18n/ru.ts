@@ -97,6 +97,7 @@ export const ru: Partial<Record<Key, string>> = {
   "attr.domain": "Домен",
   "attr.energy": "Энергия",
   "attr.might": "Мощь",
+  "attr.powerCost": "Стоимость силы",
   "price.cm.avg7": "Средняя цена продаж · 7 дней",
   "price.cm.avg1": "Средняя цена продаж · 24 ч",
   "price.cm.avg30": "Средняя цена продаж · 30 дней",
