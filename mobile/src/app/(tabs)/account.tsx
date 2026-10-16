@@ -25,7 +25,7 @@ function confirm(message: string, onYes: () => void, cancel = 'Cancel') {
 }
 
 export default function Account() {
-  const { settings, setSettings, collection, clear, t, langLabel, user } = useStore();
+  const { settings, setSettings, collection, clear, t, langLabel, user, username } = useStore();
   const [name, setName] = useState(settings.profileName ?? '');
   const count = collection.reduce((n, e) => n + e.quantity, 0);
   const saveName = () => setSettings({ profileName: name.trim() || undefined });
@@ -36,7 +36,8 @@ export default function Account() {
         <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="person" size={44} color="#fff" />
         </View>
-        <Text style={s.h2}>{settings.profileName || t('acc.trainer')}</Text>
+        <Text style={s.h2}>{settings.profileName || (username ? `@${username}` : t('acc.trainer'))}</Text>
+        {!!username && !!settings.profileName && <Text style={[s.meta, { color: colors.accent }]}>@{username}</Text>}
         <Text style={s.muted}>{t('acc.inCollection', { n: count })}</Text>
         {user?.email ? <Text style={[s.muted, { fontSize: 12 }]}>{user.email}</Text> : null}
       </View>
