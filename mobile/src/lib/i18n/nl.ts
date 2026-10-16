@@ -205,6 +205,7 @@ export const nl: Partial<Record<Key, string>> = {
   "auth.apple": "Doorgaan met Apple",
   "auth.appleSoon": "Apple: binnenkort",
   "auth.signOut": "Uitloggen",
+  "auth.signOutConfirm": "Uitloggen? Je keert terug naar het welkomstscherm; je collectie blijft bewaard in je account.",
   "auth.connected": "Ingelogd",
   "auth.syncing": "Opslaan…",
   "auth.synced": "Collectie opgeslagen in je account",

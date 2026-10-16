@@ -205,6 +205,7 @@ export const zhTw: Partial<Record<Key, string>> = {
   "auth.apple": "使用 Apple 繼續",
   "auth.appleSoon": "Apple：即將推出",
   "auth.signOut": "登出",
+  "auth.signOutConfirm": "要登出嗎？將返回歡迎畫面，你的收藏仍保存在帳號中。",
   "auth.connected": "已登入",
   "auth.syncing": "儲存中…",
   "auth.synced": "收藏已儲存到你的帳號",

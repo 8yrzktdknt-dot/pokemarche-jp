@@ -205,6 +205,7 @@ export const ja: Partial<Record<Key, string>> = {
   "auth.apple": "Appleで続ける",
   "auth.appleSoon": "Apple：近日対応",
   "auth.signOut": "ログアウト",
+  "auth.signOutConfirm": "ログアウトしますか？ようこそ画面に戻ります。コレクションはアカウントに保存されたままです。",
   "auth.connected": "ログイン中",
   "auth.syncing": "保存中…",
   "auth.synced": "コレクションをアカウントに保存しました",

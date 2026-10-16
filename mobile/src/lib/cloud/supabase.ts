@@ -72,8 +72,26 @@ export async function signInWith(provider: 'google' | 'apple') {
   if (error) throw error;
 }
 
+/**
+ * Déconnexion. Sans réseau, Supabase garde la session : on l'efface quand même de l'appareil.
+ * Renvoie quand la session locale est effacée.
+ */
 export async function signOut() {
-  await supabase()?.auth.signOut();
+  const sb = supabase();
+  if (!sb) return;
+  const { error } = await sb.auth.signOut().catch((e) => ({ error: e }));
+  if (error) {
+    const ref = new URL(SUPABASE_URL).hostname.split('.')[0];
+    await AsyncStorage.removeItem(`sb-${ref}-auth-token`).catch(() => {});
+    signedOutLocally.forEach((fn) => fn());
+  }
+}
+
+/** Abonnés prévenus d'une déconnexion faite sans réseau (Supabase n'émet alors aucun événement). */
+const signedOutLocally = new Set<() => void>();
+export function onLocalSignOut(fn: () => void): () => void {
+  signedOutLocally.add(fn);
+  return () => { signedOutLocally.delete(fn); };
 }
 
 /** Collection et réglages enregistrés sur le compte (une ligne par utilisateur). */

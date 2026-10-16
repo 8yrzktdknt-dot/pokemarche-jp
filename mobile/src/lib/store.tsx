@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
 import { mergeCollections } from './cloud/merge';
-import { loadRemote, loadUsername, saveRemote, supabase } from './cloud/supabase';
+import { loadRemote, loadUsername, onLocalSignOut, saveRemote, supabase } from './cloud/supabase';
 import { GAMES } from './games';
 import { APP_LOCALE, deviceLang, langLabel, translate, type AppLang, type T } from './i18n';
 import { refreshCollectionPrices } from './refreshPrices';
@@ -162,7 +162,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       apply(session?.user);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
     });
-    return () => data.subscription.unsubscribe();
+    const off = onLocalSignOut(() => setUser(null));
+    return () => { data.subscription.unsubscribe(); off(); };
   }, []);
 
   // Pseudo du compte connecté.

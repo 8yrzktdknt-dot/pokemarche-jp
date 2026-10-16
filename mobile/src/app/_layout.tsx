@@ -2,7 +2,7 @@ import { Manrope_400Regular, Manrope_700Bold, Manrope_800ExtraBold } from '@expo
 import { Unbounded_800ExtraBold } from '@expo-google-fonts/unbounded';
 import { useFonts } from 'expo-font';
 import { Stack, usePathname } from 'expo-router';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ChooseUsername, Welcome } from '../components/Welcome';
 import { cloudEnabled } from '../lib/cloud/config';
 import { StatusBar } from 'expo-status-bar';
@@ -29,12 +29,12 @@ function AppStack() {
   const path = usePathname();
   // Compte obligatoire : écran de connexion tant qu'on n'est pas connecté (sauf la page ouverte par le lien de
   // confirmation de l'e-mail), puis choix du pseudo pour les comptes qui n'en ont pas. La session reste ouverte.
-  if (cloudEnabled() && !path.startsWith('/confirm')) {
-    if (!authReady) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
-    if (!user) return <Welcome />;
-    if (username === '' && !recovery) return <ChooseUsername />;
-  }
+  // Par-dessus la navigation (qui reste en place : à la reconnexion, on retrouve l'app là où on l'attend).
+  const gated = cloudEnabled() && !path.startsWith('/confirm');
+  const gate = !gated ? null : !authReady ? <View style={{ flex: 1, backgroundColor: colors.bg }} />
+    : !user ? <Welcome /> : username === '' && !recovery ? <ChooseUsername /> : null;
   return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
     <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
@@ -53,5 +53,7 @@ function AppStack() {
         <Stack.Screen name="collection" options={{ title: t('title.collection') }} />
         <Stack.Screen name="card/[game]/[id]" options={{ title: t('title.card') }} />
       </Stack>
+      {gate && <View style={StyleSheet.absoluteFill}>{gate}</View>}
+    </View>
   );
 }

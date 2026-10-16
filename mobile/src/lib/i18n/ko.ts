@@ -205,6 +205,7 @@ export const ko: Partial<Record<Key, string>> = {
   "auth.apple": "Apple로 계속",
   "auth.appleSoon": "Apple: 곧 지원",
   "auth.signOut": "로그아웃",
+  "auth.signOutConfirm": "로그아웃할까요? 시작 화면으로 돌아가며, 컬렉션은 계정에 그대로 저장됩니다.",
   "auth.connected": "로그인됨",
   "auth.syncing": "저장 중…",
   "auth.synced": "컬렉션이 계정에 저장되었습니다",

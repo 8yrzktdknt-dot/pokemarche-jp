@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PROVIDERS, cloudEnabled } from '../lib/cloud/config';
-import { sendPasswordReset, signInWith, signInWithPassword, signOut, signUpWithPassword, updatePassword } from '../lib/cloud/supabase';
+import { sendPasswordReset, signInWith, signInWithPassword, signUpWithPassword, updatePassword } from '../lib/cloud/supabase';
 import { strongPassword } from '../lib/cloud/password';
 import { useStore } from '../lib/store';
 import { PasswordRules } from './PasswordRules';
@@ -58,9 +58,6 @@ export function AccountPanel() {
             {sync === 'ok' ? '✓ ' : ''}{label}
           </Text>
         )}
-        <Pressable style={s.ghost} onPress={() => run(signOut)} disabled={busy}>
-          <Text style={s.ghostText}>{t('auth.signOut')}</Text>
-        </Pressable>
       </View>
     );
   }

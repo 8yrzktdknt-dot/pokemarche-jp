@@ -205,6 +205,7 @@ export const de: Partial<Record<Key, string>> = {
   "auth.apple": "Weiter mit Apple",
   "auth.appleSoon": "Apple: demnächst",
   "auth.signOut": "Abmelden",
+  "auth.signOutConfirm": "Abmelden? Du kehrst zum Startbildschirm zurück; deine Sammlung bleibt in deinem Konto gespeichert.",
   "auth.connected": "Angemeldet",
   "auth.syncing": "Wird gespeichert…",
   "auth.synced": "Sammlung in deinem Konto gespeichert",
