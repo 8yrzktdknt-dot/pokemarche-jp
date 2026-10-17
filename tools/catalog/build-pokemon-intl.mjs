@@ -3,6 +3,9 @@ import { ptcgCandidates } from './build-pokemon-cards.mjs';
 import { getJson, pool, sortByRelease, writeJson } from './lib.mjs';
 import { findLogo, ownLogo, pokellectorLogos, saveLogo, scrydexLogo } from './logos.mjs';
 
+/** Extensions qui reprennent le logo d'une autre. */
+const SAME_LOGO = { '30th-c': '30th' };
+
 const API = 'https://api.tcgdex.net/v2';
 const asset = (u) => (u ? `${u}.webp` : undefined);
 
@@ -68,6 +71,9 @@ export async function buildPokemonIntl(langs = ['en', 'fr', 'de', 'es', 'it', 'p
     } else {
       for (const x of blocs.flatMap((b) => b.sets)) if (!x.logo) x.logo = fallback.get(x.id)?.logo;
     }
+    // Même logo qu'une autre extension : Collection Classique des 30 ans → logo 30th Celebration.
+    const all = new Map(blocs.flatMap((b) => b.sets).map((x) => [x.id, x]));
+    for (const [id, from] of Object.entries(SAME_LOGO)) if (all.get(id) && all.get(from)?.logo) all.get(id).logo = all.get(from).logo;
     sortByRelease(blocs);
     blocs.sort((a, b) => Number(SIDE.has(a.id)) - Number(SIDE.has(b.id)));
     writeJson(`sets/pokemon-${lang}.json`, { built: new Date().toISOString(), blocs });

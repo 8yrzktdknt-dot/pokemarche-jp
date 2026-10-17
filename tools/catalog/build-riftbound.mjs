@@ -14,7 +14,9 @@ const LOCALES = { en: 'en-us', fr: 'fr-fr', de: 'de-de', es: 'es-es', it: 'it-it
 const CARD_LANGS = { en: 'en', 'zh-cn': 'zh-cn', 'zh-tw': 'zh-tw', ko: 'ko' };
 // La galerie ne donne pas les dates de sortie : ordre de sortie connu (du plus récent au plus ancien).
 // Les extensions absentes de cette liste sont placées en tête (probablement les plus récentes).
-const RELEASE_ORDER = ['VEN', 'RAD', 'UNL', 'SFD', 'OGS', 'OGN'];
+// (ordre des extensions Cardmarket : Origins 6286, Proving Grounds 6289, Spiritforged 6399, Unleashed 6491,
+// Vendetta 6587, Radiance 6659).
+const RELEASE_ORDER = ['RAD', 'VEN', 'UNL', 'SFD', 'OGS', 'OGN'];
 /** Dates de sortie (anglais) connues. */
 const RELEASES = { OGN: '2025-10-31', OGS: '2025-10-31', SFD: '2026-02-13' };
 
