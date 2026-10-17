@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors, displayName, fonts, s } from '../../../components/ui';
 import { ReverseSheen } from '../../../components/ReverseSheen';
+import { CardExtras } from '../../../components/CardExtras';
 import { ImageViewer } from '../../../components/ImageViewer';
 import { VariantPicker } from '../../../components/VariantPicker';
 import { browseCard, neighbors } from '../../../lib/browse';
@@ -299,6 +300,8 @@ export default function CardScreen() {
           </Pressable>
         )}
       </View>
+
+      <CardExtras card={view} />
 
       <Text style={s.h2}>{t('card.prices')}</Text>
       {!main && <Text style={s.muted}>{t('card.noPrice')}</Text>}

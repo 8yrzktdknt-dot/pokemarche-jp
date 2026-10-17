@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
 import { mergeCollections } from './cloud/merge';
+import { isDeal, newDeals, wishKey, type WishEntry } from './wishlist';
 import { loadRemote, loadUsername, onLocalSignOut, saveRemote, supabase } from './cloud/supabase';
 import { GAMES } from './games';
 import { APP_LOCALE, deviceLang, langLabel, translate, type AppLang, type T } from './i18n';
@@ -17,6 +18,9 @@ export interface CollectionEntry {
   card: Card;
   quantity: number;
   addedAt: number;
+  /** Prix payé à l'unité et sa devise (plus-value). */
+  paid?: number;
+  paidCurrency?: string;
 }
 
 export interface Settings {
@@ -24,6 +28,10 @@ export interface Settings {
   lang: CardLang;
   /** Pseudo affiché sur la page Compte (en attendant les vrais comptes). */
   profileName?: string;
+  /** Liste de souhaits (sauvegardée avec le compte comme les autres réglages). */
+  wishlist?: WishEntry[];
+  /** Notifications du navigateur quand une carte recherchée passe sous son prix cible. */
+  wishNotify?: boolean;
   /** Photo de profil : une des images par défaut (« flame »…) ou une photo importée (data URL JPEG 256 px). */
   avatar?: string;
   /** Langue de l'interface et des noms traduits ; « auto » : celle de l'appareil. */
@@ -51,6 +59,14 @@ interface Store {
   /** Un exemplaire de moins pour chaque carte. */
   removeMany(cards: Card[]): void;
   clear(): void;
+  /** Prix payé à l'unité pour une carte de la collection (undefined : l'effacer). */
+  setPaid(card: Card, paid?: number): void;
+  wishlist: WishEntry[];
+  inWishlist(card: Card): WishEntry | undefined;
+  toggleWish(card: Card): void;
+  setWishTarget(card: Card, target?: number): void;
+  /** Cartes recherchées dont la cote est sous le prix cible. */
+  deals: WishEntry[];
   t: T;
   /** Langue de l'interface effective (réglage « auto » résolu avec la langue de l'appareil). */
   appLang: AppLang;
@@ -144,8 +160,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return current;
       });
     };
+    // Liste de souhaits : même mise à jour des prix.
+    const runWish = () => {
+      setSettingsState((cur) => {
+        const list = cur.wishlist ?? [];
+        if (!list.length) return cur;
+        const entries = list.map((w) => ({ ...w, quantity: 1 }));
+        refreshCollectionPrices(entries, async (game, setId, lang) => (await GAMES[game].setCards(setId, lang)).cards).then((next) => {
+          if (!alive || !next) return;
+          const fresh = new Map(next.map((e, i) => [wishKey(list[i].card), e.card]));
+          setSettingsState((now) => ({ ...now, wishlist: (now.wishlist ?? []).map((w) => ({ ...w, card: fresh.get(wishKey(w.card)) ?? w.card })) }));
+        });
+        return cur;
+      });
+    };
     run();
-    const timer = setInterval(run, 3600 * 1000);
+    runWish();
+    const timer = setInterval(() => { run(); runWish(); }, 3600 * 1000);
     return () => { alive = false; clearInterval(timer); };
   }, [ready]);
 
@@ -252,7 +283,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => setCollection([]), []);
 
+  const setPaid = useCallback((card: Card, paid?: number) => {
+    setCollection((prev) => prev.map((e) => (keyOf(e.card) === keyOf(card)
+      ? { ...e, paid, paidCurrency: paid === undefined ? undefined : settingsRef.current.currency }
+      : e)));
+  }, []);
+
+  const wishlist = settings.wishlist ?? [];
+  const inWishlist = useCallback((card: Card) => (settingsRef.current.wishlist ?? []).find((w) => wishKey(w.card) === wishKey(card)), [settings.wishlist]);
+  const toggleWish = useCallback((card: Card) => {
+    setSettingsState((prev) => {
+      const list = prev.wishlist ?? [];
+      const has = list.some((w) => wishKey(w.card) === wishKey(card));
+      return { ...prev, wishlist: has ? list.filter((w) => wishKey(w.card) !== wishKey(card)) : [{ card, addedAt: Date.now() }, ...list] };
+    });
+  }, []);
+  const setWishTarget = useCallback((card: Card, target?: number) => {
+    setSettingsState((prev) => ({
+      ...prev,
+      wishlist: (prev.wishlist ?? []).map((w) => (wishKey(w.card) === wishKey(card) ? { ...w, target, currency: target === undefined ? undefined : prev.currency, notified: undefined } : w)),
+    }));
+  }, []);
+
   const setSettings = useCallback((s: Partial<Settings>) => setSettingsState((prev) => ({ ...prev, ...s })), []);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   // Fonctions stables tant que la langue / la devise ne changent pas (évite de relancer les effets des écrans).
   const helpers = useMemo(() => {
@@ -269,9 +324,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [settings.appLang, settings.currency, rates, namesReady]);
 
+  const convertTo = useCallback((v: number, from: string, to: string) => convert(v, from, to as Currency, rates), [rates]);
+  const deals = useMemo(() => wishlist.filter((w) => isDeal(w, convertTo)), [wishlist, convertTo]);
+
+  // Notification du navigateur pour les nouvelles bonnes affaires (une fois par jour et par carte).
+  useEffect(() => {
+    if (!ready || !settings.wishNotify || typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    const day = new Date().toISOString().slice(0, 10);
+    const fresh = newDeals(wishlist, convertTo, day);
+    if (!fresh.length) return;
+    for (const w of fresh.slice(0, 3)) {
+      const now = w.card.prices[0];
+      const body = helpers.t('wish.notifBody', { name: w.card.name, price: now ? helpers.money(now.value, now.currency) : '', target: formatMoney(w.target ?? 0, (w.currency ?? settings.currency) as Currency, helpers.locale) });
+      try { new Notification(helpers.t('wish.notifTitle'), { body, icon: w.card.imageSmall, tag: wishKey(w.card) }); } catch {}
+    }
+    const keys = new Set(fresh.map((w) => wishKey(w.card)));
+    setSettingsState((prev) => ({ ...prev, wishlist: (prev.wishlist ?? []).map((w) => (keys.has(wishKey(w.card)) ? { ...w, notified: day } : w)) }));
+  }, [ready, settings.wishNotify, wishlist, convertTo, helpers]);
+
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, authReady, username, setUsername, sync, recovery, endRecovery, ...helpers }),
-    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, user, authReady, username, setUsername, sync, recovery, endRecovery, helpers],
+    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

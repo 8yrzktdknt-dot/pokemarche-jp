@@ -9,11 +9,14 @@ import { usePriceHistory } from '../../lib/usePriceHistory';
 import { PriceChange } from '../PriceChange';
 import { PriceChart } from '../PriceChart';
 import { Panel, StatTile } from '../Stats';
-import { CardRow, s } from '../ui';
+import { CardRow, colors, fonts, s } from '../ui';
+import { GainText } from '../CardExtras';
+import { gainOf } from '../../lib/wishlist';
 import { EmptyCollection, Page, d } from './common';
 
 export function CollectionPage({ st: stats }: { st: CollectionStats }) {
-  const { collection, settings, t, locale, toCurrency } = useStore();
+  const { collection, settings, t, locale, toCurrency, deals, wishlist } = useStore();
+  const gain = useMemo(() => gainOf(collection, toCurrency), [collection, toCurrency]);
   const fmt = (v: number) => formatMoney(v, settings.currency, locale);
   // Valeur de la collection jour par jour d'après l'historique des prix Cardmarket de chaque carte.
   const cards = useMemo(() => collection.map((e) => e.card), [collection]);
@@ -38,7 +41,24 @@ export function CollectionPage({ st: stats }: { st: CollectionStats }) {
         {ch ? <PriceChange change={ch} currency={settings.currency} size={15} suffix={since} /> : <Text style={d.caption}>{t('dash.trackingStart')}</Text>}
         {series.length > 1 && <PriceChart points={series.slice(-30)} format={fmt} locale={locale} height={110} />}
         {stats.unpriced > 0 && <Text style={[d.caption, { fontSize: 11 }]}>{t('dash.unpriced', { n: stats.unpriced })}</Text>}
+        {gain && (
+          <View style={{ alignItems: 'center', gap: 2, marginTop: 6 }}>
+            <Text style={d.kicker}>{t(gain.delta >= 0 ? 'paid.gain' : 'paid.loss')}</Text>
+            <GainText delta={gain.delta} pct={gain.pct} size={17} />
+            <Text style={[d.caption, { fontSize: 11 }]}>{t('dash.gainNote', { n: gain.count })}</Text>
+          </View>
+        )}
       </View>
+
+      {deals.length > 0 && (
+        <Link href="/wishlist" asChild>
+          <Pressable style={{ backgroundColor: colors.good, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Text style={{ fontSize: 20 }}>🔔</Text>
+            <Text style={{ flex: 1, color: colors.bg, fontFamily: fonts.heavy, fontSize: 14 }}>{t('wish.deals', { n: deals.length })}</Text>
+            <Text style={{ color: colors.bg, fontFamily: fonts.heavy, fontSize: 18 }}>›</Text>
+          </Pressable>
+        </Link>
+      )}
 
       <View style={d.row}>
         <StatTile label={t('dash.cards')} value={String(stats.count)} />
@@ -60,6 +80,9 @@ export function CollectionPage({ st: stats }: { st: CollectionStats }) {
           <Pressable style={s.ghost}><Text style={s.ghostText}>{t('dash.seeAll')}</Text></Pressable>
         </Link>
       </Panel>
+      <Link href="/wishlist" asChild>
+        <Pressable style={s.ghost}><Text style={s.ghostText}>♡ {t('wish.see')}{wishlist.length ? ` (${wishlist.length})` : ''}</Text></Pressable>
+      </Link>
       <Text style={[s.muted, { fontSize: 12 }]}>{t('dash.note')}</Text>
     </Page>
   );

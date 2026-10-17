@@ -51,6 +51,7 @@ function AppStack() {
         <Stack.Screen name="confirm" options={{ title: t('confirm.title'), headerShown: false }} />
         <Stack.Screen name="report" options={{ title: t('report.title') }} />
         <Stack.Screen name="collection" options={{ title: t('title.collection') }} />
+        <Stack.Screen name="wishlist" options={{ title: t('wish.title') }} />
         <Stack.Screen name="card/[game]/[id]" options={{ title: t('title.card') }} />
       </Stack>
       {gate && <View style={StyleSheet.absoluteFill}>{gate}</View>}

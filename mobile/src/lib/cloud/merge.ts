@@ -1,7 +1,7 @@
 import { collectionKey } from '../variants.ts';
 import type { Card } from '../types.ts';
 
-export interface SyncEntry { card: Card; quantity: number; addedAt: number }
+export interface SyncEntry { card: Card; quantity: number; addedAt: number; paid?: number; paidCurrency?: string }
 
 const keyOf = collectionKey;
 
@@ -16,7 +16,9 @@ export function mergeCollections<E extends SyncEntry>(local: E[], remote: E[]): 
     const k = keyOf(e.card);
     const prev = out.get(k);
     if (!prev) { out.set(k, e); continue; }
-    out.set(k, { ...prev, quantity: Math.max(prev.quantity, e.quantity), addedAt: Math.min(prev.addedAt, e.addedAt) });
+    // Prix payé : celui qui est connu (le compte d'abord).
+    const paid = prev.paid !== undefined ? {} : e.paid !== undefined ? { paid: e.paid, paidCurrency: e.paidCurrency } : {};
+    out.set(k, { ...prev, ...paid, quantity: Math.max(prev.quantity, e.quantity), addedAt: Math.min(prev.addedAt, e.addedAt) });
   }
   return [...out.values()].sort((a, b) => b.addedAt - a.addedAt);
 }
