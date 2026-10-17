@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, Pressable, Text, View } from 'react-native';
 import { CardRow, colors, fonts, s } from '../components/ui';
 import { formatMoney, type Currency } from '../lib/currency';
@@ -7,24 +7,34 @@ import { dayChange } from '../lib/priceHistory';
 import { useStore } from '../lib/store';
 import { usePriceHistory } from '../lib/usePriceHistory';
 import { collectionKey } from '../lib/variants';
+import { currentPush, disablePush, enablePush, needsHomeScreen, pushSupported } from '../lib/push';
 
 const canNotify = () => Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window;
 
 /** Liste de souhaits : cartes recherchées, cote du jour, prix cible ; les bonnes affaires en tête. */
 export default function Wishlist() {
-  const { t, wishlist, deals, settings, setSettings, money, locale } = useStore();
+  const { t, wishlist, deals, settings, setSettings, money, locale, user, appLang } = useStore();
   const [denied, setDenied] = useState(canNotify() && Notification.permission === 'denied');
+  // Cet appareil reçoit les alertes même appli fermée.
+  const [push, setPush] = useState(false);
+  useEffect(() => { currentPush().then((sub) => setPush(!!sub)); }, []);
   const dealKeys = useMemo(() => new Set(deals.map((w) => collectionKey(w.card))), [deals]);
   const list = useMemo(() => [...wishlist].sort((a, b) => Number(dealKeys.has(collectionKey(b.card))) - Number(dealKeys.has(collectionKey(a.card))) || b.addedAt - a.addedAt), [wishlist, dealKeys]);
   const cards = useMemo(() => list.map((w) => w.card), [list]);
   const points = usePriceHistory(cards);
 
   const toggleNotify = async () => {
-    if (settings.wishNotify) return setSettings({ wishNotify: false });
+    if (settings.wishNotify) {
+      setSettings({ wishNotify: false });
+      await disablePush();
+      return setPush(false);
+    }
     if (!canNotify()) return;
     const p = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
     setDenied(p === 'denied');
-    if (p === 'granted') setSettings({ wishNotify: true });
+    if (p !== 'granted') return;
+    setSettings({ wishNotify: true });
+    if (user && pushSupported()) setPush(await enablePush(appLang).catch(() => false));
   };
 
   return (
@@ -47,7 +57,8 @@ export default function Wishlist() {
                 <Text style={[s.ghostText, settings.wishNotify && { color: colors.accent }]}>{t('wish.notify')}{settings.wishNotify ? ' ✓' : ''}</Text>
               </Pressable>
             )}
-            {canNotify() && <Text style={[s.muted, { fontSize: 12 }]}>{denied ? t('wish.notifyDenied') : t('wish.notifyHint')}</Text>}
+            {canNotify() && <Text style={[s.muted, { fontSize: 12 }]}>{denied ? t('wish.notifyDenied') : settings.wishNotify && push ? `✓ ${t('wish.pushOn')}` : t('wish.notifyHint')}</Text>}
+            {needsHomeScreen() && <Text style={[s.muted, { fontSize: 12 }]}>📲 {t('wish.pushInstall')}</Text>}
           </View>
         }
         ListEmptyComponent={<Text style={[s.muted, { textAlign: 'center', marginTop: 20 }]}>{t('wish.empty')}</Text>}

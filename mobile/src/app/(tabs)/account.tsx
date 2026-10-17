@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AccountSection } from '../../components/AccountPanel';
 import { PublicProfilePanel } from '../../components/PublicProfilePanel';
+import { disablePush } from '../../lib/push';
 import { Avatar } from '../../components/Avatar';
 import { AvatarPicker } from '../../components/AvatarPicker';
 import { signOut } from '../../lib/cloud/supabase';
@@ -106,6 +107,16 @@ export default function Account() {
           <Ionicons name="heart-outline" size={17} color={colors.text} />
           <Text style={s.ghostText}>{t('wish.see')}{wishlist.length ? ` (${wishlist.length})` : ''}</Text>
         </Pressable>
+        {!!user && (
+          <Pressable style={[s.ghost, { flexDirection: 'row', justifyContent: 'center', gap: 8 }]} onPress={() => router.push('/trades')}>
+            <Ionicons name="swap-horizontal" size={17} color={colors.text} />
+            <Text style={s.ghostText}>{t('trades.see')}</Text>
+          </Pressable>
+        )}
+        <Pressable style={[s.ghost, { flexDirection: 'row', justifyContent: 'center', gap: 8 }]} onPress={() => router.push('/import')}>
+          <Ionicons name="cloud-upload-outline" size={17} color={colors.text} />
+          <Text style={s.ghostText}>{t('imp.title')}</Text>
+        </Pressable>
         <Pressable
           style={[s.ghost, { borderColor: colors.danger }]}
           onPress={() => confirm(t('acc.clearConfirm'), clear, t('common.cancel'))}
@@ -118,7 +129,7 @@ export default function Account() {
       {!!user && (
         <Pressable
           style={[s.ghost, { borderColor: colors.danger, flexDirection: 'row', justifyContent: 'center', gap: 8 }]}
-          onPress={() => confirm(t('auth.signOutConfirm'), () => { signOut(); router.replace('/'); }, t('common.cancel'))}
+          onPress={() => confirm(t('auth.signOutConfirm'), async () => { await disablePush().catch(() => {}); signOut(); router.replace('/'); }, t('common.cancel'))}
           accessibilityRole="button"
         >
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />

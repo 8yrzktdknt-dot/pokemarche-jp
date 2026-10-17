@@ -10,6 +10,7 @@ import { conditionLabel, unitValue } from '../../lib/condition';
 import { formatMoney } from '../../lib/currency';
 import { collectionStats } from '../../lib/stats';
 import { useStore } from '../../lib/store';
+import { matchTrades } from '../../lib/trades';
 
 type Tab = 'collection' | 'wanted' | 'trade';
 
@@ -17,7 +18,7 @@ type Tab = 'collection' | 'wanted' | 'trade';
 export default function PublicProfilePage() {
   const { username: raw } = useLocalSearchParams<{ username: string }>();
   const name = normalizeUsername(String(raw ?? ''));
-  const { t, user, settings, setSettings, toCurrency, locale } = useStore();
+  const { t, user, username, settings, setSettings, toCurrency, locale, collection, wishlist } = useStore();
   const [profile, setProfile] = useState<PublicProfile | null | 'unavailable' | undefined>(undefined);
   const [tab, setTab] = useState<Tab>('collection');
   useEffect(() => {
@@ -35,6 +36,9 @@ export default function PublicProfilePage() {
       trade: (profile.collection ?? []).filter((e) => e.trade),
     };
   }, [profile]);
+  const match = useMemo(() => (profile && profile !== 'unavailable' && user && name !== username
+    ? matchTrades({ collection, wishlist }, { collection: profile.collection ?? [], wishlist: profile.wishlist ?? [] })
+    : null), [profile, user, name, username, collection, wishlist]);
   const stats = useMemo(() => (lists ? collectionStats(lists.collection as never, toCurrency) : null), [lists, toCurrency]);
   const friends = settings.friends ?? [];
   const isFriend = friends.includes(name);
@@ -79,6 +83,14 @@ export default function PublicProfilePage() {
             ) : (
               <Pressable onPress={() => router.replace('/')} style={[s.button, { paddingHorizontal: 22 }]}>
                 <Text style={s.buttonText}>{t('prof.join')}</Text>
+              </Pressable>
+            )}
+            {!!match && match.theyHave.length + match.youHave.length > 0 && (
+              <Pressable onPress={() => router.push('/trades')} style={{ alignSelf: 'stretch', backgroundColor: colors.good, borderRadius: 12, padding: 12, gap: 2 }}>
+                <Text style={{ color: colors.bg, fontFamily: fonts.heavy }}>⇄ {t('trades.total', { n: match.theyHave.length + match.youHave.length })}</Text>
+                <Text style={{ color: colors.bg, fontFamily: fonts.bold, fontSize: 12 }}>
+                  {[match.theyHave.length ? t('trades.theyHave', { n: match.theyHave.length }) : '', match.youHave.length ? t('trades.youHave', { n: match.youHave.length }) : ''].filter(Boolean).join(' · ')}
+                </Text>
               </Pressable>
             )}
             <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'stretch' }}>

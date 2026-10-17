@@ -1,0 +1,13 @@
+{
+  "name": "tcgmarket-push",
+  "private": true,
+  "type": "module",
+  "description": "Envoie les alertes de prix de la liste de souhaits en notifications (Web Push), après chaque mise à jour des prix.",
+  "scripts": {
+    "send": "node --experimental-strip-types --no-warnings send.mjs",
+    "test": "node --experimental-strip-types --no-warnings --test *.test.mjs"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}

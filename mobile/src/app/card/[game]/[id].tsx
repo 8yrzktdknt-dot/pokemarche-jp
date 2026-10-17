@@ -240,10 +240,12 @@ export default function CardScreen() {
   const lastDay = allPoints[allPoints.length - 1]?.d;
   const shortDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
   const since = change && lastDay && addDays(change.since, 1) === lastDay ? t('price.sinceYesterday') : change ? t('dash.periodSince', { d: shortDate(change.since) }) : '';
-  // Périodes proposées quand l'historique est assez long (30 jours, 3 mois, 1 an, tout).
+  // Périodes proposées quand l'historique est assez long (7 jours, 30 jours, 3 mois, 1 an, tout).
   const spanDays = allPoints.length > 1 ? (Date.parse(lastDay!) - Date.parse(allPoints[0].d)) / 86400000 : 0;
-  const ranges = [30, 90, 365].filter((n) => spanDays > n);
+  const ranges = [7, 30, 90, 365].filter((n) => spanDays > n);
   const shown = range && lastDay ? allPoints.filter((p) => p.d >= addDays(lastDay, -range)) : allPoints;
+  // Variation sur la période affichée.
+  const periodChange = shown.length > 1 ? dayChange([shown[0], shown[shown.length - 1]]) : null;
   const hasCmSales = view.prices.some((p) => p.label.startsWith('cm.avg'));
 
   return (
@@ -333,6 +335,7 @@ export default function CardScreen() {
                 ))}
               </View>
             )}
+            {!!periodChange && <PriceChange change={periodChange} currency={main.currency} size={14} suffix={t('dash.periodSince', { d: shortDate(shown[0].d) })} />}
             {shown.length > 1 ? (
               <PriceChart points={shown} format={(v) => money(v, main.currency)} locale={locale} />
             ) : (

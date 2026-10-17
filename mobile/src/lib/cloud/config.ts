@@ -10,3 +10,9 @@ export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 export const PROVIDERS = { email: true, google: true, apple: false };
 
 export const cloudEnabled = () => !!SUPABASE_URL && !!SUPABASE_KEY;
+
+/**
+ * Clé publique des notifications (Web Push, norme VAPID) : publique par conception. La clé privée qui va avec n'est
+ * connue que du robot d'envoi (secret GitHub VAPID_PRIVATE_KEY, voir tools/push/send.mjs).
+ */
+export const PUSH_PUBLIC_KEY = 'BNgW7V70tMAKXs2ClHRpHeiACvaWk9mPCxzgWksGokb2m8amJpKud5VXCzerPmsMDhjQMyGf1oDRx5O_4k0r8Rk';
