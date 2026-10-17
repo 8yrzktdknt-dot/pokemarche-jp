@@ -74,9 +74,3 @@ export async function pushDiagnostic(): Promise<{ push?: { at: number; title?: s
   }
 }
 
-/** Notification de test affichée par le service worker (comme une vraie alerte, sans passer par le robot). */
-export async function testNotification(title: string, body: string): Promise<boolean> {
-  const reg = await registration();
-  if (!reg || Notification.permission !== 'granted') return false;
-  try { await reg.showNotification(title, { body, tag: `test:${Date.now()}` }); return true; } catch { return false; }
-}
