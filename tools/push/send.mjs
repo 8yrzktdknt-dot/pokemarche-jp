@@ -104,7 +104,8 @@ async function main() {
   const targets = await rpc('push_targets', { token });
   console.log(`${targets.length} appareil(s) abonné(s).`);
   const r = await rates();
-  const state = existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf8')) : {};
+  // Test (lancement à la main, case « renvoyer ») : les alertes déjà signalées repartent.
+  const state = process.env.PUSH_RESEND ? {} : existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf8')) : {};
   const { alerts, state: next } = computeAlerts(targets, priceOf, (v, from, to) => convert(v, from, to, r), state);
   let sent = 0, gone = 0;
   const delivered = new Set();
