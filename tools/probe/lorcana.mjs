@@ -7,7 +7,7 @@ const get = async (u, t = 'json') => {
     return t === 'json' ? r.json() : { status: r.status, type: r.headers.get('content-type'), size: (await r.arrayBuffer()).byteLength };
   } catch (e) { return { err: e.message }; }
 };
-const short = (o, n = 1500) => JSON.stringify(o).slice(0, n);
+const short = (o, n = 1500) => String(JSON.stringify(o)).slice(0, n);
 
 // 1) LorcanaJSON : fichiers par langue.
 for (const l of ['en', 'fr', 'de', 'it', 'ja', 'es', 'zh']) {
@@ -15,7 +15,7 @@ for (const l of ['en', 'fr', 'de', 'it', 'ja', 'es', 'zh']) {
   if (!r.cards) { console.log('lorcanajson', l, short(r, 200)); continue; }
   const sets = r.sets ?? {};
   console.log('lorcanajson', l, 'cards', r.cards.length, 'sets', Object.keys(sets).length, 'meta', short(r.metadata, 300));
-  for (const [k, s] of Object.entries(sets)) console.log('   set', k, short(s, 300));
+  for (const [k, s] of Object.entries(sets)) console.log('   set', k, s.name, s.releaseDate, s.type, short(s.cardCounts, 120));
   const rar = {};
   for (const c of r.cards) rar[c.rarity] = (rar[c.rarity] ?? 0) + 1;
   console.log('   rarities', short(rar, 500));
@@ -24,7 +24,14 @@ for (const l of ['en', 'fr', 'de', 'it', 'ja', 'es', 'zh']) {
     console.log('   sample', short(r.cards[0], 2500));
     const ench = r.cards.find((c) => /enchanted/i.test(c.rarity));
     console.log('   sample enchanted', short(ench, 1500));
-    const promo = r.cards.find((c) => c.promoGrouping || /^P/.test(String(c.setCode)));
+    const sc = {};
+    for (const c of r.cards) sc[c.setCode] = (sc[c.setCode] ?? 0) + 1;
+    console.log('   cards per setCode', short(sc, 800));
+    const ft = {};
+    for (const c of r.cards) ft[(c.foilTypes ?? []).join('+') + '/' + c.rarity] = (ft[(c.foilTypes ?? []).join('+') + '/' + c.rarity] ?? 0) + 1;
+    console.log('   foilTypes x rarity', short(ft, 1500));
+    console.log('   with cardmarketId', r.cards.filter((c) => c.externalLinks?.cardmarketId).length);
+    const promo = r.cards.find((c) => c.promoGrouping || !/^\d+$/.test(String(c.setCode)));
     console.log('   sample promo', short(promo, 1000));
     if (r.cards[0].images) for (const u of Object.values(r.cards[0].images).slice(0, 3)) console.log('   image', u, short(await get(u, 'head'), 200));
   }
