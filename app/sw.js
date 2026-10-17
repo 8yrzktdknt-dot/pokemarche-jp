@@ -3,7 +3,7 @@
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
 //  - catalogue : copie locale de moins d'une heure tout de suite (mise à jour en arrière-plan), sinon réseau d'abord ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
-const VERSION = '1792249943268';
+const VERSION = '1792250627611';
 const BASE = '/tcgmarket/app';
 const APP = `app-${VERSION}`;
 const IMAGES = 'images-v1';
@@ -118,19 +118,34 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Notifications envoyées par le robot des prix (alertes de la liste de souhaits), même appli fermée.
+// Diagnostic : la dernière alerte reçue (et l'erreur éventuelle) est notée, et affichée dans la liste de souhaits.
+const DIAG = 'diag-v1';
+const note = (key, value) => caches.open(DIAG)
+  .then((c) => c.put(`${BASE}/__diag/${key}`, new Response(JSON.stringify({ at: Date.now(), ...value }))))
+  .catch(() => {});
+
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
-  event.waitUntil(self.registration.showNotification(data.title || 'TCGMarket', {
-    body: data.body || '',
-    icon: data.icon || `${BASE}/pwa-192.png`,
-    badge: `${BASE}/pwa-192.png`,
-    // Même étiquette qu'une notification encore affichée : la remplacer en la signalant de nouveau (sinon iPhone la
-    // remplace en silence, sans bannière ni son).
-    tag: data.tag,
-    renotify: !!data.tag,
-    data: { url: data.url || `${BASE}/wishlist` },
-  }));
+  event.waitUntil((async () => {
+    await note('push', { title: data.title || '' });
+    try {
+      await self.registration.showNotification(data.title || 'TCGMarket', {
+        body: data.body || '',
+        icon: data.icon || `${BASE}/pwa-192.png`,
+        badge: `${BASE}/pwa-192.png`,
+        // Même étiquette qu'une notification encore affichée : la remplacer en la signalant de nouveau (sinon iPhone
+        // la remplace en silence, sans bannière ni son).
+        tag: data.tag,
+        renotify: !!data.tag,
+        data: { url: data.url || `${BASE}/wishlist` },
+      });
+    } catch (e) {
+      await note('error', { message: String(e && e.message || e) });
+      // Sans icône (image inaccessible) en dernier recours : une notification doit toujours s'afficher.
+      await self.registration.showNotification(data.title || 'TCGMarket', { body: data.body || '', data: { url: data.url || `${BASE}/wishlist` } });
+    }
+  })());
 });
 
 // Toucher la notification : ouvre l'app (ou la ramène au premier plan) sur la liste de souhaits.

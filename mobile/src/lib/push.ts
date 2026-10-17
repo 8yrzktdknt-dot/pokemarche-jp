@@ -56,3 +56,27 @@ export async function disablePush(): Promise<void> {
   await supabase()?.rpc('delete_push_subscription', { p_endpoint: sub.endpoint }).then(() => {}, () => {});
   await sub.unsubscribe().catch(() => false);
 }
+
+/** Diagnostic : dernière alerte reçue par cet appareil (notée par le service worker) et dernière erreur d'affichage. */
+export async function pushDiagnostic(): Promise<{ push?: { at: number; title?: string }; error?: { at: number; message?: string } }> {
+  if (!web() || typeof caches === 'undefined') return {};
+  try {
+    const c = await caches.open('diag-v1');
+    const keys = await c.keys();
+    const read = async (k: string) => {
+      const req = keys.find((r) => r.url.endsWith(`/__diag/${k}`));
+      const res = req && (await c.match(req));
+      return res ? res.json() : undefined;
+    };
+    return { push: await read('push'), error: await read('error') };
+  } catch {
+    return {};
+  }
+}
+
+/** Notification de test affichée par le service worker (comme une vraie alerte, sans passer par le robot). */
+export async function testNotification(title: string, body: string): Promise<boolean> {
+  const reg = await registration();
+  if (!reg || Notification.permission !== 'granted') return false;
+  try { await reg.showNotification(title, { body, tag: `test:${Date.now()}` }); return true; } catch { return false; }
+}
