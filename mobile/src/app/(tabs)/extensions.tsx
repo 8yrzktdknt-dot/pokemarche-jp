@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Dropdown } from '../../components/Dropdown';
 import { Ring } from '../../components/SetOverview';
@@ -9,7 +9,9 @@ import { GamePicker, colors, fonts, s } from '../../components/ui';
 import { localName } from '../../lib/catalog/static';
 import { GAMES, langFor } from '../../lib/games';
 import { useStore } from '../../lib/store';
-import type { Bloc, GameId, SetInfo } from '../../lib/types';
+import { percent, setStats, type Progress } from '../../lib/setStats';
+import { variantOwnership } from '../../lib/variants';
+import type { Bloc, Card, GameId, SetInfo } from '../../lib/types';
 
 export default function Extensions() {
   const { settings, setSettings, t, langLabel, appLang, collection } = useStore();
@@ -43,7 +45,8 @@ export default function Extensions() {
       .filter((b) => b.sets.length);
   }, [blocs, query]);
 
-  // Progression par extension : cartes différentes possédées (toutes variantes confondues) sur le nombre de cartes.
+  // Progression par extension, calculée comme sur la page de l'extension (Master Set : toutes les cartes dans toutes
+  // leurs variantes) : seulement pour les extensions dont on possède des cartes, leurs cartes chargées une fois.
   const ownedBySet = useMemo(() => {
     const m = new Map<string, Set<string>>();
     for (const e of collection) {
@@ -55,17 +58,39 @@ export default function Extensions() {
     }
     return m;
   }, [collection, game, lang]);
+  const setCards = useRef(new Map<string, Promise<Card[] | null>>());
+  const [master, setMaster] = useState<Map<string, Progress>>(new Map());
+  useEffect(() => {
+    let alive = true;
+    const variantOwned = variantOwnership(collection);
+    const ids = [...ownedBySet.keys()];
+    (async () => {
+      const out = new Map<string, Progress>();
+      for (let i = 0; i < ids.length; i += 4) {
+        await Promise.all(ids.slice(i, i + 4).map(async (id) => {
+          const k = `${game}:${lang}:${id}`;
+          let p = setCards.current.get(k);
+          if (!p) { p = GAMES[game].setCards(id, lang).then((r) => r.cards, () => null); setCards.current.set(k, p); }
+          const cards = await p;
+          const owned = ownedBySet.get(id)!;
+          if (cards?.length) out.set(id, setStats(cards, (c) => owned.has(c.id), undefined, variantOwned).master);
+        }));
+        if (alive) setMaster(new Map(out));
+      }
+    })();
+    return () => { alive = false; };
+  }, [ownedBySet, collection, game, lang]);
 
   // Extensions favorites (menu « ⋮ » d'une extension) de ce jeu et de cette langue, en tête de liste.
   const favIds = new Set((settings.favoriteSets ?? []).filter((k) => k.startsWith(`${game}:${lang}:`)).map((k) => k.split(':').slice(2).join(':')));
   const favorites = !query && blocs ? blocs.flatMap((b) => b.sets).filter((x) => favIds.has(x.id)) : [];
   const tileOf = (x: SetInfo) => {
-    const owned = ownedBySet.get(x.id)?.size ?? 0;
-    const pct = owned && x.count ? Math.min(1, owned / x.count) : 0;
+    const m = master.get(x.id);
+    const pct = m?.total && m.owned ? Math.min(1, m.owned / m.total) : 0;
     const done = pct >= 1;
     return (
       <Link key={x.id} href={{ pathname: '/set/[game]/[id]', params: { game, id: x.id, lang } }} asChild>
-        <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${localName(x, appLang)} (${x.code})${owned && x.count ? ` · ${owned}/${x.count}` : ''}`}>
+        <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${localName(x, appLang)} (${x.code})${pct ? ` · ${m!.owned}/${m!.total}` : ''}`}>
           <View style={[st.logoBox, { height: tile * 0.62 }]}>
             {x.logo ? (
               <Image source={x.logo} style={st.logo} contentFit="contain" />
@@ -77,13 +102,13 @@ export default function Extensions() {
             {pct > 0 && (
               <View style={st.ring}>
                 <Ring value={pct} size={26} width={2.5} color={done ? colors.good : colors.accent}>
-                  <Text style={[st.ringText, done && { color: colors.good, fontSize: 6.5 }]}>{done ? 100 : Math.max(1, Math.floor(pct * 100))}%</Text>
+                  <Text style={[st.ringText, done && { color: colors.good, fontSize: 6.5 }]}>{percent(m!)}%</Text>
                 </Ring>
               </View>
             )}
           </View>
           <Text style={st.name} numberOfLines={2}>{localName(x, appLang)}</Text>
-          <Text style={st.meta}>{x.code}{x.count ? ` · ${owned ? `${owned}/` : ''}${x.count}` : ''}</Text>
+          <Text style={st.meta}>{x.code}{pct ? ` · ${m!.owned}/${m!.total}` : x.count ? ` · ${x.count}` : ''}</Text>
         </Pressable>
       </Link>
     );
