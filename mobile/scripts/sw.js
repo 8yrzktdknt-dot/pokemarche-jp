@@ -125,7 +125,10 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: data.icon || `${BASE}/pwa-192.png`,
     badge: `${BASE}/pwa-192.png`,
+    // Même étiquette qu'une notification encore affichée : la remplacer en la signalant de nouveau (sinon iPhone la
+    // remplace en silence, sans bannière ni son).
     tag: data.tag,
+    renotify: !!data.tag,
     data: { url: data.url || `${BASE}/wishlist` },
   }));
 });

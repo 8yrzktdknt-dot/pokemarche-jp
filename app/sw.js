@@ -3,7 +3,7 @@
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
 //  - catalogue : copie locale de moins d'une heure tout de suite (mise à jour en arrière-plan), sinon réseau d'abord ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
-const VERSION = '1792247978716';
+const VERSION = '1792249943268';
 const BASE = '/tcgmarket/app';
 const APP = `app-${VERSION}`;
 const IMAGES = 'images-v1';
@@ -125,7 +125,10 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: data.icon || `${BASE}/pwa-192.png`,
     badge: `${BASE}/pwa-192.png`,
+    // Même étiquette qu'une notification encore affichée : la remplacer en la signalant de nouveau (sinon iPhone la
+    // remplace en silence, sans bannière ni son).
     tag: data.tag,
+    renotify: !!data.tag,
     data: { url: data.url || `${BASE}/wishlist` },
   }));
 });
