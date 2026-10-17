@@ -6,7 +6,7 @@ import { useStore } from '../lib/store';
 import type { Card } from '../lib/types';
 import { collectionKey } from '../lib/variants';
 import { gainOf, parsePrice } from '../lib/wishlist';
-import { CONDITIONS, CONDITION_NAMES, GRADERS, conditionFactor, unitValue } from '../lib/condition';
+import { CONDITIONS, CONDITION_NAMES, GRADERS, conditionFactor, copiesOf, copyLabel, copyValue, unitValue, type CopyDetails } from '../lib/condition';
 import { colors, fonts, s } from './ui';
 
 /** Saisie d'un prix (enregistré en quittant le champ). */
@@ -60,6 +60,16 @@ export function CardExtras({ card }: { card: Card }) {
   const unit = entry ? unitValue({ ...entry, card }, toCurrency) : undefined;
   const fmt = (v: number) => formatMoney(v, settings.currency, locale);
   const deal = !!wish && deals.some((w) => collectionKey(w.card) === collectionKey(card));
+  // Exemplaire modifié (plusieurs exemplaires) : undefined = tous.
+  const [copy, setCopy] = useState<number | undefined>(undefined);
+  const copies = entry ? copiesOf(entry) : [];
+  const sel = copy !== undefined && copy < copies.length ? copy : undefined;
+  // Détails affichés : ceux de l'exemplaire choisi, ceux de la ligne, rien quand les exemplaires diffèrent.
+  const d: CopyDetails = sel !== undefined ? copies[sel] : entry?.copies ? {} : copies[0] ?? {};
+  const mixed = sel === undefined && !!entry?.copies;
+  const edit = (patch: CopyDetails) => updateEntry(card, patch, sel);
+  const selUnit = sel !== undefined ? copyValue(card, d, toCurrency) : unit;
+  const selFactor = sel !== undefined ? conditionFactor({ card, quantity: 1, ...d }) : entry ? conditionFactor(entry) : 1;
 
   return (
     <View style={{ gap: 10 }}>
@@ -75,33 +85,46 @@ export function CardExtras({ card }: { card: Card }) {
           {deal && <Text style={st.deal}>🔔 {t('wish.deal')}</Text>}
         </View>
       )}
+      {!!entry && entry.quantity > 1 && (
+        <View style={st.box}>
+          <Text style={st.label}>{t('copy.title')}</Text>
+          <View style={st.chips}>
+            <Chip label={t('copy.all')} on={sel === undefined} onPress={() => setCopy(undefined)} />
+            {copies.map((c, i) => {
+              const l = copyLabel(c);
+              return <Chip key={i} label={`#${i + 1}${l ? ` · ${l}` : ''}`} on={sel === i} onPress={() => setCopy(i)} />;
+            })}
+          </View>
+          <Text style={st.hint}>{t(mixed ? 'copy.mixed' : sel === undefined ? 'copy.allHint' : 'copy.oneHint', { n: (sel ?? 0) + 1 })}</Text>
+        </View>
+      )}
       {!!entry && (
         <View style={st.box}>
-          <Text style={st.label}>{t('cond.title')}</Text>
+          <Text style={st.label}>{t('cond.title')}{sel !== undefined ? ` · #${sel + 1}` : ''}</Text>
           <View style={st.chips}>
             {CONDITIONS.map((c) => (
-              <Chip key={c} label={c} on={!entry.graded && entry.condition === c} onPress={() => updateEntry(card, { condition: entry.condition === c ? undefined : c, graded: undefined })} hint={CONDITION_NAMES[c]} />
+              <Chip key={c} label={c} on={!d.graded && d.condition === c} onPress={() => edit({ condition: d.condition === c ? undefined : c, graded: undefined })} hint={CONDITION_NAMES[c]} />
             ))}
-            <Chip label={`🏅 ${t('cond.graded')}`} on={!!entry.graded} onPress={() => updateEntry(card, entry.graded ? { graded: undefined, value: undefined, valueCurrency: undefined } : { graded: { by: 'PSA', grade: '10' } })} />
+            <Chip label={`🏅 ${t('cond.graded')}`} on={!!d.graded} onPress={() => edit(d.graded ? { graded: undefined, value: undefined, valueCurrency: undefined } : { graded: { by: 'PSA', grade: '10' } })} />
           </View>
-          {entry.graded && (
+          {d.graded && (
             <View style={{ gap: 6 }}>
               <Text style={st.label}>{t('cond.company')}</Text>
               <View style={st.chips}>
-                {GRADERS.map((g) => <Chip key={g} label={g} on={entry.graded?.by === g} onPress={() => updateEntry(card, { graded: { by: g, grade: entry.graded?.grade ?? '10' } })} />)}
+                {GRADERS.map((g) => <Chip key={g} label={g} on={d.graded?.by === g} onPress={() => edit({ graded: { by: g, grade: d.graded?.grade ?? '10' } })} />)}
               </View>
               <Text style={st.label}>{t('cond.grade')}</Text>
               <View style={st.chips}>
-                {['10', '9.5', '9', '8.5', '8', '7', '6', '5'].map((g) => <Chip key={g} label={g} on={entry.graded?.grade === g} onPress={() => updateEntry(card, { graded: { by: entry.graded?.by ?? 'PSA', grade: g } })} />)}
+                {['10', '9.5', '9', '8.5', '8', '7', '6', '5'].map((g) => <Chip key={g} label={g} on={d.graded?.grade === g} onPress={() => edit({ graded: { by: d.graded?.by ?? 'PSA', grade: g } })} />)}
               </View>
               <Text style={st.label}>{t('cond.value')}</Text>
-              <PriceInput value={entry.value} currency={entry.valueCurrency ?? settings.currency} placeholder="—" onSave={(v) => updateEntry(card, { value: v, valueCurrency: v === undefined ? undefined : settings.currency })} />
+              <PriceInput value={d.value} currency={d.valueCurrency ?? settings.currency} placeholder="—" onSave={(v) => edit({ value: v, valueCurrency: v === undefined ? undefined : settings.currency })} />
               <Text style={st.hint}>{t('cond.valueHint')}</Text>
             </View>
           )}
-          {unit !== undefined && (
+          {selUnit !== undefined && (
             <Text style={st.hint}>
-              {t('cond.used', { v: fmt(unit) })}{conditionFactor(entry) !== 1 ? ` · ${t('cond.factor', { f: conditionFactor(entry).toLocaleString(locale) })}` : ''}
+              {t('cond.used', { v: fmt(selUnit) })}{selFactor !== 1 ? ` · ${t('cond.factor', { f: (Math.round(selFactor * 100) / 100).toLocaleString(locale) })}` : ''}
             </Text>
           )}
           <Chip label={`⇄ ${t('trade.toggle')}`} on={!!entry.trade} onPress={() => updateEntry(card, { trade: !entry.trade || undefined })} />
@@ -109,11 +132,11 @@ export function CardExtras({ card }: { card: Card }) {
       )}
       {!!entry && (
         <View style={st.box}>
-          <Text style={st.label}>{t('paid.title')}</Text>
-          <PriceInput value={entry.paid} currency={entry.paidCurrency ?? settings.currency} placeholder={t('paid.placeholder')} onSave={(v) => setPaid(card, v)} />
+          <Text style={st.label}>{t('paid.title')}{sel !== undefined ? ` · #${sel + 1}` : ''}</Text>
+          <PriceInput value={d.paid} currency={d.paidCurrency ?? settings.currency} placeholder={t('paid.placeholder')} onSave={(v) => setPaid(card, v, sel)} />
           {gain && (
             <View style={{ gap: 2 }}>
-              <Text style={st.label}>{t(gain.delta >= 0 ? 'paid.gain' : 'paid.loss')}{entry.quantity > 1 ? ` · ×${entry.quantity}` : ''}</Text>
+              <Text style={st.label}>{t(gain.delta >= 0 ? 'paid.gain' : 'paid.loss')}{gain.count > 1 ? ` · ×${gain.count}` : ''}</Text>
               <GainText delta={gain.delta} pct={gain.pct} />
               <Text style={st.hint}>{t('paid.detail', { paid: fmt(gain.paid), value: fmt(gain.value) })}</Text>
             </View>

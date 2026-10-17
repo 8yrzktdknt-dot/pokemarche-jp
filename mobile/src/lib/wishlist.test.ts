@@ -31,4 +31,6 @@ test('plus-value : seulement les cartes avec un prix payé', () => {
   ], (v) => v);
   assert.deepEqual(g, { paid: 20, value: 30, delta: 10, pct: 50, count: 2 });
   assert.equal(gainOf([{ card: card(5), quantity: 1 }], (v) => v), null);
+  // Prix payé connu pour un seul des exemplaires.
+  assert.deepEqual(gainOf([{ card: card(15), quantity: 2, copies: [{ paid: 10, paidCurrency: 'EUR' }, { condition: 'LP' }] }], (v) => v), { paid: 10, value: 15, delta: 5, pct: 50, count: 1 });
 });

@@ -1,0 +1,50 @@
+# Alertes de prix sur les téléphones (notifications Web Push, même appli fermée) : après chaque mise à jour du
+# catalogue (nouveaux prix), les cartes recherchées passées sous leur prix cible sont signalées à leurs abonnés.
+# Nécessite le secret VAPID_PRIVATE_KEY (Settings → Secrets and variables → Actions) ; sans lui, rien n'est envoyé.
+name: Alertes de prix
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Catalogue de cartes"]
+    types: [completed]
+
+concurrency:
+  group: push-alerts
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Cartes déjà signalées (pas deux fois la même alerte).
+      - uses: actions/cache/restore@v4
+        with:
+          path: .push-state
+          key: push-state-${{ github.run_id }}
+          restore-keys: push-state-
+
+      - name: Installer
+        working-directory: tools/push
+        run: mkdir -p ../../.push-state && npm ci --no-audit --no-fund
+
+      - name: Envoyer
+        working-directory: tools/push
+        env:
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: npm test && npm run send
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .push-state
+          key: push-state-${{ github.run_id }}

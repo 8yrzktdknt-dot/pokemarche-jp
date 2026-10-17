@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
 import { mergeCollections } from './cloud/merge';
-import type { Condition, Graded } from './condition';
+import { copiesOf, normalizeCopies, patchCopies, type CopyDetails } from './condition';
 import { isDeal, newDeals, wishKey, type WishEntry } from './wishlist';
 import { loadRemote, loadUsername, onLocalSignOut, saveRemote, supabase } from './cloud/supabase';
 import { GAMES } from './games';
@@ -14,19 +14,17 @@ import { loadSpeciesNames } from './cardNames';
 import { catalogBase } from './catalog/static';
 import { setOpFeatures } from './attrValues';
 import { getJson } from './http';
+import { currentPush, enablePush } from './push';
 
-export interface CollectionEntry {
+/**
+ * Ligne de la collection. Détails (prix payé à l'unité, état, gradation, valeur saisie) : ceux de la ligne valent
+ * pour tous ses exemplaires, sauf quand `copies` donne ceux de chaque exemplaire.
+ */
+export interface CollectionEntry extends CopyDetails {
   card: Card;
   quantity: number;
   addedAt: number;
-  /** Prix payé à l'unité et sa devise (plus-value). */
-  paid?: number;
-  paidCurrency?: string;
-  /** État (Near Mint…), carte gradée (PSA 10…) et valeur estimée saisie (cartes gradées). */
-  condition?: Condition;
-  graded?: Graded;
-  value?: number;
-  valueCurrency?: string;
+  copies?: CopyDetails[];
   /** Proposée à l'échange (profil public). */
   trade?: boolean;
 }
@@ -66,13 +64,15 @@ interface Store {
   remove(card: Card): void;
   /** Plusieurs cartes d'un coup : un exemplaire de plus chacune, ou seulement celles qui manquent (`missingOnly`). */
   addMany(cards: Card[], missingOnly?: boolean): void;
+  /** Cartes importées (fichier CSV) : exemplaires ajoutés avec leurs détails (état, prix payé…). */
+  importEntries(items: { card: Card; quantity: number; details?: CopyDetails }[]): void;
   /** Un exemplaire de moins pour chaque carte. */
   removeMany(cards: Card[]): void;
   clear(): void;
-  /** Prix payé à l'unité pour une carte de la collection (undefined : l'effacer). */
-  setPaid(card: Card, paid?: number): void;
-  /** Détails d'une carte de la collection (état, gradation, valeur saisie, échange). */
-  updateEntry(card: Card, patch: Partial<Omit<CollectionEntry, 'card' | 'quantity' | 'addedAt'>>): void;
+  /** Prix payé à l'unité pour une carte de la collection (undefined : l'effacer), d'un exemplaire ou de tous. */
+  setPaid(card: Card, paid?: number, copy?: number): void;
+  /** Détails d'une carte de la collection (état, gradation, valeur saisie, échange), d'un exemplaire ou de tous. */
+  updateEntry(card: Card, patch: CopyDetails & { trade?: boolean }, copy?: number): void;
   wishlist: WishEntry[];
   inWishlist(card: Card): WishEntry | undefined;
   toggleWish(card: Card): void;
@@ -275,7 +275,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const remove = useCallback((card: Card) => {
     setCollection((prev) =>
       prev
-        .map((e) => (keyOf(e.card) === keyOf(card) ? { ...e, quantity: e.quantity - 1 } : e))
+        .map((e) => (keyOf(e.card) === keyOf(card) ? normalizeCopies({ ...e, quantity: e.quantity - 1 }) : e))
         .filter((e) => e.quantity > 0),
     );
   }, []);
@@ -301,22 +301,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const importEntries = useCallback((items: { card: Card; quantity: number; details?: CopyDetails }[]) => {
+    setCollection((prev) => {
+      const next = [...prev];
+      const index = new Map(next.map((e, i) => [keyOf(e.card), i]));
+      const now = Date.now();
+      for (const { card, quantity, details = {} } of items) {
+        if (quantity < 1) continue;
+        const i = index.get(keyOf(card));
+        if (i === undefined) {
+          index.set(keyOf(card), next.length);
+          next.push({ card, quantity, addedAt: now, ...details });
+          continue;
+        }
+        // Exemplaires ajoutés à une carte déjà là : chacun garde ses détails.
+        const e = next[i];
+        const copies = [...copiesOf(e), ...Array.from({ length: quantity }, () => ({ ...details }))];
+        next[i] = normalizeCopies({ ...e, quantity: e.quantity + quantity, copies });
+      }
+      return next;
+    });
+  }, []);
+
   const removeMany = useCallback((cards: Card[]) => {
     const keys = new Set(cards.map(keyOf));
-    setCollection((prev) => prev.map((e) => (keys.has(keyOf(e.card)) ? { ...e, quantity: e.quantity - 1 } : e)).filter((e) => e.quantity > 0));
+    setCollection((prev) => prev.map((e) => (keys.has(keyOf(e.card)) ? normalizeCopies({ ...e, quantity: e.quantity - 1 }) : e)).filter((e) => e.quantity > 0));
   }, []);
 
   const clear = useCallback(() => setCollection([]), []);
 
-  const setPaid = useCallback((card: Card, paid?: number) => {
-    setCollection((prev) => prev.map((e) => (keyOf(e.card) === keyOf(card)
-      ? { ...e, paid, paidCurrency: paid === undefined ? undefined : settingsRef.current.currency }
-      : e)));
+  const updateEntry = useCallback((card: Card, patch: CopyDetails & { trade?: boolean }, copy?: number) => {
+    const { trade, ...details } = patch;
+    setCollection((prev) => prev.map((e) => {
+      if (keyOf(e.card) !== keyOf(card)) return e;
+      const next = 'trade' in patch ? { ...e, trade } : e;
+      return Object.keys(details).length ? patchCopies(next, details, copy) : next;
+    }));
   }, []);
 
-  const updateEntry = useCallback((card: Card, patch: Partial<Omit<CollectionEntry, 'card' | 'quantity' | 'addedAt'>>) => {
-    setCollection((prev) => prev.map((e) => (keyOf(e.card) === keyOf(card) ? { ...e, ...patch } : e)));
-  }, []);
+  const setPaid = useCallback((card: Card, paid?: number, copy?: number) => {
+    updateEntry(card, { paid, paidCurrency: paid === undefined ? undefined : settingsRef.current.currency }, copy);
+  }, [updateEntry]);
 
   const wishlist = settings.wishlist ?? [];
   const inWishlist = useCallback((card: Card) => (settingsRef.current.wishlist ?? []).find((w) => wishKey(w.card) === wishKey(card)), [settings.wishlist]);
@@ -356,25 +381,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const convertTo = useCallback((v: number, from: string, to: string) => convert(v, from, to as Currency, rates), [rates]);
   const deals = useMemo(() => wishlist.filter((w) => isDeal(w, convertTo)), [wishlist, convertTo]);
 
-  // Notification du navigateur pour les nouvelles bonnes affaires (une fois par jour et par carte).
+  // Appareil abonné aux notifications (alertes envoyées par le robot des prix, même appli fermée) : abonnement
+  // rafraîchi sur le compte (langue des notifications).
+  useEffect(() => {
+    if (!user || !settings.wishNotify) return;
+    currentPush().then((sub) => { if (sub) enablePush(helpers.appLang).catch(() => {}); });
+  }, [user?.id, settings.wishNotify, helpers.appLang]);
+
+  // Notification du navigateur pour les nouvelles bonnes affaires (une fois par jour et par carte), quand l'appareil
+  // n'est pas abonné aux notifications du robot (sinon elles arriveraient deux fois).
   useEffect(() => {
     if (!ready || !settings.wishNotify || typeof window === 'undefined' || !('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
     const day = new Date().toISOString().slice(0, 10);
     const fresh = newDeals(wishlist, convertTo, day);
     if (!fresh.length) return;
-    for (const w of fresh.slice(0, 3)) {
-      const now = w.card.prices[0];
-      const body = helpers.t('wish.notifBody', { name: w.card.name, price: now ? helpers.money(now.value, now.currency) : '', target: formatMoney(w.target ?? 0, (w.currency ?? settings.currency) as Currency, helpers.locale) });
-      try { new Notification(helpers.t('wish.notifTitle'), { body, icon: w.card.imageSmall, tag: wishKey(w.card) }); } catch {}
-    }
-    const keys = new Set(fresh.map((w) => wishKey(w.card)));
-    setSettingsState((prev) => ({ ...prev, wishlist: (prev.wishlist ?? []).map((w) => (keys.has(wishKey(w.card)) ? { ...w, notified: day } : w)) }));
+    let alive = true;
+    currentPush().then((sub) => {
+      if (!alive || sub) return;
+      for (const w of fresh.slice(0, 3)) {
+        const now = w.card.prices[0];
+        const body = helpers.t('wish.notifBody', { name: w.card.name, price: now ? helpers.money(now.value, now.currency) : '', target: formatMoney(w.target ?? 0, (w.currency ?? settings.currency) as Currency, helpers.locale) });
+        try { new Notification(helpers.t('wish.notifTitle'), { body, icon: w.card.imageSmall, tag: wishKey(w.card) }); } catch {}
+      }
+      const keys = new Set(fresh.map((w) => wishKey(w.card)));
+      setSettingsState((prev) => ({ ...prev, wishlist: (prev.wishlist ?? []).map((w) => (keys.has(wishKey(w.card)) ? { ...w, notified: day } : w)) }));
+    });
+    return () => { alive = false; };
   }, [ready, settings.wishNotify, wishlist, convertTo, helpers]);
 
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, updateEntry, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, ...helpers }),
-    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, updateEntry, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, helpers],
+    () => ({ ready, settings, setSettings, collection, add, remove, addMany, importEntries, removeMany, clear, setPaid, updateEntry, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, addMany, importEntries, removeMany, clear, setPaid, updateEntry, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

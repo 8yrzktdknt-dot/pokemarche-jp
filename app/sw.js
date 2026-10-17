@@ -3,7 +3,7 @@
 //  - fichiers de l'app (noms avec empreinte) : gardés jusqu'à la version suivante ;
 //  - catalogue : copie locale de moins d'une heure tout de suite (mise à jour en arrière-plan), sinon réseau d'abord ;
 //  - prix et taux de change : réseau d'abord, cache si le réseau est lent ou absent.
-const VERSION = '1792235953635';
+const VERSION = '1792247978716';
 const BASE = '/tcgmarket/app';
 const APP = `app-${VERSION}`;
 const IMAGES = 'images-v1';
@@ -115,4 +115,34 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname === 'cdn.jsdelivr.net' || url.hostname === 'huggingface.co' || url.hostname.endsWith('.hf.co')) {
     event.respondWith(cacheFirst(req, DATA));
   }
+});
+
+// Notifications envoyées par le robot des prix (alertes de la liste de souhaits), même appli fermée.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
+  event.waitUntil(self.registration.showNotification(data.title || 'TCGMarket', {
+    body: data.body || '',
+    icon: data.icon || `${BASE}/pwa-192.png`,
+    badge: `${BASE}/pwa-192.png`,
+    tag: data.tag,
+    data: { url: data.url || `${BASE}/wishlist` },
+  }));
+});
+
+// Toucher la notification : ouvre l'app (ou la ramène au premier plan) sur la liste de souhaits.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || `${BASE}/`;
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const w of wins) {
+      if (w.url.startsWith(self.location.origin + BASE)) {
+        await w.focus();
+        if ('navigate' in w) await w.navigate(url).catch(() => {});
+        return;
+      }
+    }
+    await self.clients.openWindow(url);
+  })());
 });

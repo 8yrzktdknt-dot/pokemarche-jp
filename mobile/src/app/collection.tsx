@@ -40,7 +40,7 @@ export default function Collection() {
             right={(() => {
               // État ou gradation, valeur retenue (selon l'état) et nombre d'exemplaires.
               const unit = unitValue(item, toCurrency);
-              const parts = [conditionLabel(item), unit !== undefined && (item.quantity > 1 || conditionFactor(item) !== 1 || item.value !== undefined) ? formatMoney(unit, settings.currency, locale) : undefined, item.quantity > 1 ? `×${item.quantity}` : undefined].filter(Boolean);
+              const parts = [conditionLabel(item), unit !== undefined && (item.quantity > 1 || conditionFactor(item) !== 1 || item.value !== undefined || !!item.copies) ? formatMoney(unit, settings.currency, locale) : undefined, item.quantity > 1 ? `×${item.quantity}` : undefined].filter(Boolean);
               return parts.length ? parts.join(' · ') : undefined;
             })()}
           />
