@@ -33,3 +33,8 @@ test('valeur de la collection jour par jour', () => {
   ], (v) => v);
   assert.deepEqual(s.map((p) => [p.d, Math.round(p.v * 100) / 100]), [['2026-10-14', 5], ['2026-10-15', 4.5], ['2026-10-16', 4.4]]);
 });
+
+test('relevés par semaine avant les relevés par jour', () => {
+  const hw: History = { from: '2026-10-14', p: { 'me05-001': [2, 3] }, w: { from: '2026-09-30', p: { 'me05-001': [1, null] } } };
+  assert.deepEqual(pointsOf(hw, card({})), [{ d: '2026-09-30', v: 1 }, { d: '2026-10-14', v: 2 }, { d: '2026-10-15', v: 3 }]);
+});

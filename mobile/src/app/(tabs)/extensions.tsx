@@ -11,7 +11,7 @@ import { useStore } from '../../lib/store';
 import type { Bloc, GameId, SetInfo } from '../../lib/types';
 
 export default function Extensions() {
-  const { settings, setSettings, t, langLabel, appLang } = useStore();
+  const { settings, setSettings, t, langLabel, appLang, collection } = useStore();
   const game: GameId = settings.game === 'auto' ? 'pokemon' : settings.game;
   const lang = langFor(game, settings.lang);
   const [blocs, setBlocs] = useState<Bloc[] | null>(null);
@@ -42,6 +42,19 @@ export default function Extensions() {
       .filter((b) => b.sets.length);
   }, [blocs, query]);
 
+  // Progression par extension : cartes différentes possédées (toutes variantes confondues) sur le nombre de cartes.
+  const ownedBySet = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const e of collection) {
+      const c = e.card;
+      if (c.game !== game || c.lang !== lang || !c.setId || e.quantity < 1) continue;
+      const ids = m.get(c.setId) ?? new Set<string>();
+      ids.add(c.id);
+      m.set(c.setId, ids);
+    }
+    return m;
+  }, [collection, game, lang]);
+
   // Extensions favorites (menu « ⋮ » d'une extension) de ce jeu et de cette langue, en tête de liste.
   const favIds = new Set((settings.favoriteSets ?? []).filter((k) => k.startsWith(`${game}:${lang}:`)).map((k) => k.split(':').slice(2).join(':')));
   const favorites = !query && blocs ? blocs.flatMap((b) => b.sets).filter((x) => favIds.has(x.id)) : [];
@@ -57,7 +70,17 @@ export default function Extensions() {
           {x.symbol && x.symbol !== x.logo && <Image source={x.symbol} style={st.symbol} contentFit="contain" />}
         </View>
         <Text style={st.name} numberOfLines={2}>{localName(x, appLang)}</Text>
-        <Text style={st.meta}>{x.code}{x.count ? ` · ${x.count}` : ''}</Text>
+        {(() => {
+          const owned = ownedBySet.get(x.id)?.size ?? 0;
+          if (!owned || !x.count) return <Text style={st.meta}>{x.code}{x.count ? ` · ${x.count}` : ''}</Text>;
+          const pct = Math.min(1, owned / x.count);
+          return (
+            <View style={{ gap: 3 }}>
+              <Text style={[st.meta, pct >= 1 && { color: colors.good }]}>{x.code} · {owned}/{x.count}</Text>
+              <View style={st.bar}><View style={[st.barFill, { width: `${Math.max(4, pct * 100)}%` }, pct >= 1 && { backgroundColor: colors.good }]} /></View>
+            </View>
+          );
+        })()}
       </Pressable>
     </Link>
   );
@@ -126,4 +149,6 @@ const st = StyleSheet.create({
   code: { color: colors.accent, fontFamily: fonts.display, fontSize: 16 },
   name: { color: colors.text, fontFamily: fonts.bold, fontSize: 12, lineHeight: 15 },
   meta: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
+  bar: { height: 4, borderRadius: 2, backgroundColor: colors.line, overflow: 'hidden' },
+  barFill: { height: 4, borderRadius: 2, backgroundColor: colors.accent },
 });
