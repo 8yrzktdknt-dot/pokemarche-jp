@@ -1,5 +1,5 @@
 // Riftbound : galerie officielle de Riot (données de la page) dans chaque langue où elle existe, et prix Cardmarket.
-//  - cartes anglaises (aussi publiées en « fr » : la galerie française montre les cartes anglaises) ;
+//  - cartes anglaises (pas de cartes imprimées en français : la galerie française montre les cartes anglaises) ;
 //  - cartes chinoises (simplifiées et traditionnelles) et coréennes : noms et visuels imprimés dans ces langues ;
 //  - noms d'extensions et de cartes des autres langues de la galerie (allemand, espagnol, italien, japonais…) ;
 //  - prix : fichiers publics Cardmarket (jeu n° 22), moyenne des ventes sur 7 jours, version normale et foil.
@@ -10,7 +10,8 @@ import { applyCardmarketPrices } from './variants.mjs';
 /** Langues de la galerie → locale Riot. */
 const LOCALES = { en: 'en-us', fr: 'fr-fr', de: 'de-de', es: 'es-es', it: 'it-it', ja: 'ja-jp', ko: 'ko-kr', 'zh-cn': 'zh-cn', 'zh-tw': 'zh-tw' };
 /** Catalogues publiés (langue des cartes) et galerie qui les décrit. */
-const CARD_LANGS = { en: 'en', fr: 'en', 'zh-cn': 'zh-cn', 'zh-tw': 'zh-tw', ko: 'ko' };
+// Riot n'imprime pas de cartes en français (la galerie française montre les cartes anglaises) : pas de catalogue « fr ».
+const CARD_LANGS = { en: 'en', 'zh-cn': 'zh-cn', 'zh-tw': 'zh-tw', ko: 'ko' };
 // La galerie ne donne pas les dates de sortie : ordre de sortie connu (du plus récent au plus ancien).
 // Les extensions absentes de cette liste sont placées en tête (probablement les plus récentes).
 const RELEASE_ORDER = ['VEN', 'RAD', 'UNL', 'SFD', 'OGS', 'OGN'];
