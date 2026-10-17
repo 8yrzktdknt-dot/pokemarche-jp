@@ -6,6 +6,7 @@ import { useStore } from '../lib/store';
 import type { Card } from '../lib/types';
 import { collectionKey } from '../lib/variants';
 import { gainOf, parsePrice } from '../lib/wishlist';
+import { CONDITIONS, CONDITION_NAMES, GRADERS, conditionFactor, unitValue } from '../lib/condition';
 import { colors, fonts, s } from './ui';
 
 /** Saisie d'un prix (enregistré en quittant le champ). */
@@ -27,6 +28,14 @@ function PriceInput({ value, onSave, placeholder, currency }: { value?: number; 
   );
 }
 
+function Chip({ label, on, onPress, hint }: { label: string; on?: boolean; onPress(): void; hint?: string }) {
+  return (
+    <Pressable onPress={onPress} style={[st.chip, on && st.chipOn]} accessibilityState={{ selected: !!on }} accessibilityLabel={hint ?? label}>
+      <Text style={[st.chipText, on && { color: colors.bg }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /** Variation colorée : « +3,20 € (+25 %) ». */
 export function GainText({ delta, pct, size = 15 }: { delta: number; pct: number; size?: number }) {
   const { settings, locale } = useStore();
@@ -44,10 +53,11 @@ export function GainText({ delta, pct, size = 15 }: { delta: number; pct: number
  * prix payé et plus-value.
  */
 export function CardExtras({ card }: { card: Card }) {
-  const { t, collection, settings, inWishlist, toggleWish, setWishTarget, setPaid, toCurrency, locale, deals } = useStore();
+  const { t, collection, settings, inWishlist, toggleWish, setWishTarget, setPaid, updateEntry, toCurrency, locale, deals } = useStore();
   const wish = inWishlist(card);
   const entry = collection.find((e) => collectionKey(e.card) === collectionKey(card));
   const gain = entry ? gainOf([{ ...entry, card }], toCurrency) : null;
+  const unit = entry ? unitValue({ ...entry, card }, toCurrency) : undefined;
   const fmt = (v: number) => formatMoney(v, settings.currency, locale);
   const deal = !!wish && deals.some((w) => collectionKey(w.card) === collectionKey(card));
 
@@ -63,6 +73,38 @@ export function CardExtras({ card }: { card: Card }) {
           <PriceInput value={wish.target} currency={wish.currency ?? settings.currency} placeholder="—" onSave={(v) => setWishTarget(card, v)} />
           <Text style={st.hint}>{t('wish.targetHint')}</Text>
           {deal && <Text style={st.deal}>🔔 {t('wish.deal')}</Text>}
+        </View>
+      )}
+      {!!entry && (
+        <View style={st.box}>
+          <Text style={st.label}>{t('cond.title')}</Text>
+          <View style={st.chips}>
+            {CONDITIONS.map((c) => (
+              <Chip key={c} label={c} on={!entry.graded && entry.condition === c} onPress={() => updateEntry(card, { condition: entry.condition === c ? undefined : c, graded: undefined })} hint={CONDITION_NAMES[c]} />
+            ))}
+            <Chip label={`🏅 ${t('cond.graded')}`} on={!!entry.graded} onPress={() => updateEntry(card, entry.graded ? { graded: undefined, value: undefined, valueCurrency: undefined } : { graded: { by: 'PSA', grade: '10' } })} />
+          </View>
+          {entry.graded && (
+            <View style={{ gap: 6 }}>
+              <Text style={st.label}>{t('cond.company')}</Text>
+              <View style={st.chips}>
+                {GRADERS.map((g) => <Chip key={g} label={g} on={entry.graded?.by === g} onPress={() => updateEntry(card, { graded: { by: g, grade: entry.graded?.grade ?? '10' } })} />)}
+              </View>
+              <Text style={st.label}>{t('cond.grade')}</Text>
+              <View style={st.chips}>
+                {['10', '9.5', '9', '8.5', '8', '7', '6', '5'].map((g) => <Chip key={g} label={g} on={entry.graded?.grade === g} onPress={() => updateEntry(card, { graded: { by: entry.graded?.by ?? 'PSA', grade: g } })} />)}
+              </View>
+              <Text style={st.label}>{t('cond.value')}</Text>
+              <PriceInput value={entry.value} currency={entry.valueCurrency ?? settings.currency} placeholder="—" onSave={(v) => updateEntry(card, { value: v, valueCurrency: v === undefined ? undefined : settings.currency })} />
+              <Text style={st.hint}>{t('cond.valueHint')}</Text>
+            </View>
+          )}
+          {unit !== undefined && (
+            <Text style={st.hint}>
+              {t('cond.used', { v: fmt(unit) })}{conditionFactor(entry) !== 1 ? ` · ${t('cond.factor', { f: conditionFactor(entry).toLocaleString(locale) })}` : ''}
+            </Text>
+          )}
+          <Chip label={`⇄ ${t('trade.toggle')}`} on={!!entry.trade} onPress={() => updateEntry(card, { trade: !entry.trade || undefined })} />
         </View>
       )}
       {!!entry && (
@@ -90,5 +132,9 @@ const st = StyleSheet.create({
   deal: { color: colors.good, fontFamily: fonts.heavy, fontSize: 14 },
   inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bg, borderRadius: 12, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12 },
   input: { flex: 1, color: colors.text, fontFamily: fonts.bold, fontSize: 17, paddingVertical: 10, outlineStyle: 'none' } as object,
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.bg, alignSelf: 'flex-start' },
+  chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  chipText: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
   symbol: { color: colors.muted, fontFamily: fonts.bold, fontSize: 16 },
 });

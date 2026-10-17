@@ -2,6 +2,7 @@ import { FlatList, Text, View } from 'react-native';
 import { CardRow, s } from '../components/ui';
 import { GainText } from '../components/CardExtras';
 import { gainOf } from '../lib/wishlist';
+import { conditionFactor, conditionLabel, unitValue } from '../lib/condition';
 import { formatMoney } from '../lib/currency';
 import { dayChange } from '../lib/priceHistory';
 import { collectionStats } from '../lib/stats';
@@ -9,7 +10,7 @@ import { usePriceHistory } from '../lib/usePriceHistory';
 import { useStore } from '../lib/store';
 
 export default function Collection() {
-  const { collection, settings, t, toCurrency, locale, money } = useStore();
+  const { collection, settings, t, toCurrency, locale } = useStore();
   const st = collectionStats(collection, toCurrency);
   const cards = collection.map((e) => e.card);
   const points = usePriceHistory(cards);
@@ -36,7 +37,12 @@ export default function Collection() {
         renderItem={({ item }) => (
           <CardRow
             card={item.card} list={cards} change={dayChange(points(item.card))}
-            right={item.quantity > 1 && item.card.prices[0] ? `${money(item.card.prices[0].value, item.card.prices[0].currency)} ×${item.quantity}` : item.quantity > 1 ? `×${item.quantity}` : undefined}
+            right={(() => {
+              // État ou gradation, valeur retenue (selon l'état) et nombre d'exemplaires.
+              const unit = unitValue(item, toCurrency);
+              const parts = [conditionLabel(item), unit !== undefined && (item.quantity > 1 || conditionFactor(item) !== 1 || item.value !== undefined) ? formatMoney(unit, settings.currency, locale) : undefined, item.quantity > 1 ? `×${item.quantity}` : undefined].filter(Boolean);
+              return parts.length ? parts.join(' · ') : undefined;
+            })()}
           />
         )}
       />

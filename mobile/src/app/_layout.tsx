@@ -30,7 +30,8 @@ function AppStack() {
   // Compte obligatoire : écran de connexion tant qu'on n'est pas connecté (sauf la page ouverte par le lien de
   // confirmation de l'e-mail), puis choix du pseudo pour les comptes qui n'en ont pas. La session reste ouverte.
   // Par-dessus la navigation (qui reste en place : à la reconnexion, on retrouve l'app là où on l'attend).
-  const gated = cloudEnabled() && !path.startsWith('/confirm');
+  // Pages ouvertes sans compte : confirmation de l'e-mail et profils publics (« /u/pseudo »).
+  const gated = cloudEnabled() && !path.startsWith('/confirm') && !path.startsWith('/u/');
   const gate = !gated ? null : !authReady ? <View style={{ flex: 1, backgroundColor: colors.bg }} />
     : !user ? <Welcome /> : username === '' && !recovery ? <ChooseUsername /> : null;
   return (
@@ -52,6 +53,7 @@ function AppStack() {
         <Stack.Screen name="report" options={{ title: t('report.title') }} />
         <Stack.Screen name="collection" options={{ title: t('title.collection') }} />
         <Stack.Screen name="wishlist" options={{ title: t('wish.title') }} />
+        <Stack.Screen name="u/[username]" options={{ title: t('prof.title') }} />
         <Stack.Screen name="card/[game]/[id]" options={{ title: t('title.card') }} />
       </Stack>
       {gate && <View style={StyleSheet.absoluteFill}>{gate}</View>}

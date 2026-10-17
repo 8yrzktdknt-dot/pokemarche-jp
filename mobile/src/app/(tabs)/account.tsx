@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AccountSection } from '../../components/AccountPanel';
+import { PublicProfilePanel } from '../../components/PublicProfilePanel';
 import { Avatar } from '../../components/Avatar';
 import { AvatarPicker } from '../../components/AvatarPicker';
 import { signOut } from '../../lib/cloud/supabase';
@@ -64,6 +65,8 @@ export default function Account() {
       </Panel>
 
       <AccountSection />
+
+      <PublicProfilePanel />
 
       <Panel title={t('acc.prefs')}>
         <Dropdown

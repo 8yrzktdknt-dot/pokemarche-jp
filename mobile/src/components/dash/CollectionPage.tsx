@@ -12,6 +12,7 @@ import { Panel, StatTile } from '../Stats';
 import { CardRow, colors, fonts, s } from '../ui';
 import { GainText } from '../CardExtras';
 import { gainOf } from '../../lib/wishlist';
+import { conditionFactor } from '../../lib/condition';
 import { EmptyCollection, Page, d } from './common';
 
 export function CollectionPage({ st: stats }: { st: CollectionStats }) {
@@ -22,7 +23,7 @@ export function CollectionPage({ st: stats }: { st: CollectionStats }) {
   const cards = useMemo(() => collection.map((e) => e.card), [collection]);
   const points = usePriceHistory(cards);
   const series = useMemo(
-    () => collectionSeries(collection.map((e) => ({ card: e.card, quantity: e.quantity, points: points(e.card) })), toCurrency),
+    () => collectionSeries(collection.map((e) => ({ card: e.card, quantity: e.quantity, points: points(e.card), factor: conditionFactor(e) })), toCurrency),
     [collection, points, toCurrency],
   );
   if (!collection.length) return <Page><EmptyCollection /></Page>;
