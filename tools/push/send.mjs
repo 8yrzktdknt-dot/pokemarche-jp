@@ -99,6 +99,9 @@ function message(lang, deals) {
   };
 }
 
+/** Étiquette propre à chaque envoi : une nouvelle alerte ne remplace jamais en silence la précédente. */
+const fresh = (tag) => `${tag}:${Date.now()}`;
+
 async function main() {
   webpush.setVapidDetails('https://github.com/BananaInTrouble/tcgmarket', PUBLIC_KEY, PRIVATE_KEY);
   const targets = await rpc('push_targets', { token });
@@ -110,7 +113,8 @@ async function main() {
   let sent = 0, gone = 0;
   const delivered = new Set();
   for (const { target, deals } of alerts) {
-    const payload = JSON.stringify({ ...message(target.lang, deals), url: `${APP_URL}/wishlist` });
+    const m = message(target.lang, deals);
+    const payload = JSON.stringify({ ...m, tag: fresh(m.tag), url: `${APP_URL}/wishlist` });
     try {
       // Urgence haute : sinon iPhone et Android peuvent garder la notification jusqu'au réveil de l'appareil ou
       // l'ouverture de l'appli (économie de batterie).
