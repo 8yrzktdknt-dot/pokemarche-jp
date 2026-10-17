@@ -1,7 +1,7 @@
 import { collectionKey } from '../variants.ts';
 import type { Card } from '../types.ts';
 
-export interface SyncEntry { card: Card; quantity: number; addedAt: number; paid?: number; paidCurrency?: string }
+export interface SyncEntry { card: Card; quantity: number; addedAt: number; paid?: number; paidCurrency?: string; condition?: string; graded?: unknown; value?: number; valueCurrency?: string; trade?: boolean }
 
 const keyOf = collectionKey;
 
@@ -16,9 +16,9 @@ export function mergeCollections<E extends SyncEntry>(local: E[], remote: E[]): 
     const k = keyOf(e.card);
     const prev = out.get(k);
     if (!prev) { out.set(k, e); continue; }
-    // Prix payé : celui qui est connu (le compte d'abord).
-    const paid = prev.paid !== undefined ? {} : e.paid !== undefined ? { paid: e.paid, paidCurrency: e.paidCurrency } : {};
-    out.set(k, { ...prev, ...paid, quantity: Math.max(prev.quantity, e.quantity), addedAt: Math.min(prev.addedAt, e.addedAt) });
+    // Détails (prix payé, état, gradation…) : ceux qui sont connus, le compte d'abord.
+    const extra = Object.fromEntries(Object.entries(e).filter(([key, v]) => v !== undefined && (prev as Record<string, unknown>)[key] === undefined));
+    out.set(k, { ...extra, ...prev, quantity: Math.max(prev.quantity, e.quantity), addedAt: Math.min(prev.addedAt, e.addedAt) });
   }
   return [...out.values()].sort((a, b) => b.addedAt - a.addedAt);
 }

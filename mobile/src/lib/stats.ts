@@ -1,10 +1,11 @@
 import { rarityAbbr } from './catalog/pokemonNames.ts';
 import type { Card, CardLang, GameId } from './types.ts';
+import { unitValue, type ValuedEntry } from './condition.ts';
 
 /** Tranches de prix (devise choisie). */
 export const PRICE_BUCKETS = [0, 1, 5, 20, 50, 100];
 
-export interface Entry {
+export interface Entry extends ValuedEntry {
   card: Card;
   quantity: number;
   addedAt: number;
@@ -84,9 +85,9 @@ export function collectionStats(
       x.unique++;
       x.copies += e.quantity;
     }
-    const p = e.card.prices[0];
-    if (p) {
-      const unit = toCurrency(p.value, p.currency);
+    // Valeur selon l'état de la carte (ou valeur saisie pour une carte gradée).
+    const unit = unitValue(e, toCurrency);
+    if (unit !== undefined) {
       (buckets.findLast((b) => unit >= b.min) ?? buckets[0]).count += e.quantity;
       value += unit * e.quantity;
       g.value += unit * e.quantity;

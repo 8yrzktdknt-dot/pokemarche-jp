@@ -79,3 +79,22 @@ $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Profil public (lien « …/app/u/pseudo ») : désactivé par défaut. Lecture par tous, sans compte, par la fonction
+-- public_profile : pseudo, photo, collection (sans les prix payés) et cartes recherchées (sans les prix cibles).
+alter table public.profiles add column if not exists is_public boolean not null default false;
+
+create or replace function public.public_profile(name text)
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'username', p.username,
+    'since', p.created_at,
+    'avatar', c.settings -> 'avatar',
+    'collection', coalesce((select jsonb_agg(e - 'paid' - 'paidCurrency') from jsonb_array_elements(c.data) e), '[]'::jsonb),
+    'wishlist', coalesce((select jsonb_agg(jsonb_build_object('card', w -> 'card')) from jsonb_array_elements(coalesce(c.settings -> 'wishlist', '[]'::jsonb)) w), '[]'::jsonb)
+  )
+  from public.profiles p
+  left join public.collections c on c.user_id = p.user_id
+  where p.username = lower(name) and p.is_public;
+$$;
+grant execute on function public.public_profile(text) to anon, authenticated;

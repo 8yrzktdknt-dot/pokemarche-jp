@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FALLBACK_RATES, convert, fetchRates, formatMoney, type Currency, type Rates } from './currency';
 import { mergeCollections } from './cloud/merge';
+import type { Condition, Graded } from './condition';
 import { isDeal, newDeals, wishKey, type WishEntry } from './wishlist';
 import { loadRemote, loadUsername, onLocalSignOut, saveRemote, supabase } from './cloud/supabase';
 import { GAMES } from './games';
@@ -21,6 +22,13 @@ export interface CollectionEntry {
   /** Prix payé à l'unité et sa devise (plus-value). */
   paid?: number;
   paidCurrency?: string;
+  /** État (Near Mint…), carte gradée (PSA 10…) et valeur estimée saisie (cartes gradées). */
+  condition?: Condition;
+  graded?: Graded;
+  value?: number;
+  valueCurrency?: string;
+  /** Proposée à l'échange (profil public). */
+  trade?: boolean;
 }
 
 export interface Settings {
@@ -30,6 +38,8 @@ export interface Settings {
   profileName?: string;
   /** Liste de souhaits (sauvegardée avec le compte comme les autres réglages). */
   wishlist?: WishEntry[];
+  /** Pseudos des amis suivis (profils publics). */
+  friends?: string[];
   /** Notifications du navigateur quand une carte recherchée passe sous son prix cible. */
   wishNotify?: boolean;
   /** Photo de profil : une des images par défaut (« flame »…) ou une photo importée (data URL JPEG 256 px). */
@@ -61,6 +71,8 @@ interface Store {
   clear(): void;
   /** Prix payé à l'unité pour une carte de la collection (undefined : l'effacer). */
   setPaid(card: Card, paid?: number): void;
+  /** Détails d'une carte de la collection (état, gradation, valeur saisie, échange). */
+  updateEntry(card: Card, patch: Partial<Omit<CollectionEntry, 'card' | 'quantity' | 'addedAt'>>): void;
   wishlist: WishEntry[];
   inWishlist(card: Card): WishEntry | undefined;
   toggleWish(card: Card): void;
@@ -302,6 +314,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       : e)));
   }, []);
 
+  const updateEntry = useCallback((card: Card, patch: Partial<Omit<CollectionEntry, 'card' | 'quantity' | 'addedAt'>>) => {
+    setCollection((prev) => prev.map((e) => (keyOf(e.card) === keyOf(card) ? { ...e, ...patch } : e)));
+  }, []);
+
   const wishlist = settings.wishlist ?? [];
   const inWishlist = useCallback((card: Card) => (settingsRef.current.wishlist ?? []).find((w) => wishKey(w.card) === wishKey(card)), [settings.wishlist]);
   const toggleWish = useCallback((card: Card) => {
@@ -357,8 +373,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [ready, settings.wishNotify, wishlist, convertTo, helpers]);
 
   const value = useMemo(
-    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, ...helpers }),
-    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, helpers],
+    () => ({ ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, updateEntry, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, ...helpers }),
+    [ready, settings, setSettings, collection, add, remove, addMany, removeMany, clear, setPaid, updateEntry, wishlist, inWishlist, toggleWish, setWishTarget, deals, user, authReady, username, setUsername, sync, recovery, endRecovery, helpers],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

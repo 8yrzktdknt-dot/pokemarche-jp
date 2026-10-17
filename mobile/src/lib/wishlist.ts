@@ -1,5 +1,6 @@
 import type { Card } from './types.ts';
 import { collectionKey } from './variants.ts';
+import { unitValue, type ValuedEntry } from './condition.ts';
 
 /**
  * Liste de souhaits : cartes recherchées, avec un prix cible facultatif (dans la devise choisie au moment de le fixer).
@@ -52,16 +53,16 @@ export interface Gain {
   count: number;
 }
 
-export interface PaidEntry { card: Card; quantity: number; paid?: number; paidCurrency?: string }
+export interface PaidEntry extends ValuedEntry { card: Card; quantity: number; paid?: number; paidCurrency?: string }
 
 /** Plus-value d'une ou plusieurs lignes de la collection, dans la devise choisie (null sans prix d'achat ni cote). */
 export function gainOf(entries: PaidEntry[], toCurrency: Convert): Gain | null {
   let paid = 0, value = 0, count = 0;
   for (const e of entries) {
-    const p = e.card.prices[0];
-    if (e.paid === undefined || !e.paidCurrency || !p) continue;
+    const unit = unitValue(e, toCurrency);
+    if (e.paid === undefined || !e.paidCurrency || unit === undefined) continue;
     paid += toCurrency(e.paid, e.paidCurrency) * e.quantity;
-    value += toCurrency(p.value, p.currency) * e.quantity;
+    value += unit * e.quantity;
     count += e.quantity;
   }
   if (!count) return null;

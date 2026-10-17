@@ -69,7 +69,7 @@ export function dayChange(points: Point[]): Change | null {
  * dernier prix connu à cette date (avant son premier relevé : son premier prix, pour comparer à composition égale).
  */
 export function collectionSeries(
-  items: { card: Card; quantity: number; points: Point[] }[],
+  items: { card: Card; quantity: number; points: Point[]; factor?: number }[],
   toCurrency: (v: number, from: string) => number,
 ): Point[] {
   const days = [...new Set(items.flatMap((x) => x.points.map((p) => p.d)))].sort();
@@ -81,7 +81,7 @@ export function collectionSeries(
       const cur = x.card.prices[0]?.currency ?? 'EUR';
       let p = x.points[0].v;
       for (const pt of x.points) { if (pt.d > d) break; p = pt.v; }
-      v += toCurrency(p, cur) * x.quantity;
+      v += toCurrency(p, cur) * x.quantity * (x.factor ?? 1);
     }
     return { d, v };
   });

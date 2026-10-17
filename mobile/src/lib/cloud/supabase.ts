@@ -134,3 +134,35 @@ export async function saveUsername(userId: string, username: string) {
   const { error } = await sb.from('profiles').insert({ user_id: userId, username });
   if (error) throw error;
 }
+
+/** Profil public : visible par tous avec le lien (voir supabase/schema.sql, fonction public_profile). */
+export async function loadProfilePublic(userId: string): Promise<boolean | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data, error } = await sb.from('profiles').select('is_public').eq('user_id', userId).maybeSingle();
+  return error || !data ? null : !!data.is_public;
+}
+
+export async function setProfilePublic(userId: string, isPublic: boolean) {
+  const sb = supabase();
+  if (!sb) throw new Error('cloud');
+  const { error } = await sb.from('profiles').update({ is_public: isPublic }).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export interface PublicProfile {
+  username: string;
+  since?: string;
+  avatar?: string;
+  collection: { card: import('../types').Card; quantity: number; addedAt: number; condition?: string; graded?: { by: string; grade: string }; value?: number; valueCurrency?: string; trade?: boolean }[];
+  wishlist: { card: import('../types').Card }[];
+}
+
+/** Profil public d'un pseudo ; null s'il n'existe pas ou n'est pas public ; « unavailable » si la base n'est pas à jour. */
+export async function fetchPublicProfile(name: string): Promise<PublicProfile | null | 'unavailable'> {
+  const sb = supabase();
+  if (!sb) return 'unavailable';
+  const { data, error } = await sb.rpc('public_profile', { name });
+  if (error) return /function|does not exist|schema cache/i.test(error.message) ? 'unavailable' : null;
+  return (data as PublicProfile | null) ?? null;
+}
