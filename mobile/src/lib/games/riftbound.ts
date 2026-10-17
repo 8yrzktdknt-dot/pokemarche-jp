@@ -130,7 +130,8 @@ const withStatic = {
 export const riftbound: GameProvider = {
   id: 'riftbound',
   label: 'Riftbound',
-  langs: ['en', 'fr', 'zh-cn', 'zh-tw', 'ko'],
+  // Pas de cartes Riftbound imprimées en français.
+  langs: ['en', 'zh-cn', 'zh-tw', 'ko'],
   ...withStatic,
   resolveScan,
 };

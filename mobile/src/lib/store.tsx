@@ -93,6 +93,19 @@ interface Store {
 }
 
 const KEY_COLLECTION = 'collection.v1';
+
+/** Anciennes cartes Riftbound « françaises » (cartes anglaises, Riot n'imprime pas en français) → cartes anglaises. */
+export function withoutRiftboundFr<E extends { card: Card; quantity: number }>(list: E[]): E[] {
+  if (!list.some((e) => e.card.game === 'riftbound' && e.card.lang === 'fr')) return list;
+  const out = new Map<string, E>();
+  for (const e of list) {
+    const card = e.card.game === 'riftbound' && e.card.lang === 'fr' ? { ...e.card, lang: 'en' as CardLang } : e.card;
+    const k = collectionKey(card);
+    const prev = out.get(k);
+    out.set(k, prev ? { ...prev, quantity: prev.quantity + e.quantity } : { ...e, card });
+  }
+  return [...out.values()];
+}
 const KEY_SETTINGS = 'settings.v1';
 const keyOf = collectionKey;
 
@@ -130,7 +143,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const [c, s] = await Promise.all([AsyncStorage.getItem(KEY_COLLECTION), AsyncStorage.getItem(KEY_SETTINGS)]);
-        if (c) setCollection(JSON.parse(c));
+        if (c) setCollection(withoutRiftboundFr(JSON.parse(c)));
         if (s) setSettingsState((prev) => ({ ...prev, ...JSON.parse(s) }));
       } finally {
         setReady(true);
@@ -216,7 +229,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSync('syncing');
     loadRemote(user.id).then((remote) => {
       if (!alive || !remote) return;
-      setCollection((local) => mergeCollections(local, remote.entries as CollectionEntry[]));
+      setCollection((local) => mergeCollections(local, withoutRiftboundFr(remote.entries as CollectionEntry[])));
       if (remote.settings) setSettingsState((prev) => ({ ...prev, ...(remote.settings as Partial<Settings>) }));
       setMerged(user.id);
     }).catch(() => alive && setSync('error'));
