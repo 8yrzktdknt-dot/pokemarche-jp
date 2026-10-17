@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Dropdown } from '../../components/Dropdown';
+import { Ring } from '../../components/SetOverview';
 import { GamePicker, colors, fonts, s } from '../../components/ui';
 import { localName } from '../../lib/catalog/static';
 import { GAMES, langFor } from '../../lib/games';
@@ -58,32 +59,37 @@ export default function Extensions() {
   // Extensions favorites (menu « ⋮ » d'une extension) de ce jeu et de cette langue, en tête de liste.
   const favIds = new Set((settings.favoriteSets ?? []).filter((k) => k.startsWith(`${game}:${lang}:`)).map((k) => k.split(':').slice(2).join(':')));
   const favorites = !query && blocs ? blocs.flatMap((b) => b.sets).filter((x) => favIds.has(x.id)) : [];
-  const tileOf = (x: SetInfo) => (
-    <Link key={x.id} href={{ pathname: '/set/[game]/[id]', params: { game, id: x.id, lang } }} asChild>
-      <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${localName(x, appLang)} (${x.code})`}>
-        <View style={[st.logoBox, { height: tile * 0.62 }]}>
-          {x.logo ? (
-            <Image source={x.logo} style={st.logo} contentFit="contain" />
-          ) : (
-            <Text style={st.code}>{x.code}</Text>
-          )}
-          {x.symbol && x.symbol !== x.logo && <Image source={x.symbol} style={st.symbol} contentFit="contain" />}
-        </View>
-        <Text style={st.name} numberOfLines={2}>{localName(x, appLang)}</Text>
-        {(() => {
-          const owned = ownedBySet.get(x.id)?.size ?? 0;
-          if (!owned || !x.count) return <Text style={st.meta}>{x.code}{x.count ? ` · ${x.count}` : ''}</Text>;
-          const pct = Math.min(1, owned / x.count);
-          return (
-            <View style={{ gap: 3 }}>
-              <Text style={[st.meta, pct >= 1 && { color: colors.good }]}>{x.code} · {owned}/{x.count}</Text>
-              <View style={st.bar}><View style={[st.barFill, { width: `${Math.max(4, pct * 100)}%` }, pct >= 1 && { backgroundColor: colors.good }]} /></View>
-            </View>
-          );
-        })()}
-      </Pressable>
-    </Link>
-  );
+  const tileOf = (x: SetInfo) => {
+    const owned = ownedBySet.get(x.id)?.size ?? 0;
+    const pct = owned && x.count ? Math.min(1, owned / x.count) : 0;
+    const done = pct >= 1;
+    return (
+      <Link key={x.id} href={{ pathname: '/set/[game]/[id]', params: { game, id: x.id, lang } }} asChild>
+        <Pressable style={StyleSheet.flatten([st.tile, { width: tile }])} accessibilityLabel={`${localName(x, appLang)} (${x.code})${owned && x.count ? ` · ${owned}/${x.count}` : ''}`}>
+          <View style={[st.logoBox, { height: tile * 0.62 }]}>
+            {x.logo ? (
+              <Image source={x.logo} style={st.logo} contentFit="contain" />
+            ) : (
+              <Text style={st.code}>{x.code}</Text>
+            )}
+            {x.symbol && x.symbol !== x.logo && <Image source={x.symbol} style={st.symbol} contentFit="contain" />}
+            {/* Progression : petite roue en haut à droite (cartes différentes possédées sur le nombre de cartes). */}
+            {pct > 0 && (
+              <View style={st.ring}>
+                <Ring value={pct} size={30} width={3.5} color={done ? colors.good : colors.accent}>
+                  {done
+                    ? <Ionicons name="checkmark" size={15} color={colors.good} />
+                    : <Text style={st.ringText}>{Math.max(1, Math.floor(pct * 100))}</Text>}
+                </Ring>
+              </View>
+            )}
+          </View>
+          <Text style={st.name} numberOfLines={2}>{localName(x, appLang)}</Text>
+          <Text style={st.meta}>{x.code}{x.count ? ` · ${owned ? `${owned}/` : ''}${x.count}` : ''}</Text>
+        </Pressable>
+      </Link>
+    );
+  };
 
   return (
     <ScrollView
@@ -149,6 +155,6 @@ const st = StyleSheet.create({
   code: { color: colors.accent, fontFamily: fonts.display, fontSize: 16 },
   name: { color: colors.text, fontFamily: fonts.bold, fontSize: 12, lineHeight: 15 },
   meta: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
-  bar: { height: 4, borderRadius: 2, backgroundColor: colors.line, overflow: 'hidden' },
-  barFill: { height: 4, borderRadius: 2, backgroundColor: colors.accent },
+  ring: { position: 'absolute', top: 4, right: 4, borderRadius: 15, backgroundColor: 'rgba(10,31,23,0.85)' },
+  ringText: { color: colors.text, fontFamily: fonts.heavy, fontSize: 10 },
 });
