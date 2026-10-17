@@ -19,7 +19,7 @@ async function resolveScan(hint: ScanHint, lang: CardLang): Promise<Card[]> {
 export const lorcana: GameProvider = {
   id: 'lorcana',
   label: 'Lorcana',
-  langs: ['en', 'fr', 'de', 'it'],
+  langs: ['en', 'fr', 'de', 'it', 'ja'],
   blocs: async (lang: CardLang) => toBlocs((await staticBlocs('lorcana', lang)) ?? []),
   setCards: async (setId: string, lang: CardLang) => (await staticSetCardsAsApp('lorcana', lang, setId)) ?? { set: null, cards: [] },
   search: async (f: SearchFilters, lang: CardLang) => (await staticSearch('lorcana', lang, f)) ?? [],

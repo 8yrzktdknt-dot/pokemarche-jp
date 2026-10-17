@@ -4,7 +4,10 @@
 //  - variantes : normale et foil (« None » + « Silver ») pour les raretés de base, foil seule pour les Enchantées,
 //    Épiques, Iconiques… ; fiche Cardmarket de chaque carte donnée par LorcanaJSON (commune à toutes les langues) ;
 //  - raretés, encres et types : identifiants anglais (traduits par l'app), noms des autres langues dans `n`.
-import { getJson, writeJson } from './lib.mjs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { CATALOG, getJson, writeJson } from './lib.mjs';
 import { saveLogos, scrydexLogo } from './logos.mjs';
 import { applyCardmarketPrices } from './variants.mjs';
 import { foilAsHolo } from './build-riftbound.mjs';
@@ -86,6 +89,18 @@ export async function buildLorcana() {
   // Logos : Scrydex quand il les a (sinon le code de l'extension est affiché).
   const allSets = [...new Set(en.cards.map(setOf))].map((id) => ({ id }));
   const logos = await saveLogos(allSets, 'lorcana', (s) => scrydexLogo(`lorcana-${s.id}`.toLowerCase(), 'lorcana')).catch(() => new Map());
+  // Scrydex renvoie le même logo générique « Lorcana » pour les extensions qu'il n'a pas : écarté (code affiché).
+  const hashes = new Map();
+  for (const [id, rel] of logos) {
+    const file = join(CATALOG, rel);
+    if (!existsSync(file)) { logos.delete(id); continue; }
+    const h = createHash('sha1').update(readFileSync(file)).digest('hex');
+    hashes.set(h, [...(hashes.get(h) ?? []), id]);
+  }
+  for (const ids of hashes.values()) {
+    if (ids.length < 3) continue;
+    for (const id of ids) { rmSync(join(CATALOG, logos.get(id)), { force: true }); logos.delete(id); }
+  }
 
   for (const lang of LANGS) {
     const src = data[lang];
@@ -141,4 +156,127 @@ export async function buildLorcana() {
     writeJson(`sets/lorcana-${lang}.json`, { built: new Date().toISOString(), blocs });
     console.log(`Lorcana ${lang} : ${src.cards.length} cartes, ${sets.length} extensions, ${priced} avec prix Cardmarket, logos ${logos.size}`);
   }
+  await buildLorcanaJa();
+}
+
+// ───────────────────────────── Japonais : recherche officielle Takara Tomy ─────────────────────────────
+const JA_ROOT = 'https://www.takaratomy.co.jp';
+const JA_UA = { 'user-agent': 'Mozilla/5.0 (TCGMarket catalogue)', 'accept-language': 'ja', referer: `${JA_ROOT}/products/disneylorcana/cardlist/` };
+const JA_RARITY = { コモン: 'common', アンコモン: 'uncommon', レア: 'rare', スーパーレア: 'super_rare', レジェンダリー: 'legendary', エンチャンテッド: 'enchanted', エピック: 'epic', アイコニック: 'iconic', プロモーションカード: 'promo', スペシャル: 'special' };
+const JA_INK = { アンバー: 'amber', アメジスト: 'amethyst', エメラルド: 'emerald', ルビー: 'ruby', サファイア: 'sapphire', スチール: 'steel' };
+const JA_TYPE = { キャラクター: 'character', アクション: 'action', アイテム: 'item', ロケーション: 'location' };
+/** Visuel officiel japonais réduit par wsrv.nl. */
+export const jaImage = (file) => smallImage(`${JA_ROOT}/products/disneylorcana/cardlist/img/card/${file}.png`);
+
+/**
+ * Extension d'une carte japonaise : les sets 1 à 8 et 12 à 14 (ordre ×100) ; Fabled sorti en deux packs promo
+ * (750, 850 → 9) ; Whispers in the Well et Winterspell en « Curator's Library » (1000 → 10, 1100 → 11) ; les decks
+ * de démarrage à part (« SD1 », « SD2 »).
+ */
+export function jaSetOf(c, starters) {
+  const first = String(c.sets_array?.[0] ?? c.sets ?? '').trim();
+  if (/スタートデッキ/.test(first)) {
+    if (!starters.has(first)) starters.set(first, `SD${starters.size + 1}`);
+    return starters.get(first);
+  }
+  const o = Number(c.sets_order);
+  if (o === 750 || o === 850) return '9';
+  if (o >= 100 && o % 100 === 0) return String(o / 100);
+  return undefined;
+}
+
+async function jaCards() {
+  let cookie = '';
+  const post = async (path, body = '', token) => {
+    const r = await fetch(JA_ROOT + path, {
+      method: 'POST', body, signal: AbortSignal.timeout(60000),
+      headers: { ...JA_UA, 'content-type': 'application/x-www-form-urlencoded', ...(cookie ? { cookie } : {}), ...(token ? { 'x-csrf-token': token } : {}) },
+    });
+    const set = r.headers.getSetCookie?.() ?? [];
+    if (set.length) cookie = set.map((x) => x.split(';')[0]).join('; ');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  };
+  const { csrf } = await post('/products/disneylorcana/api1.0/card-search/token.json');
+  const out = [];
+  for (let page = 1; page <= 80; page++) {
+    const j = await post('/products/disneylorcana/api1.0/card-search/result', new URLSearchParams({ posts_per_page: '100', page: String(page) }).toString(), csrf);
+    out.push(...(j.cards ?? []));
+    if ((j.cards ?? []).length < 100) break;
+  }
+  return out;
+}
+
+/** Catalogue japonais : cartes officielles, fiches Cardmarket et variantes reprises des cartes anglaises (même n°). */
+export async function buildLorcanaJa() {
+  const cards = await jaCards().catch((e) => { console.warn(`Lorcana ja : recherche officielle indisponible (${e.message})`); return []; });
+  if (!cards.length) return;
+  const enSets = (await import('node:fs')).existsSync(join(CATALOG, 'sets/lorcana-en.json')) ? JSON.parse(readFileSync(join(CATALOG, 'sets/lorcana-en.json'), 'utf8')) : null;
+  const enById = new Map();
+  const enSetMeta = new Map();
+  for (const b of enSets?.blocs ?? []) for (const s of b.sets) {
+    enSetMeta.set(s.id, s);
+    const f = join(CATALOG, `cards/lorcana-en/${s.id}.json`);
+    if (existsSync(f)) for (const c of JSON.parse(readFileSync(f, 'utf8'))) enById.set(c.id, c);
+  }
+  const starters = new Map();
+  const bySet = new Map();
+  const jaNames = new Map();
+  for (const c of cards) {
+    const setId = jaSetOf(c, starters);
+    if (!setId || !c.collector_number) continue;
+    const id = `${setId}-${String(c.collector_number).padStart(3, '0')}`;
+    if (!bySet.has(setId)) bySet.set(setId, new Map());
+    if (bySet.get(setId).has(id)) continue;
+    const en = enById.get(id);
+    const version = c.version && c.version !== '-' ? c.version : '';
+    const name = version ? `${c.card_name} - ${version}` : c.card_name;
+    const inks = [c.ink_color, c.ink_color2, c.ink_color3].map((x) => JA_INK[x]).filter(Boolean);
+    const attrs = Object.fromEntries(Object.entries({
+      illustrator: [c.artist_credit1, c.artist_credit2].filter((x) => x && x !== '-').join(', '),
+      cost: c.ink_cost != null ? String(c.ink_cost) : undefined,
+      strength: c.strength != null && c.strength !== '-' ? String(c.strength) : undefined,
+      willpower: c.willpower != null && c.willpower !== '-' ? String(c.willpower) : undefined,
+      lore: c.lore_value != null && c.lore_value !== '-' ? String(c.lore_value) : undefined,
+      story: en?.attrs?.story,
+    }).filter(([, v]) => v !== undefined && v !== ''));
+    bySet.get(setId).set(id, {
+      id,
+      localId: String(c.collector_number),
+      number: en?.number ?? String(c.collector_number),
+      name,
+      ...(en?.name ? { nameEn: en.nameEn ?? en.name } : {}),
+      image: jaImage(c.card_file),
+      rarity: JA_RARITY[c.rarity] ?? en?.rarity,
+      attrs,
+      facets: { ink: inks.length ? inks : en?.facets?.ink ?? [], type: [JA_TYPE[c.card_type] ?? en?.facets?.type?.[0]].filter(Boolean) },
+      ...(en?.v ? { v: en.v.map((x) => ({ ...x })) } : {}),
+      ...(en?.cm ? { cm: { ...en.cm } } : {}),
+    });
+    const setName = String(c.sets_array?.[0] ?? c.sets ?? '').replace(/^[Ａ-Ｚａ-ｚ０-９A-Za-z0-9’'!！.\s　]+(?=[^\x00-\x7F])/, '').trim();
+    if (!jaNames.has(setId) && setName && setName !== '-') jaNames.set(setId, setName);
+  }
+  const sets = [...bySet.entries()].map(([id, map]) => {
+    const meta = enSetMeta.get(id);
+    return {
+      id, code: id, name: jaNames.get(id) ?? meta?.name ?? id, names: { ...(meta?.names ?? {}), ja: jaNames.get(id) ?? meta?.name ?? id },
+      count: map.size, ...(meta?.releaseDate ? { releaseDate: meta.releaseDate } : {}), ...(meta?.logo ? { logo: meta.logo } : {}),
+    };
+  }).sort((a, b) => kindRank(a.id) - kindRank(b.id) || Number(b.id.replace(/\D/g, '')) - Number(a.id.replace(/\D/g, '')));
+  for (const [id, map] of bySet) writeJson(`cards/lorcana-ja/${id}.json`, [...map.values()].sort((a, b) => Number(a.localId) - Number(b.localId)));
+  const main = sets.filter((s) => /^\d+$/.test(s.id));
+  const decks = sets.filter((s) => !/^\d+$/.test(s.id));
+  writeJson('sets/lorcana-ja.json', { built: new Date().toISOString(), blocs: [
+    { id: 'sets', name: 'ディズニー・ロルカナ', names: { ja: 'ディズニー・ロルカナ', en: 'Disney Lorcana' }, sets: main },
+    ...(decks.length ? [{ id: 'decks', name: 'スタートデッキ', names: { ja: 'スタートデッキ', en: 'Starter decks', fr: 'Decks de démarrage', de: 'Starter-Decks', it: 'Mazzi base' }, sets: decks }] : []),
+  ] });
+  // Noms japonais des extensions dans les autres catalogues (affichés quand l'app est en japonais).
+  for (const lang of LANGS) {
+    const rel = `sets/lorcana-${lang}.json`;
+    if (!existsSync(join(CATALOG, rel))) continue;
+    const data = JSON.parse(readFileSync(join(CATALOG, rel), 'utf8'));
+    for (const b of data.blocs) for (const s of b.sets) if (jaNames.has(s.id)) s.names = { ...(s.names ?? {}), ja: jaNames.get(s.id) };
+    writeJson(rel, data);
+  }
+  console.log(`Lorcana ja : ${cards.length} cartes officielles, ${sets.length} extensions`);
 }
