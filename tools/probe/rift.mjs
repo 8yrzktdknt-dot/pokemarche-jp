@@ -1,26 +1,22 @@
-// Sondage Riftbound n° 2 : noms, sous-titres, visuels et étiquettes selon la langue de la galerie.
-const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
-const find = (o, k) => { if (!o || typeof o !== 'object') return null; if (o[k]?.items) return o[k]; for (const v of Object.values(o)) { const x = find(v, k); if (x) return x; } return null; };
-const ids = ['ogn-301-star-298', 'ogn-030-298', 'ogn-030a-298', 'ogn-251-298', 'unl-131-219', 'ven-r01', 'sfd-t01'];
-const base = {};
-for (const loc of ['en-us', 'fr-fr', 'de-de', 'es-es', 'it-it', 'ja-jp', 'ko-kr', 'zh-cn', 'zh-tw']) {
-  const html = await (await fetch(`https://riftbound.leagueoflegends.com/${loc}/card-gallery/`, { headers: { 'user-agent': UA } })).text();
-  const data = JSON.parse(html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)[1]);
-  const cards = find(data, 'cards').items;
-  const sets = find(data, 'sets').items;
-  const byId = new Map(cards.map((c) => [c.id, c]));
-  let sameImg = 0, sameName = 0;
-  for (const c of cards) { const b = base[c.id]; if (b) { if (b.cardImage?.url === c.cardImage?.url) sameImg++; if (b.name === c.name) sameName++; } }
-  if (loc === 'en-us') for (const c of cards) base[c.id] = c;
-  console.log('==', loc, cards.length, 'sameImg', sameImg, 'sameName', sameName, 'sets', JSON.stringify(sets.map((s) => s.name)));
-  for (const id of ids) { const c = byId.get(id); if (c) console.log(' ', id, JSON.stringify({ n: c.name, s: c.subtitle, r: c.rarity?.value, t: c.cardType?.type?.map((x) => x.id + ':' + x.label), st: c.cardType?.superType?.map((x) => x.id + ':' + x.label), d: c.domain?.values?.map((x) => x.id + ':' + x.label), tags: c.tags, flags: c.flags, img: c.cardImage?.url?.slice(-60) })); }
-  const lab = (f) => { const m = new Map(); for (const c of cards) for (const v of f(c) ?? []) m.set(v.id, v.label); return Object.fromEntries(m); };
-  console.log('  rarity', JSON.stringify(lab((c) => [c.rarity?.value])), 'type', JSON.stringify(lab((c) => c.cardType?.type)), 'super', JSON.stringify(lab((c) => c.cardType?.superType)), 'domain', JSON.stringify(lab((c) => c.domain?.values)));
-  if (loc === 'en-us') {
-    const fl = cards.filter((c) => c.flags).slice(0, 3).map((c) => [c.id, c.flags]);
-    console.log('  flags', JSON.stringify(fl));
-    console.log('  tags sample', JSON.stringify(cards.find((c) => c.tags)?.tags));
-    const noSub = cards.filter((c) => c.cardType?.type?.some((t) => t.id === 'legend')).slice(0, 4).map((c) => [c.id, c.name, c.subtitle]);
-    console.log('  legends', JSON.stringify(noSub));
+// Sondage : sources de visuels pour les cartes Pokémon sans image (kits du dresseur, Collection Classique…).
+const PT = 'https://api.pokemontcg.io/v2';
+const j = async (u) => { try { const r = await fetch(u, { signal: AbortSignal.timeout(60000) }); return r.ok ? r.json() : { status: r.status }; } catch (e) { return { err: e.message }; } };
+const sets = await j(`${PT}/sets?pageSize=250&select=id,name,total`);
+console.log('ptcg sets', sets.data?.length, sets.err ?? '');
+for (const s of sets.data ?? []) if (/kit|classic|best|unseen|promo|creator|first|alternate|celebrat|skyridge|aquapolis|black star|futsal|mcdonald/i.test(s.name)) console.log('  ', s.id, s.name, s.total);
+for (const id of ['cel25c', 'ecard2', 'ecard3', 'hsp', 'ex10', 'bp', 'xyp', 'pop5', 'np']) {
+  const r = await j(`${PT}/cards?q=set.id:${id}&select=number,name,images&pageSize=250`);
+  const nums = (r.data ?? []).map((c) => c.number);
+  console.log('ptcg', id, nums.length, JSON.stringify(nums.slice(0, 40)), r.data?.[0]?.images?.small ?? '');
+}
+const UA = { 'user-agent': 'Mozilla/5.0' };
+const head = async (u) => { try { const r = await fetch(u, { headers: UA }); const b = await r.arrayBuffer(); return `${r.status} ${r.headers.get('content-type')} ${b.byteLength}`; } catch (e) { return 'ERR'; } };
+for (const u of ['https://images.scrydex.com/pokemon/tk-xy-sy-1/large', 'https://images.scrydex.com/pokemon/tk5a-1/large', 'https://images.scrydex.com/pokemon/cel25c-2_A/large', 'https://images.scrydex.com/pokemon/zz-inconnu-1/large', 'https://images.scrydex.com/pokemon/mfb-1/large', 'https://images.scrydex.com/pokemon/ru1-1/large'])
+  console.log('scrydex', u, await head(u));
+for (const l of ['de', 'it', 'es', 'pt', 'ja', 'fr', 'en']) {
+  for (const s of ['tk-xy-sy', 'cel25cc', 'mfb', 'tk-dp-m', 'bog', 'exu']) {
+    const r = await j(`https://api.tcgdex.net/v2/${l}/sets/${s}`);
+    const cards = r.cards ?? [];
+    console.log('tcgdex', l, s, cards.length, cards.filter((c) => c.image).length, cards.find((c) => c.image)?.image ?? '');
   }
 }
