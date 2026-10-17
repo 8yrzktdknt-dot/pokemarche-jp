@@ -5,6 +5,11 @@ name: Alertes de prix
 
 on:
   workflow_dispatch:
+    inputs:
+      resend:
+        description: "Test : renvoyer les alertes même déjà signalées"
+        type: boolean
+        default: false
   workflow_run:
     workflows: ["Catalogue de cartes"]
     types: [completed]
@@ -41,6 +46,7 @@ jobs:
         working-directory: tools/push
         env:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_RESEND: ${{ github.event.inputs.resend == 'true' && '1' || '' }}
         run: npm test && npm run send
 
       - uses: actions/cache/save@v4
