@@ -25,6 +25,7 @@ const PUBLISHED: Record<GameId, CardLang[]> = {
   pokemon: ['en', 'fr', 'ja', 'zh-tw', 'zh-cn'],
   onepiece: ['en', 'ja', 'fr'],
   riftbound: ['en', 'zh-cn', 'zh-tw', 'ko'],
+  lorcana: ['en', 'fr', 'de', 'it'],
 };
 
 /** Dossier de l'historique d'un jeu et d'une langue (« pokemon-en ») ; undefined s'il n'y en a pas. */

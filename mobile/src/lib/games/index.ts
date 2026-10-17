@@ -2,6 +2,7 @@ import type { CardLang, GameId, GameProvider } from '../types.ts';
 import { onepiece } from './onepiece.ts';
 import { pokemon } from './pokemon.ts';
 import { riftbound } from './riftbound.ts';
+import { lorcana } from './lorcana.ts';
 
 /**
  * Langues proposées pour l'instant. Les autres (allemand, espagnol, italien, portugais, coréen, indonésien, thaï)
@@ -9,14 +10,17 @@ import { riftbound } from './riftbound.ts';
  */
 export const VISIBLE_LANGS: CardLang[] = ['fr', 'en', 'ja', 'zh-tw', 'zh-cn'];
 
-const visible = (g: GameProvider): GameProvider => ({ ...g, langs: g.langs.filter((l) => VISIBLE_LANGS.includes(l)) });
+/** Jeux dont toutes les langues publiées sont complètes (affichées telles quelles). */
+const ALL_LANGS = new Set(['lorcana']);
+const visible = (g: GameProvider): GameProvider => (ALL_LANGS.has(g.id) ? g : { ...g, langs: g.langs.filter((l) => VISIBLE_LANGS.includes(l)) });
 
 export const GAMES: Record<GameId, GameProvider> = {
   pokemon: visible(pokemon),
   onepiece: visible(onepiece),
   riftbound: visible(riftbound),
+  lorcana: visible(lorcana),
 };
-export const GAME_LIST: GameProvider[] = [GAMES.pokemon, GAMES.onepiece, GAMES.riftbound];
+export const GAME_LIST: GameProvider[] = [GAMES.pokemon, GAMES.onepiece, GAMES.riftbound, GAMES.lorcana];
 
 export const LANG_LABEL: Record<CardLang, string> = {
   fr: 'Français', en: 'Anglais', ja: 'Japonais', de: 'Allemand', es: 'Espagnol',

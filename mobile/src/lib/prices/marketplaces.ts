@@ -13,18 +13,21 @@ const CARDMARKET_GAME: Record<GameId, string> = {
   pokemon: 'Pokemon',
   onepiece: 'OnePiece',
   riftbound: 'Riftbound',
+  lorcana: 'Lorcana',
 };
 
 const TCGPLAYER_GAME: Record<GameId, string> = {
   pokemon: 'pokemon',
   onepiece: 'one-piece-card-game',
   riftbound: 'riftbound-league-of-legends-trading-card-game',
+  lorcana: 'lorcana-tcg',
 };
 
 const EBAY_GAME: Record<GameId, string> = {
   pokemon: 'pokemon',
   onepiece: 'one piece card',
   riftbound: 'riftbound',
+  lorcana: 'lorcana',
 };
 
 /** Langue du site Cardmarket selon la langue de l'utilisateur. */

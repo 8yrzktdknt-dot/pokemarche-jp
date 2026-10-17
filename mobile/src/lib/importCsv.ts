@@ -138,6 +138,7 @@ export function parseGame(s?: string): GameId | undefined {
   if (k.includes('pokemon') || k.includes('pokmon')) return 'pokemon';
   if (k.includes('onepiece')) return 'onepiece';
   if (k.includes('riftbound') || k.includes('leagueoflegends')) return 'riftbound';
+  if (k.includes('lorcana')) return 'lorcana';
   return undefined;
 }
 
@@ -263,7 +264,7 @@ export interface ImportResult {
   missing: ImportRow[];
 }
 
-const GAME_ORDER: GameId[] = ['pokemon', 'onepiece', 'riftbound'];
+const GAME_ORDER: GameId[] = ['pokemon', 'onepiece', 'riftbound', 'lorcana'];
 /** Cartes allemandes, espagnoles, italiennes, portugaises : mêmes cartes que l'anglais dans le catalogue. */
 const AS_ENGLISH = new Set<CardLang>(['de', 'es', 'it', 'pt']);
 

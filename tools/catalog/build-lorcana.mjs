@@ -52,8 +52,13 @@ export function attrsOf(c) {
   return Object.keys(out).length ? out : undefined;
 }
 
+/** Groupes de promos (codes LorcanaJSON) : nom anglais (Lorcast). */
+const PROMO_NAMES = {
+  C1: 'Lorcana Challenge Promos', C2: 'Lorcana Challenge Year 3', CC1: "Curator's Collection: Heroines Edition",
+  D23: 'D23 Collection', DIS: 'EPCOT Festival of the Arts', PD1: 'Promo Deck 1', RPH: 'Rapunzel Promo',
+};
 /** Nom d'un groupe de promos ou d'une extension. */
-const setName = (meta, id) => meta?.name ?? (/^P\d+$/.test(id) ? `Promos ${id.slice(1)}` : id);
+const setName = (meta, id) => meta?.name ?? PROMO_NAMES[id] ?? (/^P\d+$/.test(id) ? `Promo Set ${id.slice(1)}` : id);
 
 /** Tri : sets du plus récent au plus ancien, puis quêtes et promos. */
 const kindRank = (id) => (/^\d+$/.test(id) ? 0 : /^Q\d+$/.test(id) ? 1 : 2);
@@ -89,6 +94,7 @@ export async function buildLorcana() {
     for (const c of src.cards) {
       const r = ref.get(c.id) ?? c;
       const setId = setOf(r);
+      if (!setId || setId === 'undefined') continue;
       if (!bySet.has(setId)) bySet.set(setId, []);
       const n = names.get(c.id) ?? {};
       const name = c.fullName ?? c.name;

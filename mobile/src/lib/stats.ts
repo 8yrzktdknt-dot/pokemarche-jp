@@ -55,7 +55,7 @@ export interface CollectionSet {
 export function collectionStats(
   entries: Entry[],
   toCurrency: (v: number, from: string) => number = (v) => v,
-  games: GameId[] = ['pokemon', 'onepiece', 'riftbound'],
+  games: GameId[] = ['pokemon', 'onepiece', 'riftbound', 'lorcana'],
 ): CollectionStats {
   let value = 0;
   const perGame = new Map<GameId, GameStats>(games.map((g) => [g, { game: g, count: 0, unique: 0, value: 0 }]));

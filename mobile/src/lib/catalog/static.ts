@@ -171,7 +171,7 @@ export const NO_RARITY = 'None';
 const rarityOf = (r?: string) => (r && r.trim() ? r : NO_RARITY);
 
 /** Facettes affichées comme attributs (couleur One Piece, domaine Riftbound…). */
-const FACET_ATTR: Record<string, AttributeKey> = { color: 'color', category: 'category', domain: 'domain', type: 'category' };
+const FACET_ATTR: Record<string, AttributeKey> = { color: 'color', category: 'category', domain: 'domain', type: 'category', ink: 'ink' };
 
 /** Attributs d'une carte du catalogue : illustrateur, date de sortie, rareté, puis ceux propres au jeu. */
 export function staticAttributes(c: StaticCard | StaticRow, releaseDate?: string): CardAttribute[] {

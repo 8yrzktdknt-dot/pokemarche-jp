@@ -38,6 +38,7 @@ const ICON: Record<AttributeKey, keyof typeof Ionicons.glyphMap> = {
   regulation: 'shield-checkmark-outline', cost: 'water-outline', life: 'heart-outline', power: 'barbell-outline',
   counter: 'shield-half-outline', attribute: 'flame-outline', feature: 'people-outline', block: 'cube-outline',
   color: 'color-palette-outline', domain: 'planet-outline', energy: 'flash-outline', might: 'fitness-outline',
+  ink: 'color-fill-outline', strength: 'barbell-outline', willpower: 'shield-outline', lore: 'star-outline', story: 'film-outline',
 };
 
 /** Couleurs des types d'énergie Pokémon (français, anglais, japonais). */
@@ -91,7 +92,7 @@ function AttributeRow({ a, game, appLang, locale, label }: { a: CardAttribute; g
   if (a.key === 'rarity' && game === 'onepiece') value = opRarity(a.value, appLang);
   if (game === 'onepiece' && a.key === 'feature') value = opFeature(a.value, appLang);
   if (game === 'pokemon' || (game === 'onepiece' && a.key !== 'rarity')) value = localizeAttr(a.key, value, appLang);
-  if (game === 'riftbound') value = facetValueLabel(game, a.key, value, appLang);
+  if (game === 'riftbound' || game === 'lorcana') value = facetValueLabel(game, a.key, value, appLang);
   return (
     <View style={st.attr}>
       <View style={st.attrIcon}><AttrIcon a={a} /></View>

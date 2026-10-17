@@ -1,4 +1,4 @@
-export type GameId = 'pokemon' | 'onepiece' | 'riftbound';
+export type GameId = 'pokemon' | 'onepiece' | 'riftbound' | 'lorcana';
 
 /** Codes de langue des cartes (pas de l'interface). */
 export type CardLang =
@@ -68,7 +68,7 @@ export interface CardVariant {
 export type AttributeKey =
   | 'illustrator' | 'release' | 'rarity' | 'dex' | 'type' | 'hp' | 'stage' | 'category' | 'regulation'
   | 'cost' | 'life' | 'power' | 'counter' | 'attribute' | 'feature' | 'block' | 'color'
-  | 'domain' | 'energy' | 'might';
+  | 'domain' | 'energy' | 'might' | 'ink' | 'strength' | 'willpower' | 'lore' | 'story';
 
 export interface CardAttribute {
   key: AttributeKey;
