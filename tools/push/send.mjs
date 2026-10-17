@@ -112,7 +112,9 @@ async function main() {
   for (const { target, deals } of alerts) {
     const payload = JSON.stringify({ ...message(target.lang, deals), url: `${APP_URL}/wishlist` });
     try {
-      await webpush.sendNotification({ endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } }, payload, { TTL: 24 * 3600 });
+      // Urgence haute : sinon iPhone et Android peuvent garder la notification jusqu'au réveil de l'appareil ou
+      // l'ouverture de l'appli (économie de batterie).
+      await webpush.sendNotification({ endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } }, payload, { TTL: 24 * 3600, urgency: 'high' });
       delivered.add(target.user);
       sent++;
     } catch (e) {
