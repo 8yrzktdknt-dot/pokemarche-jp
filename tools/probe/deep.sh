@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -u
-node tools/probe/rift.mjs
+node tools/probe/lorcana.mjs
