@@ -76,10 +76,8 @@ export default function Extensions() {
             {/* Progression : petite roue en haut à droite (cartes différentes possédées sur le nombre de cartes). */}
             {pct > 0 && (
               <View style={st.ring}>
-                <Ring value={pct} size={30} width={3.5} color={done ? colors.good : colors.accent}>
-                  {done
-                    ? <Ionicons name="checkmark" size={15} color={colors.good} />
-                    : <Text style={st.ringText}>{Math.max(1, Math.floor(pct * 100))}</Text>}
+                <Ring value={pct} size={26} width={2.5} color={done ? colors.good : colors.accent}>
+                  <Text style={[st.ringText, done && { color: colors.good, fontSize: 6.5 }]}>{done ? 100 : Math.max(1, Math.floor(pct * 100))}%</Text>
                 </Ring>
               </View>
             )}
@@ -155,6 +153,6 @@ const st = StyleSheet.create({
   code: { color: colors.accent, fontFamily: fonts.display, fontSize: 16 },
   name: { color: colors.text, fontFamily: fonts.bold, fontSize: 12, lineHeight: 15 },
   meta: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
-  ring: { position: 'absolute', top: 4, right: 4, borderRadius: 15, backgroundColor: 'rgba(10,31,23,0.85)' },
-  ringText: { color: colors.text, fontFamily: fonts.heavy, fontSize: 10 },
+  ring: { position: 'absolute', top: 4, right: 4, borderRadius: 13, backgroundColor: 'rgba(10,31,23,0.85)' },
+  ringText: { color: colors.text, fontFamily: fonts.heavy, fontSize: 7.5, letterSpacing: -0.3 },
 });
