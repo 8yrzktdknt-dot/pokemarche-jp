@@ -1,5 +1,7 @@
 import { FlatList, Text, View } from 'react-native';
 import { CardRow, s } from '../components/ui';
+import { GainText } from '../components/CardExtras';
+import { gainOf } from '../lib/wishlist';
 import { formatMoney } from '../lib/currency';
 import { dayChange } from '../lib/priceHistory';
 import { collectionStats } from '../lib/stats';
@@ -12,12 +14,19 @@ export default function Collection() {
   const cards = collection.map((e) => e.card);
   const points = usePriceHistory(cards);
   const total = formatMoney(st.value, settings.currency, locale);
+  const gain = gainOf(collection, toCurrency);
 
   return (
     <View style={s.screen}>
       <View style={s.pad}>
         <Text style={s.h2}>{t('coll.count', { n: st.count })}</Text>
         {st.value > 0 && <Text style={s.muted}>{t('coll.value', { v: total })}</Text>}
+        {gain && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <Text style={s.muted}>{t(gain.delta >= 0 ? 'paid.gain' : 'paid.loss')} :</Text>
+            <GainText delta={gain.delta} pct={gain.pct} size={14} />
+          </View>
+        )}
       </View>
       <FlatList
         data={collection}

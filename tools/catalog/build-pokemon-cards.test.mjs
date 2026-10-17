@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { numberKey, ptcgCandidates } from './build-pokemon-cards.mjs';
+import { looseKey, numberKey, ptcgCandidates } from './build-pokemon-cards.mjs';
 
 test('identifiants pokemontcg.io', () => {
   const pick = (id, sets) => ptcgCandidates(id).find((x) => sets.includes(x));
@@ -30,4 +30,12 @@ test('codes pokemon.com des extensions', async () => {
 test('identifiants pokemontcg.io particuliers', () => {
   assert.equal(ptcgCandidates('30th-c')[0], 'me55c');
   assert.equal(ptcgCandidates('tk-ex-latia')[0], 'tk1a');
+});
+
+test('numéros : zéros après les lettres, caractères encodés', () => {
+  assert.equal(looseKey('H01'), 'H1');
+  assert.equal(looseKey('H1'), 'H1');
+  assert.equal(numberKey('%3F'), '?');
+  assert.equal(ptcgCandidates('exu')[0], 'ex10');
+  assert.equal(ptcgCandidates('hgssp')[0], 'hsp');
 });

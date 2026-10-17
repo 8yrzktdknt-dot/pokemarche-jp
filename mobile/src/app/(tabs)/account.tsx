@@ -28,7 +28,7 @@ function confirm(message: string, onYes: () => void, cancel = 'Cancel') {
 }
 
 export default function Account() {
-  const { settings, setSettings, collection, clear, t, langLabel, user, username } = useStore();
+  const { settings, setSettings, collection, clear, t, langLabel, user, username, wishlist } = useStore();
   const [name, setName] = useState(settings.profileName ?? '');
   const [picking, setPicking] = useState(false);
   const count = collection.reduce((n, e) => n + e.quantity, 0);
@@ -98,6 +98,10 @@ export default function Account() {
       <Panel title={t('acc.collection')}>
         <Pressable style={s.ghost} onPress={() => router.push('/collection')}>
           <Text style={s.ghostText}>{t('acc.see')}</Text>
+        </Pressable>
+        <Pressable style={[s.ghost, { flexDirection: 'row', justifyContent: 'center', gap: 8 }]} onPress={() => router.push('/wishlist')}>
+          <Ionicons name="heart-outline" size={17} color={colors.text} />
+          <Text style={s.ghostText}>{t('wish.see')}{wishlist.length ? ` (${wishlist.length})` : ''}</Text>
         </Pressable>
         <Pressable
           style={[s.ghost, { borderColor: colors.danger }]}
