@@ -70,3 +70,14 @@ test('nameScore', () => {
   assert.equal(nameScore('Dracaufeu', 'PV 330 Dracaufeu ex'), 1);
   assert.equal(nameScore('Monkey D. Luffy', 'nothing'), 0);
 });
+
+test('Lorcana : « 1/204 • FR • 1 », quêtes', () => {
+  const h = parseScanText('Ariel\nSur des jambes humaines\n1/204 • FR • 1');
+  assert.equal(h?.game, 'lorcana');
+  assert.equal(h?.setCode, '1');
+  assert.equal(h?.localId, '1');
+  assert.equal(h?.lang, 'fr');
+  assert.equal(parseScanText('12/31 · EN · Q1')?.setCode, 'Q1');
+  // Une carte Pokémon reste une carte Pokémon.
+  assert.equal(parseScanText('SVI EN 136/198')?.game, 'pokemon');
+});

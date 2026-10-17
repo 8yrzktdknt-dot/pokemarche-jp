@@ -47,6 +47,15 @@ function parseRiftbound(text: string): ScanHint | null {
   return null;
 }
 
+/** Lorcana : « 1/204 • EN • 1 » (numéro/total • langue • set), « 12/31 • FR • Q1 ». */
+function parseLorcana(text: string): ScanHint | null {
+  const m = text.match(/\b([0-9OoIl]{1,3})\s*\/\s*([0-9OoIl]{2,3}|P\d)\s*[•·.∙-]\s*(EN|FR|DE|IT|JA)\s*[•·.∙-]\s*(Q?[0-9OoIl]{1,2})\b/);
+  if (!m) return null;
+  const setCode = m[4].startsWith('Q') ? `Q${fixDigits(m[4].slice(1))}` : String(Number(fixDigits(m[4])));
+  const localId = String(Number(fixDigits(m[1])));
+  return { game: 'lorcana', code: `${localId}/${m[2]} • ${setCode}`, setCode, localId, text, lang: LANG_TAGS[m[3]] ?? (m[3] === 'JA' ? 'ja' : undefined) };
+}
+
 function parsePokemon(text: string): ScanHint | null {
   // 136/189, TG05/TG30, GG01/GG70, 001/SV-P… précédé éventuellement du code d'extension : « SVI EN 123/198 », « SV4a 123/190 ».
   const re = /(?:\b([A-Za-z]{2,4}\d{0,2}[a-z]?)\s+(?:(?:EN|FR|DE|ES|IT|PT)\s+)?)?\b((?:TG|GG|RC|SV)?[0-9OoIl]{1,3})\s*\/\s*((?:TG|GG|RC|SV)?[0-9OoIl]{2,3})\b/;
@@ -76,11 +85,12 @@ export function parseScanText(rawText: string, game?: GameId): ScanHint | null {
     onepiece: parseOnePiece,
     riftbound: parseRiftbound,
     pokemon: parsePokemon,
+    lorcana: parseLorcana,
   };
-  const order: GameId[] = game ? [game] : ['onepiece', 'riftbound', 'pokemon'];
+  const order: GameId[] = game ? [game] : ['onepiece', 'riftbound', 'lorcana', 'pokemon'];
   for (const g of order) {
     const hint = parsers[g](text);
-    if (hint) return { ...hint, lang: detectLang(text) };
+    if (hint) return { ...hint, lang: hint.lang ?? detectLang(text) };
   }
   return null;
 }

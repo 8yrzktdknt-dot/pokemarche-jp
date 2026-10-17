@@ -1,5 +1,5 @@
 // Mise à jour rapide des prix (lancée toutes les heures) : quand Cardmarket publie un nouveau guide des prix
-// (environ une fois par jour), les prix de toutes les cartes Pokémon, One Piece et Riftbound et de leurs variantes sont recalculés
+// (environ une fois par jour), les prix de toutes les cartes Pokémon, One Piece, Riftbound et Lorcana et de leurs variantes sont recalculés
 // (moyenne des ventes sur 7 jours, sinon 30 jours, toutes les ventes, offres), sans refaire le reste du catalogue.
 // Rien n'est réécrit quand le guide n'a pas changé depuis le dernier passage.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -7,12 +7,13 @@ import { join } from 'node:path';
 import { PRICES } from './cardmarket-japanese.mjs';
 import { CM_PRICES } from './build-onepiece.mjs';
 import { CM_PRICES as RB_PRICES, foilAsHolo } from './build-riftbound.mjs';
+import { CM_PRICES as LOR_PRICES } from './build-lorcana.mjs';
 import { CATALOG, getJson, writeJson } from './lib.mjs';
 import { applyCardmarketPrices } from './variants.mjs';
 
 const STATE = 'prices-state.json';
 /** Jeux suivis : dossiers de cartes et guide des prix Cardmarket. */
-const GAMES = [{ game: 'pokemon', url: PRICES }, { game: 'onepiece', url: CM_PRICES }, { game: 'riftbound', url: RB_PRICES }];
+const GAMES = [{ game: 'pokemon', url: PRICES }, { game: 'onepiece', url: CM_PRICES }, { game: 'riftbound', url: RB_PRICES }, { game: 'lorcana', url: LOR_PRICES }];
 
 /** Date du guide des prix (champ « createdAt » de Cardmarket, sinon une empreinte de son contenu). */
 export function guideStamp(g) {

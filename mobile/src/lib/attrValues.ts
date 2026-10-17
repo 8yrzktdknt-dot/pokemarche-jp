@@ -220,12 +220,55 @@ export function rbLabel(kind: keyof typeof RB_TABLE, value: string, lang: string
   return value.split(/\s*\/\s*/).map((v) => { const c = rbConcept(kind, v); return c ? RB_TABLE[kind][c][l] : v; }).join(' / ');
 }
 
+/** Disney Lorcana : raretés, encres et types ; le catalogue donne leurs identifiants anglais (« super_rare »). */
+const LC_RARITIES: Record<string, Labels> = {
+  common: L('Commune', 'Common', 'コモン', '普通', '普通', 'Común', 'Comune', 'Gewöhnlich', 'Gewoon', 'Comum', 'Обычная', 'ทั่วไป', '커먼'),
+  uncommon: L('Inhabituelle', 'Uncommon', 'アンコモン', '非普通', '非普通', 'Infrecuente', 'Non comune', 'Ungewöhnlich', 'Ongewoon', 'Incomum', 'Необычная', 'ไม่ธรรมดา', '언커먼'),
+  rare: L('Rare', 'Rare', 'レア', '稀有', '稀有', 'Rara', 'Rara', 'Selten', 'Zeldzaam', 'Rara', 'Редкая', 'หายาก', '레어'),
+  super_rare: L('Très Rare', 'Super Rare', 'スーパーレア', '超稀有', '超稀有', 'Súper rara', 'Super Rara', 'Episch', 'Superzeldzaam', 'Super Rara', 'Сверхредкая', 'ซูเปอร์แรร์', '슈퍼 레어'),
+  legendary: L('Légendaire', 'Legendary', 'レジェンダリー', '傳奇', '传奇', 'Legendaria', 'Leggendaria', 'Legendär', 'Legendarisch', 'Lendária', 'Легендарная', 'ตำนาน', '레전더리'),
+  enchanted: L('Enchantée', 'Enchanted', 'エンチャンテッド', '魔法', '魔法', 'Encantada', 'Incantata', 'Verzaubert', 'Betoverd', 'Encantada', 'Зачарованная', 'มนตร์เสน่ห์', '인챈티드'),
+  epic: L('Épique', 'Epic', 'エピック', '史詩', '史诗', 'Épica', 'Epica', 'Mythisch', 'Episch', 'Épica', 'Эпическая', 'มหากาพย์', '에픽'),
+  iconic: L('Iconique', 'Iconic', 'アイコニック', '經典', '经典', 'Icónica', 'Iconica', 'Ikonisch', 'Iconisch', 'Icônica', 'Культовая', 'ไอคอนิก', '아이코닉'),
+  special: L('Spéciale', 'Special', 'スペシャル', '特殊', '特殊', 'Especial', 'Speciale', 'Speziell', 'Speciaal', 'Especial', 'Особая', 'พิเศษ', '스페셜'),
+  promo: L('Promo', 'Promo', 'プロモ', '特典', '特典', 'Promo', 'Promo', 'Promo', 'Promo', 'Promo', 'Промо', 'โปรโม', '프로모'),
+};
+const LC_INKS: Record<string, Labels> = {
+  amber: L('Ambre', 'Amber', 'アンバー', '琥珀', '琥珀', 'Ámbar', 'Ambra', 'Bernstein', 'Amber', 'Âmbar', 'Янтарь', 'อำพัน', '앰버'),
+  amethyst: L('Améthyste', 'Amethyst', 'アメジスト', '紫水晶', '紫水晶', 'Amatista', 'Ametista', 'Amethyst', 'Amethist', 'Ametista', 'Аметист', 'อเมทิสต์', '자수정'),
+  emerald: L('Émeraude', 'Emerald', 'エメラルド', '翡翠', '翡翠', 'Esmeralda', 'Smeraldo', 'Smaragd', 'Smaragd', 'Esmeralda', 'Изумруд', 'มรกต', '에메랄드'),
+  ruby: L('Rubis', 'Ruby', 'ルビー', '紅寶石', '红宝石', 'Rubí', 'Rubino', 'Rubin', 'Robijn', 'Rubi', 'Рубин', 'ทับทิม', '루비'),
+  sapphire: L('Saphir', 'Sapphire', 'サファイア', '藍寶石', '蓝宝石', 'Zafiro', 'Zaffiro', 'Saphir', 'Saffier', 'Safira', 'Сапфир', 'ไพลิน', '사파이어'),
+  steel: L('Acier', 'Steel', 'スチール', '鋼鐵', '钢铁', 'Acero', 'Acciaio', 'Stahl', 'Staal', 'Aço', 'Сталь', 'เหล็กกล้า', '스틸'),
+};
+const LC_TYPES: Record<string, Labels> = {
+  character: L('Personnage', 'Character', 'キャラクター', '角色', '角色', 'Personaje', 'Personaggio', 'Figur', 'Personage', 'Personagem', 'Персонаж', 'ตัวละคร', '캐릭터'),
+  action: L('Action', 'Action', 'アクション', '行動', '行动', 'Acción', 'Azione', 'Aktion', 'Actie', 'Ação', 'Действие', 'แอ็กชัน', '액션'),
+  item: L('Objet', 'Item', 'アイテム', '物品', '物品', 'Objeto', 'Oggetto', 'Gegenstand', 'Voorwerp', 'Item', 'Предмет', 'ไอเท็ม', '아이템'),
+  location: L('Lieu', 'Location', 'ロケーション', '地點', '地点', 'Localización', 'Luogo', 'Ort', 'Locatie', 'Local', 'Место', 'สถานที่', '장소'),
+};
+/** Ordre des raretés Lorcana (filtres, statistiques). */
+export const LC_RARITY_ORDER = Object.keys(LC_RARITIES);
+const LC_TABLE = { rarity: LC_RARITIES, ink: LC_INKS, category: LC_TYPES };
+
+/** Valeur Lorcana dans la langue de l'app : « super_rare » → « Très Rare », « amber / steel » → « Ambre / Acier ». */
+export function lcLabel(kind: keyof typeof LC_TABLE, value: string, lang: string): string {
+  const l = (LC_RARITIES.common[lang as Lang] ? lang : 'en') as Lang;
+  return value.split(/\s*\/\s*/).map((v) => LC_TABLE[kind][v.trim().toLowerCase()]?.[l] ?? v).join(' / ');
+}
+
 /** Valeur d'un filtre ou d'un attribut, quel que soit le jeu, dans la langue de l'app. */
 export function facetValueLabel(game: string, key: string, value: string, lang: string): string {
   if (game === 'riftbound') {
     if (key === 'rarity') return rbLabel('rarity', value, lang);
     if (key === 'type' || key === 'category') return rbLabel('category', value, lang);
     if (key === 'domain') return rbLabel('domain', value, lang);
+    return value;
+  }
+  if (game === 'lorcana') {
+    if (key === 'rarity') return lcLabel('rarity', value, lang);
+    if (key === 'ink') return lcLabel('ink', value, lang);
+    if (key === 'type' || key === 'category') return lcLabel('category', value, lang);
     return value;
   }
   if (game === 'onepiece') {

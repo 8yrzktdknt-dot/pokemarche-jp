@@ -54,6 +54,7 @@ function AppStack() {
         <Stack.Screen name="collection" options={{ title: t('title.collection') }} />
         <Stack.Screen name="wishlist" options={{ title: t('wish.title') }} />
         <Stack.Screen name="trades" options={{ title: t('trades.title') }} />
+        <Stack.Screen name="packrush" options={{ title: t('pr.title') }} />
         <Stack.Screen name="import" options={{ title: t('imp.title') }} />
         <Stack.Screen name="u/[username]" options={{ title: t('prof.title') }} />
         <Stack.Screen name="card/[game]/[id]" options={{ title: t('title.card') }} />
