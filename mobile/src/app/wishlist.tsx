@@ -7,7 +7,7 @@ import { dayChange } from '../lib/priceHistory';
 import { useStore } from '../lib/store';
 import { usePriceHistory } from '../lib/usePriceHistory';
 import { collectionKey } from '../lib/variants';
-import { currentPush, disablePush, enablePush, needsHomeScreen, pushDiagnostic, pushSupported, testNotification } from '../lib/push';
+import { currentPush, disablePush, enablePush, needsHomeScreen, pushDiagnostic, pushSupported } from '../lib/push';
 
 const canNotify = () => Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window;
 
@@ -18,9 +18,8 @@ export default function Wishlist() {
   // Cet appareil reçoit les alertes même appli fermée.
   const [push, setPush] = useState(false);
   useEffect(() => { currentPush().then((sub) => setPush(!!sub)); }, []);
-  // Diagnostic des alertes : dernière alerte reçue par l'appareil, notification de test.
+  // Dernière alerte reçue par l'appareil.
   const [diag, setDiag] = useState<Awaited<ReturnType<typeof pushDiagnostic>>>({});
-  const [tested, setTested] = useState<boolean | null>(null);
   useEffect(() => { pushDiagnostic().then(setDiag); }, []);
   const when = (at?: number) => (at ? new Date(at).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
   const dealKeys = useMemo(() => new Set(deals.map((w) => collectionKey(w.card))), [deals]);
@@ -65,16 +64,10 @@ export default function Wishlist() {
             {canNotify() && <Text style={[s.muted, { fontSize: 12 }]}>{denied ? t('wish.notifyDenied') : settings.wishNotify && push ? `✓ ${t('wish.pushOn')}` : t('wish.notifyHint')}</Text>}
             {needsHomeScreen() && <Text style={[s.muted, { fontSize: 12 }]}>📲 {t('wish.pushInstall')}</Text>}
             {settings.wishNotify && push && (
-              <View style={{ gap: 6 }}>
-                <Text style={[s.muted, { fontSize: 12 }]}>
-                  {diag.push ? t('wish.diagLast', { d: when(diag.push.at) }) : t('wish.diagNone')}
-                  {diag.error ? ` · ⚠️ ${diag.error.message ?? ''} (${when(diag.error.at)})` : ''}
-                </Text>
-                <Pressable onPress={async () => setTested(await testNotification(t('wish.notifTitle'), t('wish.diagTestBody')))} style={{ alignSelf: 'flex-start' }}>
-                  <Text style={{ color: colors.accent, fontFamily: fonts.bold, fontSize: 13, textDecorationLine: 'underline' }}>{t('wish.diagTest')}</Text>
-                </Pressable>
-                {tested === false && <Text style={{ color: colors.danger, fontSize: 12, fontFamily: fonts.bold }}>{t('wish.diagTestFail')}</Text>}
-              </View>
+              <Text style={[s.muted, { fontSize: 12 }]}>
+                {diag.push ? t('wish.diagLast', { d: when(diag.push.at) }) : t('wish.diagNone')}
+                {diag.error ? ` · ⚠️ ${diag.error.message ?? ''} (${when(diag.error.at)})` : ''}
+              </Text>
             )}
           </View>
         }
